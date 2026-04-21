@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Flame, Sparkles, Zap } from "lucide-react";
+import { Flame, Shield, Sparkles, Zap } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { apiRequest } from "@/lib/client/auth-api";
+import { zhCN } from "@/lib/copy/zh-cn";
 
 type GenreId = string;
 
@@ -52,6 +53,7 @@ export default function DashboardCreatePage() {
   const [dna, setDna] = useState("");
   const [words, setWords] = useState("100w");
   const [userEmail, setUserEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [config, setConfig] = useState<CreateUiConfig | null>(null);
   const [hotTemplates, setHotTemplates] = useState<HotTemplate[]>([]);
   const [bootstrapLoading, setBootstrapLoading] = useState(true);
@@ -76,6 +78,7 @@ export default function DashboardCreatePage() {
 
       if (response.success && response.data?.user?.email) {
         setUserEmail(response.data.user.email);
+        setIsAdmin(Boolean(response.data.user.isAdmin));
       } else {
         window.location.href = "/login";
         return;
@@ -283,10 +286,10 @@ export default function DashboardCreatePage() {
           <div className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <div className="leading-tight">
               <div className="text-[11px] tracking-[0.34em] text-slate-400">
-                BAYDATA
+                {zhCN.app.shortName}
               </div>
               <div className="text-lg font-semibold text-slate-100">
-                数据控制台
+                创作工作台
               </div>
             </div>
 
@@ -297,6 +300,15 @@ export default function DashboardCreatePage() {
               >
                 返回工作台
               </Link>
+              {isAdmin ? (
+                <Link
+                  href="/dashboard/admin"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-300 via-orange-300 to-rose-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-rose-500/10 transition hover:from-amber-200 hover:via-orange-200 hover:to-rose-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070c]"
+                >
+                  <Shield className="h-4 w-4" />
+                  管理员
+                </Link>
+              ) : null}
               <span className="hidden text-sm text-slate-300/90 md:inline">
                 {userEmail}
               </span>

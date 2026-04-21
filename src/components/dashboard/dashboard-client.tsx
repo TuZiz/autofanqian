@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Shield } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { apiRequest } from "@/lib/client/auth-api";
+import { zhCN } from "@/lib/copy/zh-cn";
 
 type SessionUser = {
   id: string;
@@ -114,10 +116,10 @@ export function DashboardClient() {
           <div className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <div className="leading-tight">
               <div className="text-[11px] tracking-[0.34em] text-slate-400">
-                BAYDATA
+                {zhCN.app.shortName}
               </div>
               <div className="text-lg font-semibold text-slate-100">
-                数据控制台
+                创作工作台
               </div>
             </div>
 
@@ -125,8 +127,9 @@ export function DashboardClient() {
               {user?.isAdmin ? (
                 <Link
                   href="/dashboard/admin"
-                  className="hidden text-sm font-medium text-slate-200/80 transition hover:text-slate-100 sm:inline"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-300 via-orange-300 to-rose-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-rose-500/10 transition hover:from-amber-200 hover:via-orange-200 hover:to-rose-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070c]"
                 >
+                  <Shield className="h-4 w-4" />
                   管理员
                 </Link>
               ) : null}
@@ -155,7 +158,7 @@ export function DashboardClient() {
             欢迎回来
           </h2>
           <p className="mt-4 max-w-3xl leading-relaxed text-slate-600 dark:text-slate-300/80">
-            这里是受保护的数据视图面板。认证链路已经生效，你现在可以继续把业务卡片、图表、表格和操作流接到这个页面上。
+            这里是受保护的创作工作台。你可以管理作品、大纲与章节，并随时调用 AI 进行灵感拓展、润色与续写。
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
