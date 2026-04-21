@@ -41,6 +41,12 @@ function normalizeModelName(model: string) {
   return trimmed;
 }
 
+function getAlternateModelName(model: string) {
+  if (model === "gpt5.2") return "gpt-5.2";
+  if (model === "gpt-5.2") return "gpt5.2";
+  return null;
+}
+
 function getUpstreamMessage(payload: unknown) {
   if (!payload || typeof payload !== "object") return null;
 
@@ -51,6 +57,14 @@ function getUpstreamMessage(payload: unknown) {
 
   const message = data.error?.message ?? data.message ?? null;
   return typeof message === "string" ? message : null;
+}
+
+function shouldRetryWithAlternateModel(status: number, upstreamMessage: unknown) {
+  if (status !== 400 && status !== 404) return false;
+  if (typeof upstreamMessage !== "string") return false;
+  return /(model|not\s*found|unknown|invalid|不存在|未找到|无效|不支持)/i.test(
+    upstreamMessage,
+  );
 }
 
 function parseStringArrayFromModel(text: string) {
@@ -86,6 +100,24 @@ function parseStringArrayFromModel(text: string) {
   return items;
 }
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function isRetryableStatus(status: number) {
+  return (
+    status === 0 ||
+    status === 408 ||
+    status === 429 ||
+    status === 500 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504
+  );
+}
+
 async function callChatCompletions(params: {
   baseUrl: string;
   apiKey: string;
@@ -94,23 +126,64 @@ async function callChatCompletions(params: {
   maxTokens?: number;
   temperature?: number;
 }) {
-  const response = await fetch(buildChatCompletionsUrl(params.baseUrl), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${params.apiKey}`,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      model: params.model,
-      temperature: params.temperature ?? 0.8,
-      max_tokens: params.maxTokens ?? 900,
-      messages: params.messages,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
-  const json = await response.json().catch(() => null as unknown);
-  return { ok: response.ok, status: response.status, json };
+  try {
+    const response = await fetch(buildChatCompletionsUrl(params.baseUrl), {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${params.apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        model: params.model,
+        temperature: params.temperature ?? 0.8,
+        max_tokens: params.maxTokens ?? 900,
+        messages: params.messages,
+      }),
+      signal: controller.signal,
+    });
+
+    const json = await response.json().catch(() => null as unknown);
+    return { ok: response.ok, status: response.status, json };
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      json: { error: { message: "网络异常或上游服务不可达" } },
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function callChatCompletionsWithRetry(params: {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  maxTokens?: number;
+  temperature?: number;
+  attempts?: number;
+}) {
+  const attempts = Math.max(1, Math.min(3, params.attempts ?? 3));
+  let last = await callChatCompletions(params);
+
+  for (let attempt = 1; attempt < attempts; attempt += 1) {
+    if (last.ok || !isRetryableStatus(last.status)) {
+      return last;
+    }
+
+    const baseDelay = 450 * Math.pow(2, attempt - 1);
+    const jitter = Math.floor(Math.random() * 150);
+    await sleep(baseDelay + jitter);
+
+    last = await callChatCompletions(params);
+  }
+
+  return last;
 }
 
 export async function POST(request: Request) {
@@ -148,6 +221,11 @@ export async function POST(request: Request) {
 
   const results: Array<{ genreId: string; created: number; skipped: number }> = [];
 
+  const clampSnippet = (text: string, max = 520) => {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    return normalized.length > max ? `${normalized.slice(0, max)}…` : normalized;
+  };
+
   for (const genreId of genreIds) {
     const meta = config.genres.find((genre) => genre.id === genreId);
     if (!meta) continue;
@@ -166,6 +244,9 @@ export async function POST(request: Request) {
       select: { content: true, usageCount: true },
     });
 
+    const templateSamples = topTemplates.slice(0, 8);
+    const ideaSamples = recentIdeas.slice(0, 12);
+
     const systemPrompt = [
       "你是一名中文网文策划编辑，擅长把零散素材提炼成可复用的热门模板。",
       "请只输出 JSON，不要输出 Markdown，不要输出多余解释。",
@@ -180,24 +261,30 @@ export async function POST(request: Request) {
       `固定标签：${meta.tags.join("、") || "无"}`,
       "",
       "现有热门模板（供参考，不要照抄）：",
-      topTemplates.length
-        ? topTemplates
-            .map((item, idx) => `${idx + 1})（使用次数${item.usageCount}）${item.content}`)
+      templateSamples.length
+        ? templateSamples
+            .map(
+              (item, idx) =>
+                `${idx + 1})（使用次数${item.usageCount}）${clampSnippet(item.content, 420)}`,
+            )
             .join("\n")
         : "（暂无）",
       "",
       "最近用户创意（供学习，不要照抄）：",
-      recentIdeas.length
-        ? recentIdeas.map((item, idx) => `${idx + 1}) ${item.outputIdea}`).join("\n")
+      ideaSamples.length
+        ? ideaSamples
+            .map((item, idx) => `${idx + 1}) ${clampSnippet(item.outputIdea, 480)}`)
+            .join("\n")
         : "（暂无）",
       "",
       "请生成新的热门模板数组。",
     ].join("\n");
 
-    const response = await callChatCompletions({
+    let modelUsed = model;
+    let response = await callChatCompletionsWithRetry({
       baseUrl,
       apiKey,
-      model,
+      model: modelUsed,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -206,14 +293,47 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const upstreamMessage = getUpstreamMessage(response.json);
+      const alternateModel = getAlternateModelName(modelUsed);
+
+      if (
+        alternateModel &&
+        shouldRetryWithAlternateModel(response.status, upstreamMessage)
+      ) {
+        const retry = await callChatCompletionsWithRetry({
+          baseUrl,
+          apiKey,
+          model: alternateModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        });
+
+        if (retry.ok) {
+          response = retry;
+          modelUsed = alternateModel;
+        }
+      }
+    }
+
+    if (!response.ok) {
+      const upstreamMessage = getUpstreamMessage(response.json);
 
       return NextResponse.json(
         {
           success: false,
           message:
-            typeof upstreamMessage === "string"
-              ? `AI 学习失败：${upstreamMessage}（HTTP ${response.status}）`
-              : `AI 学习失败（HTTP ${response.status}）`,
+            response.status === 401
+              ? "AI 学习失败：鉴权失败，请检查 AI_API_KEY。"
+              : response.status === 429
+                ? "AI 学习失败：上游限流（429），请稍后重试。"
+                : response.status === 503
+                  ? "AI 学习失败：上游服务暂时不可用（503），请稍后重试。"
+                  : response.status === 502
+                    ? "AI 学习失败：上游网关异常（502），请稍后重试。"
+                    : typeof upstreamMessage === "string"
+                      ? `AI 学习失败：${upstreamMessage}${response.status ? `（HTTP ${response.status}）` : ""}`
+                      : `AI 学习失败（HTTP ${response.status || 0}）`,
         },
         { status: 502 },
       );
