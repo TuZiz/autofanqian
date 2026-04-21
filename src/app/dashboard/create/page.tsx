@@ -43,6 +43,13 @@ type HotTemplate = {
 
 const stepTitles = ["输入创意", "确认大纲", "创建成功"];
 
+function extractBookName(label: string) {
+  const trimmed = (label ?? "").trim();
+  if (!trimmed) return "";
+  const index = trimmed.search(/[（(]/);
+  return (index >= 0 ? trimmed.slice(0, index) : trimmed).trim();
+}
+
 export default function DashboardCreatePage() {
   const [selectedGenre, setSelectedGenre] = useState<GenreId | "">("");
   const [idea, setIdea] = useState("");
@@ -50,7 +57,6 @@ export default function DashboardCreatePage() {
   const [aiBusy, setAiBusy] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);
   const [platform, setPlatform] = useState("");
-  const [dna, setDna] = useState("");
   const [dnaBookTitle, setDnaBookTitle] = useState("");
   const [words, setWords] = useState("100w");
   const [userEmail, setUserEmail] = useState("");
@@ -83,7 +89,6 @@ export default function DashboardCreatePage() {
         const admin = Boolean(response.data.user.isAdmin);
         setIsAdmin(admin);
         if (!admin) {
-          setDna("");
           setDnaBookTitle("");
         }
       } else {
@@ -186,7 +191,6 @@ export default function DashboardCreatePage() {
             genre: selectedGenre,
             tags: selectedTags,
             platform: platform.trim() ? platform.trim() : undefined,
-            dna: isAdmin && dna.trim() ? dna.trim() : undefined,
             dnaBookTitle:
               isAdmin && dnaBookTitle.trim() ? dnaBookTitle.trim() : undefined,
             words: words.trim() ? words.trim() : undefined,
@@ -226,7 +230,6 @@ export default function DashboardCreatePage() {
       genre: selectedGenre,
       tags: selectedTags,
       platform: platform.trim() ? platform.trim() : undefined,
-      dna: isAdmin && dna.trim() ? dna.trim() : undefined,
       dnaBookTitle: isAdmin && dnaBookTitle.trim() ? dnaBookTitle.trim() : undefined,
       words: words.trim() ? words.trim() : undefined,
       idea: idea.trim() ? idea.trim() : undefined,
@@ -521,45 +524,31 @@ export default function DashboardCreatePage() {
                       (内测功能，仅管理员可用)
                     </span>
                   </label>
-                  <select
-                    value={dna}
-                    onChange={(event) => setDna(event.target.value)}
+                  <input
+                    value={dnaBookTitle}
+                    list="dna-book-suggestions"
                     disabled={!isAdmin}
-                    className="w-full cursor-pointer appearance-none rounded-2xl border border-slate-200/80 bg-white/60 px-4 py-3 text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:ring-sky-300/50 dark:focus:ring-offset-[#05070c]"
-                  >
-                    <option value="">选择仿书 DNA 风格</option>
-                    {dnaStyles.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className="mt-3">
-                    <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      自定义书名（可选）
-                    </div>
-                    <input
-                      value={dnaBookTitle}
-                      disabled={!isAdmin}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setDnaBookTitle(value);
-                        if (value.trim()) {
-                          setDna("");
-                        }
-                      }}
-                      placeholder={
-                        isAdmin
-                          ? "例如：诡秘之主 / 凡人修仙传 / 庆余年"
-                          : "内测中：仅管理员可使用"
-                      }
-                      className="mt-2 w-full rounded-2xl border border-slate-200/80 bg-white/60 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:ring-sky-300/50 dark:focus:ring-offset-[#05070c]"
-                    />
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                      输入书名后，生成大纲时会尝试进行网络检索并抽象其写法与结构（不复刻原作剧情）。
-                    </p>
-                  </div>
+                    onChange={(event) => setDnaBookTitle(event.target.value)}
+                    placeholder={
+                      isAdmin
+                        ? "输入或选择参考书名（例如：诡秘之主 / 凡人修仙传 / 庆余年）"
+                        : "内测中：仅管理员可使用"
+                    }
+                    className="w-full rounded-2xl border border-slate-200/80 bg-white/60 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:ring-sky-300/50 dark:focus:ring-offset-[#05070c]"
+                  />
+                  <datalist id="dna-book-suggestions">
+                    {dnaStyles.map((item) => {
+                      const name = extractBookName(item.label);
+                      return (
+                        <option key={item.id} value={name}>
+                          {item.label}
+                        </option>
+                      );
+                    })}
+                  </datalist>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                    生成大纲时会尝试进行网络检索，并抽象其写法与结构（不复刻原作剧情）。
+                  </p>
                 </div>
               </div>
 
