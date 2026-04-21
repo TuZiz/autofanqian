@@ -38,6 +38,8 @@ type CreateUiConfig = {
   wordOptions: OptionConfig[];
 };
 
+type OptionSectionKey = "platforms" | "dnaStyles" | "wordOptions";
+
 type TemplateItem = {
   id: string;
   genreId: string;
@@ -179,6 +181,96 @@ export default function DashboardAdminPage() {
     }
 
     window.alert("配置已保存");
+  }
+
+  function handleAddGenre() {
+    if (!config) return;
+
+    const id =
+      window.prompt("请输入新类型 ID（建议英文/数字，如 fantasy2）", "new_genre")?.trim() ??
+      "";
+    if (!id) return;
+
+    if (config.genres.some((genre) => genre.id === id)) {
+      window.alert("该 ID 已存在，请换一个。");
+      return;
+    }
+
+    const name = window.prompt("请输入类型名称", "新类型")?.trim() ?? "";
+    if (!name) return;
+
+    const nextSortOrder =
+      Math.max(0, ...config.genres.map((genre) => genre.sortOrder ?? 0)) + 10;
+
+    setConfig({
+      ...config,
+      genres: [
+        ...config.genres,
+        {
+          id,
+          name,
+          tags: [],
+          icon: "✨",
+          gradient: "from-sky-500 to-teal-500",
+          sortOrder: nextSortOrder,
+          active: true,
+        },
+      ],
+    });
+  }
+
+  function handleDeleteGenre(id: string) {
+    if (!config) return;
+    if (!window.confirm(`确定删除类型「${id}」吗？`)) return;
+
+    setConfig({
+      ...config,
+      genres: config.genres.filter((genre) => genre.id !== id),
+    });
+  }
+
+  function handleAddOption(section: OptionSectionKey) {
+    if (!config) return;
+
+    const id =
+      window.prompt("请输入新选项 ID（建议英文/数字，如 qidian2）", "new_option")?.trim() ??
+      "";
+    if (!id) return;
+
+    const items = (config[section] ?? []) as OptionConfig[];
+    if (items.some((item) => item.id === id)) {
+      window.alert("该 ID 已存在，请换一个。");
+      return;
+    }
+
+    const label = window.prompt("请输入显示名称", "新选项")?.trim() ?? "";
+    if (!label) return;
+
+    const nextSortOrder =
+      Math.max(0, ...items.map((item) => item.sortOrder ?? 0)) + 10;
+
+    const nextItems = [
+      ...items,
+      { id, label, promptHint: "", sortOrder: nextSortOrder, active: true },
+    ];
+
+    setConfig({
+      ...config,
+      [section]: nextItems,
+    } as CreateUiConfig);
+  }
+
+  function handleDeleteOption(section: OptionSectionKey, id: string) {
+    if (!config) return;
+    if (!window.confirm(`确定删除选项「${id}」吗？`)) return;
+
+    const items = (config[section] ?? []) as OptionConfig[];
+    const nextItems = items.filter((item) => item.id !== id);
+
+    setConfig({
+      ...config,
+      [section]: nextItems,
+    } as CreateUiConfig);
   }
 
   async function handleUpdateTemplate(id: string, patch: Partial<TemplateItem>) {
@@ -375,6 +467,16 @@ export default function DashboardAdminPage() {
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               类型卡片（标签/图标/渐变）
             </h2>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={handleAddGenre}
+                className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+              >
+                新增类型
+              </button>
+            </div>
+
             <div className="mt-6 space-y-5">
               {config.genres.map((genre, idx) => (
                 <div
@@ -385,18 +487,27 @@ export default function DashboardAdminPage() {
                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {genre.id || "(未命名ID)"}
                     </div>
-                    <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                      <input
-                        type="checkbox"
-                        checked={genre.active}
-                        onChange={(event) => {
-                          const next = [...config.genres];
-                          next[idx] = { ...next[idx], active: event.target.checked };
-                          setConfig({ ...config, genres: next });
-                        }}
-                      />
-                      启用
-                    </label>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                        <input
+                          type="checkbox"
+                          checked={genre.active}
+                          onChange={(event) => {
+                            const next = [...config.genres];
+                            next[idx] = { ...next[idx], active: event.target.checked };
+                            setConfig({ ...config, genres: next });
+                          }}
+                        />
+                        启用
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteGenre(genre.id)}
+                        className="text-xs font-semibold text-rose-600 transition hover:text-rose-500 dark:text-rose-300 dark:hover:text-rose-200"
+                      >
+                        删除
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -497,13 +608,22 @@ export default function DashboardAdminPage() {
 
                 return (
                   <div key={section.key}>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {section.title}
-                      </h3>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {section.hint}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {section.title}
+                        </h3>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {section.hint}
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddOption(section.key as OptionSectionKey)}
+                        className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-900 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+                      >
+                        新增选项
+                      </button>
                     </div>
 
                     <div className="mt-4 space-y-4">
@@ -516,24 +636,38 @@ export default function DashboardAdminPage() {
                             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                               {item.id}
                             </div>
-                            <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                              <input
-                                type="checkbox"
-                                checked={item.active}
-                                onChange={(event) => {
-                                  const nextItems = [...items];
-                                  nextItems[idx] = {
-                                    ...nextItems[idx],
-                                    active: event.target.checked,
-                                  };
-                                  setConfig({
-                                    ...config,
-                                    [section.key]: nextItems,
-                                  } as CreateUiConfig);
-                                }}
-                              />
-                              启用
-                            </label>
+                            <div className="flex items-center gap-3">
+                              <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                <input
+                                  type="checkbox"
+                                  checked={item.active}
+                                  onChange={(event) => {
+                                    const nextItems = [...items];
+                                    nextItems[idx] = {
+                                      ...nextItems[idx],
+                                      active: event.target.checked,
+                                    };
+                                    setConfig({
+                                      ...config,
+                                      [section.key]: nextItems,
+                                    } as CreateUiConfig);
+                                  }}
+                                />
+                                启用
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleDeleteOption(
+                                    section.key as OptionSectionKey,
+                                    item.id,
+                                  )
+                                }
+                                className="text-xs font-semibold text-rose-600 transition hover:text-rose-500 dark:text-rose-300 dark:hover:text-rose-200"
+                              >
+                                删除
+                              </button>
+                            </div>
                           </div>
 
                           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -734,4 +868,3 @@ export default function DashboardAdminPage() {
     </main>
   );
 }
-
