@@ -16,6 +16,13 @@ enum EmailVerificationPurpose {
   reset_password
 }
 
+enum TemplateSource {
+  seed
+  ai
+  user
+  learned
+}
+
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
@@ -25,6 +32,9 @@ model User {
   lastLoginAt   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  templateUsages       CreateTemplateUsage[]
+  ideaGenerationEvents IdeaGenerationEvent[]
 }
 
 model EmailVerificationCode {
@@ -37,4 +47,58 @@ model EmailVerificationCode {
   createdAt DateTime                 @default(now())
 
   @@index([email, purpose, createdAt(sort: Desc)])
+}
+
+model AppConfig {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CreateTemplate {
+  id         String         @id @default(cuid())
+  genreId    String
+  title      String?
+  content    String
+  source     TemplateSource @default(seed)
+  usageCount Int            @default(0)
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  usageEvents CreateTemplateUsage[]
+
+  @@index([genreId, usageCount(sort: Desc), updatedAt(sort: Desc)])
+}
+
+model CreateTemplateUsage {
+  id         String   @id @default(cuid())
+  templateId String
+  userId     String?
+  createdAt  DateTime @default(now())
+
+  template CreateTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user     User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([templateId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model IdeaGenerationEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  genreId   String
+  tags      String[]
+  platformId String?
+  dnaStyleId String?
+  wordsId    String?
+  inputIdea String?
+  outputIdea String
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([genreId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
 }

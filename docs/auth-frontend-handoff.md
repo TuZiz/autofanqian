@@ -2,7 +2,7 @@
 
 这份文档对应当前项目里的邮箱账号体系 V1。
 
-已实现能力：
+当前已实现能力：
 
 - 邮箱 + 密码登录
 - 邮箱验证码注册
@@ -12,7 +12,7 @@
 - Cookie 会话鉴权
 - `/dashboard` 路由保护
 
-当前没有实现页面 UI，只提供了占位页和完整 JSON 接口。
+当前没有实现正式页面 UI，只提供了占位页和完整 JSON 接口。
 
 ## 页面清单
 
@@ -27,10 +27,10 @@
 
 - 点击登录时调用 `POST /api/auth/login`
 - 成功后读取返回里的 `data.redirectTo`，跳转到 `/dashboard`
-- 如果是前后端同域，浏览器会自动收下 Cookie
+- 如果是同域前后端，浏览器会自动接收 Cookie
 - 如果未来前后端分域，请求必须带 `credentials: "include"`
 
-页面元素建议：
+建议页面元素：
 
 - 邮箱输入框
 - 密码输入框
@@ -54,7 +54,7 @@
 - “注册” 调用 `POST /api/auth/register/confirm`
 - 注册成功后跳转到 `/dashboard`
 
-页面元素建议：
+建议页面元素：
 
 - 邮箱输入框
 - 发送验证码按钮
@@ -62,7 +62,7 @@
 - 密码输入框
 - 确认密码输入框
 - 注册按钮
-- 验证码倒计时和重发态
+- 验证码倒计时和重发状态
 - 错误提示区
 
 ### 3. `/forgot-password`
@@ -80,7 +80,7 @@
 - “重置密码” 调用 `POST /api/auth/password/reset`
 - 重置成功后跳转到 `/login`
 
-页面元素建议：
+建议页面元素：
 
 - 邮箱输入框
 - 发送验证码按钮
@@ -88,7 +88,7 @@
 - 新密码输入框
 - 确认密码输入框
 - 提交按钮
-- 验证码倒计时和重发态
+- 验证码倒计时和重发状态
 - 错误提示区
 
 ### 4. `/dashboard`
@@ -106,7 +106,7 @@
 ```json
 {
   "success": true,
-  "message": "Login successful.",
+  "message": "登录成功。",
   "data": {}
 }
 ```
@@ -116,9 +116,9 @@
 ```json
 {
   "success": false,
-  "message": "Request validation failed.",
+  "message": "请求参数校验失败。",
   "fieldErrors": {
-    "email": ["Please enter a valid email address."]
+    "email": ["邮箱格式不正确，请重新输入。"]
   }
 }
 ```
@@ -126,7 +126,7 @@
 说明：
 
 - `message` 可以直接做 toast 或表单总错误提示
-- `fieldErrors` 可直接映射到字段级错误
+- `fieldErrors` 可以直接映射到字段级错误
 - 登录、注册成功时会同时写入会话 Cookie
 
 ## 接口清单
@@ -150,7 +150,7 @@
 ```json
 {
   "success": true,
-  "message": "Registration verification code sent.",
+  "message": "验证码已发送，请检查您的收件箱。",
   "data": {
     "email": "user@example.com",
     "expiresInSeconds": 600,
@@ -186,16 +186,13 @@
 ```json
 {
   "success": true,
-  "message": "Registration completed successfully.",
+  "message": "注册成功，正在为您准备工作台。",
   "data": {
     "redirectTo": "/dashboard",
     "user": {
       "id": "xxx",
       "email": "user@example.com",
-      "name": null,
-      "emailVerified": true,
-      "lastLoginAt": "2026-04-21T00:00:00.000Z",
-      "createdAt": "2026-04-21T00:00:00.000Z"
+      "emailVerified": true
     }
   }
 }
@@ -228,16 +225,13 @@
 ```json
 {
   "success": true,
-  "message": "Login successful.",
+  "message": "登录成功，欢迎回来。",
   "data": {
     "redirectTo": "/dashboard",
     "user": {
       "id": "xxx",
       "email": "user@example.com",
-      "name": null,
-      "emailVerified": true,
-      "lastLoginAt": "2026-04-21T00:00:00.000Z",
-      "createdAt": "2026-04-21T00:00:00.000Z"
+      "emailVerified": true
     }
   }
 }
@@ -268,7 +262,7 @@
 ```json
 {
   "success": true,
-  "message": "Password reset verification code sent.",
+  "message": "重置验证码已发送，请注意查收。",
   "data": {
     "email": "user@example.com",
     "expiresInSeconds": 600,
@@ -303,16 +297,13 @@
 ```json
 {
   "success": true,
-  "message": "Password reset successful.",
+  "message": "密码重置成功，请使用新密码登录。",
   "data": {
     "redirectTo": "/login",
     "user": {
       "id": "xxx",
       "email": "user@example.com",
-      "name": null,
-      "emailVerified": true,
-      "lastLoginAt": "2026-04-21T00:00:00.000Z",
-      "createdAt": "2026-04-21T00:00:00.000Z"
+      "emailVerified": true
     }
   }
 }
@@ -340,7 +331,7 @@
 ```json
 {
   "success": true,
-  "message": "Logout successful.",
+  "message": "已安全退出登录。",
   "data": {
     "redirectTo": "/login"
   }
@@ -358,15 +349,12 @@
 ```json
 {
   "success": true,
-  "message": "Session loaded.",
+  "message": "登录状态已同步。",
   "data": {
     "user": {
       "id": "xxx",
       "email": "user@example.com",
-      "name": null,
-      "emailVerified": true,
-      "lastLoginAt": "2026-04-21T00:00:00.000Z",
-      "createdAt": "2026-04-21T00:00:00.000Z"
+      "emailVerified": true
     }
   }
 }
@@ -377,7 +365,7 @@
 ```json
 {
   "success": false,
-  "message": "You are not authenticated."
+  "message": "身份认证已过期，请重新登录。"
 }
 ```
 
@@ -395,4 +383,4 @@
 - 注册页和找回页都要自己做“确认密码一致”校验，后端当前只校验单个密码字段长度
 - 验证码输入框最好限制为 6 位数字
 - 成功后以前端读取 `data.redirectTo` 做跳转，不要写死
-- 如果未来把前端拆到别的域名，请求必须带 `credentials: "include"`，同时后端 Cookie 策略也要跟着改
+- 如果未来把前端拆到别的域名，请求必须带 `credentials: "include"`，同时后端 Cookie 策略也要一起调整

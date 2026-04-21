@@ -1,68 +1,72 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { useAuthToast } from "@/hooks/use-auth-toast";
 import { apiRequest, firstFieldErrors } from "@/lib/client/auth-api";
-import { zhCN } from "@/lib/copy/zh-cn";
-
-type SendCodeResponse = {
-  resendAfterSeconds: number;
-};
-
-type RegisterResponse = {
-  redirectTo: string;
-};
 
 export function RegisterForm() {
-  const router = useRouter();
-  const { toast, showToast } = useAuthToast();
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [isSendingCode, setIsSendingCode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef<number | null>(null);
+  const { toast, showToast } = useAuthToast();
 
   useEffect(() => {
-    if (countdown <= 0) {
-      return;
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  function startCountdown(seconds: number) {
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
     }
 
-    const timer = window.setTimeout(() => {
-      setCountdown((current) => current - 1);
-    }, 1000);
+    setCountdown(seconds);
+    timerRef.current = window.setInterval(() => {
+      setCountdown((current) => {
+        if (current <= 1) {
+          if (timerRef.current) {
+            window.clearInterval(timerRef.current);
+          }
+          return 0;
+        }
 
-    return () => window.clearTimeout(timer);
-  }, [countdown]);
+        return current - 1;
+      });
+    }, 1000);
+  }
 
   async function handleSendCode() {
-    setFieldErrors((current) => ({ ...current, email: "" }));
-    const emailInput = document.getElementById("email") as HTMLInputElement | null;
-    const email = emailInput?.value.trim() ?? "";
-
     if (!email) {
-      showToast(zhCN.auth.ui.register.needEmailFirst, false);
-      setFieldErrors((current) => ({
-        ...current,
-        email: zhCN.auth.validation.emailRequired,
-      }));
+      showToast("请先输入电子邮箱。", false);
       return;
     }
 
     setIsSendingCode(true);
-    const response = await apiRequest<SendCodeResponse>(
+    setFieldErrors({});
+
+    const response = await apiRequest<{ resendAfterSeconds?: number }>(
       "/api/auth/register/send-code",
-      { email }
+      { email },
     );
 
     if (response.success) {
       showToast(response.message, true);
-      setCountdown(response.data?.resendAfterSeconds ?? 60);
+      startCountdown(response.data?.resendAfterSeconds || 60);
     } else {
       setFieldErrors(firstFieldErrors(response.fieldErrors));
-      showToast(response.message || "验证码发送失败。", false);
+      showToast(response.message, false);
     }
 
     setIsSendingCode(false);
@@ -70,180 +74,154 @@ export function RegisterForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFieldErrors({});
-    setIsSubmitting(true);
-
-    const formData = new FormData(event.currentTarget);
-    const email = String(formData.get("email") ?? "").trim();
-    const code = String(formData.get("code") ?? "").trim();
-    const password = String(formData.get("password") ?? "");
-    const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
     if (password !== confirmPassword) {
-      setFieldErrors({
-        confirmPassword: zhCN.auth.error.passwordConfirmMismatch,
-      });
-      showToast(zhCN.auth.error.passwordConfirmMismatch, false);
-      setIsSubmitting(false);
+      const message = "两次输入的密码不一致。";
+      setFieldErrors({ confirmPassword: message });
+      showToast(message, false);
       return;
     }
 
-    const response = await apiRequest<RegisterResponse>(
+    setIsSubmitting(true);
+    setFieldErrors({});
+
+    const response = await apiRequest<{ redirectTo: string }>(
       "/api/auth/register/confirm",
-      {
-        email,
-        code,
-        password,
-      }
+      { email, code, password },
     );
 
     if (response.success && response.data?.redirectTo) {
       showToast(response.message, true);
-      router.replace(response.data.redirectTo);
-      router.refresh();
+      window.setTimeout(() => {
+        window.location.href = response.data!.redirectTo;
+      }, 500);
       return;
     }
 
     setFieldErrors(firstFieldErrors(response.fieldErrors));
-    showToast(response.message || zhCN.auth.ui.register.failureFallback, false);
+    showToast(response.message || "注册失败，请稍后重试。", false);
     setIsSubmitting(false);
   }
 
   return (
     <AuthShell
-      title={zhCN.auth.ui.register.title}
-      subtitle={zhCN.auth.ui.register.subtitle}
-      toastMessage={toast?.message}
-      toastSuccess={toast?.success}
+      title="注册新账号"
+      subtitle="加入 BayData，开启数据分析之旅"
+      toast={toast}
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-1.5">
-          <label
-            className="block pl-1 text-sm font-medium text-white/90"
-            htmlFor="email"
-          >
-            {zhCN.auth.ui.register.emailLabel}
+      <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+        <div>
+          <label className="mb-1 block pl-1 text-sm font-medium text-slate-700 dark:text-white/90">
+            电子邮箱
           </label>
           <div className="flex gap-2">
-            <div className="glass-field flex-1">
-              <input
-                autoComplete="email"
-                className="glass-input"
-                id="email"
-                name="email"
-                placeholder={zhCN.auth.ui.register.emailPlaceholder}
-                required
-                type="email"
-              />
-            </div>
+            <input
+              type="email"
+              name="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              inputMode="email"
+              spellCheck={false}
+              required
+              className="flex-1 rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/40 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30 dark:focus:ring-sky-400/50"
+              placeholder="输入邮箱"
+            />
             <button
-              className="rounded-2xl border border-white/12 bg-white/8 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/14 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={isSendingCode || countdown > 0}
               type="button"
+              disabled={isSendingCode || countdown > 0}
               onClick={handleSendCode}
+              className="whitespace-nowrap rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-700 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
             >
               {isSendingCode
-                ? zhCN.auth.ui.register.sendingCode
+                ? "发送中..."
                 : countdown > 0
                   ? `${countdown}s 后重发`
-                  : zhCN.auth.ui.register.sendCode}
+                  : "发送验证码"}
             </button>
           </div>
-          <p className="min-h-5 pl-1 text-xs text-pink-300">
+          <p className="mt-1 pl-1 text-xs text-pink-400">
             {fieldErrors.email ?? ""}
           </p>
         </div>
 
-        <div className="space-y-1.5">
-          <label
-            className="block pl-1 text-sm font-medium text-white/90"
-            htmlFor="code"
-          >
-            {zhCN.auth.ui.register.codeLabel}
+        <div>
+          <label className="mb-1 block pl-1 text-sm font-medium text-slate-700 dark:text-white/90">
+            验证码
           </label>
-          <div className="glass-field">
-            <input
-              className="glass-input tracking-[0.4em]"
-              id="code"
-              inputMode="numeric"
-              maxLength={6}
-              name="code"
-              pattern="\d{6}"
-              placeholder={zhCN.auth.ui.register.codePlaceholder}
-              required
-              type="text"
-            />
-          </div>
-          <p className="min-h-5 pl-1 text-xs text-pink-300">
+          <input
+            type="text"
+            name="verificationCode"
+            maxLength={6}
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            required
+            className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/40 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30 dark:focus:ring-sky-400/50"
+            placeholder="6 位数字验证码"
+          />
+          <p className="mt-1 pl-1 text-xs text-pink-400">
             {fieldErrors.code ?? ""}
           </p>
         </div>
 
-        <div className="space-y-1.5">
-          <label
-            className="block pl-1 text-sm font-medium text-white/90"
-            htmlFor="password"
-          >
-            {zhCN.auth.ui.register.passwordLabel}
+        <div>
+          <label className="mb-1 block pl-1 text-sm font-medium text-slate-700 dark:text-white/90">
+            设置密码
           </label>
-          <div className="glass-field">
-            <input
-              autoComplete="new-password"
-              className="glass-input"
-              id="password"
-              name="password"
-              placeholder={zhCN.auth.ui.register.passwordPlaceholder}
-              required
-              type="password"
-            />
-          </div>
-          <p className="min-h-5 pl-1 text-xs text-pink-300">
+          <input
+            type="password"
+            name="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="new-password"
+            required
+            className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/40 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30 dark:focus:ring-sky-400/50"
+            placeholder="不少于 6 位"
+          />
+          <p className="mt-1 pl-1 text-xs text-pink-400">
             {fieldErrors.password ?? ""}
           </p>
         </div>
 
-        <div className="space-y-1.5">
-          <label
-            className="block pl-1 text-sm font-medium text-white/90"
-            htmlFor="confirmPassword"
-          >
-            {zhCN.auth.ui.register.confirmPasswordLabel}
+        <div>
+          <label className="mb-1 block pl-1 text-sm font-medium text-slate-700 dark:text-white/90">
+            确认密码
           </label>
-          <div className="glass-field">
-            <input
-              autoComplete="new-password"
-              className="glass-input"
-              id="confirmPassword"
-              name="confirmPassword"
-              placeholder={zhCN.auth.ui.register.confirmPasswordPlaceholder}
-              required
-              type="password"
-            />
-          </div>
-          <p className="min-h-5 pl-1 text-xs text-pink-300">
+          <input
+            type="password"
+            name="confirmPassword"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            autoComplete="new-password"
+            required
+            className="w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400/40 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30 dark:focus:ring-sky-400/50"
+            placeholder="再次输入密码"
+          />
+          <p className="mt-1 pl-1 text-xs text-pink-400">
             {fieldErrors.confirmPassword ?? ""}
           </p>
         </div>
 
         <button
-          className="mt-3 inline-flex w-full items-center justify-center rounded-2xl border border-indigo-300/35 bg-gradient-to-r from-indigo-500/85 to-sky-500/80 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_45px_rgba(79,70,229,0.28)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_rgba(59,130,246,0.36)] disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={isSubmitting}
           type="submit"
+          disabled={isSubmitting}
+          className="mt-4 w-full rounded-xl border border-sky-300/25 bg-gradient-to-r from-sky-500 to-teal-400 py-3 font-medium text-white shadow-lg shadow-sky-950/40 transition-all duration-300 hover:from-sky-400 hover:to-teal-300 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isSubmitting
-            ? zhCN.auth.ui.register.submitting
-            : zhCN.auth.ui.register.submit}
+          {isSubmitting ? "注册中..." : "注 册"}
         </button>
 
-        <p className="pt-2 text-center text-sm text-indigo-100/72">
-          {zhCN.auth.ui.register.hasAccount}
+        <div className="mt-4 text-center text-sm text-slate-600/90 dark:text-slate-300/80">
+          已有账号？{" "}
           <Link
-            className="ml-1 font-medium text-cyan-200 transition hover:text-white"
             href="/login"
+            className="font-medium text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-white"
           >
-            {zhCN.auth.ui.register.backToLogin}
+            返回登录
           </Link>
-        </p>
+        </div>
       </form>
     </AuthShell>
   );

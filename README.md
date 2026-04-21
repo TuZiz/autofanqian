@@ -1,6 +1,6 @@
 # BayData Web
 
-基于 `Next.js App Router + TypeScript + Tailwind CSS v4 + shadcn/ui + Prisma + PostgreSQL` 的后台项目。
+基于 `Next.js App Router + TypeScript + Prisma + PostgreSQL` 的后端认证项目。
 
 ## 当前能力
 
@@ -9,10 +9,19 @@
 - 邮箱验证码找回密码
 - HttpOnly Cookie 会话
 - `/dashboard` 登录保护
+- `/dashboard/create` 创作页（类型卡片 + 标签 + 热门模板 + AI 生成创意）
+- `/dashboard/admin` 管理员控制台（配置创作页 & 热门模板学习）
+
+本仓库以接口与“可跑通链路”的基础页面为主，便于你后续替换为自己的前端 UI。
+
+## 文档
+
+- 认证前端对接文档：`docs/auth-frontend-handoff.md`
+- 前端 UI 提供模板：`docs/frontend-ui-requirements.md`
+- `/dashboard/create` 专用模板：`docs/dashboard-create-ui-template.md`
 
 ## 认证接口
 
-- 前端对接文档：`docs/auth-frontend-handoff.md`
 - 认证接口目录：`src/app/api/auth/*`
 - 受保护页面：`/dashboard`
 
@@ -46,6 +55,15 @@ Windows 下直接运行：
 
 - [http://localhost:3000](http://localhost:3000)
 
+## 管理员控制台
+
+管理员邮箱通过环境变量白名单控制：
+
+- 在 `.env` 或 `.env.local` 中设置：`ADMIN_EMAILS="your-admin-email@example.com"`
+- 登录后访问：`/dashboard/admin`
+
+开发环境下若未配置白名单，默认允许访问；生产环境必须配置白名单。
+
 ## 手动启动
 
 ```powershell
@@ -58,9 +76,12 @@ npm run dev
 
 - [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
-## 常用页面
+## 当前保留路由
 
 - `/login`
 - `/register`
 - `/forgot-password`
 - `/dashboard`
+- `/dashboard/create`
+- `/dashboard/import`
+- `/dashboard/admin`

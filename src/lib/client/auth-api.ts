@@ -12,10 +12,10 @@ export type AuthApiResponse<T = unknown> = {
 export async function apiRequest<T = unknown>(
   url: string,
   payload?: unknown,
-  init?: Omit<RequestInit, "body" | "method">
+  init?: Omit<RequestInit, "body">
 ): Promise<AuthApiResponse<T>> {
   const response = await fetch(url, {
-    method: payload ? "POST" : "GET",
+    method: init?.method ?? (payload ? "POST" : "GET"),
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
