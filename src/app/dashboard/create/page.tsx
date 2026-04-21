@@ -438,7 +438,7 @@ export default function DashboardCreatePage() {
                     onChange={(event) => updateIdea(event.target.value)}
                     rows={6}
                     required
-                    className="w-full resize-none rounded-2xl border border-slate-200/80 bg-white/60 px-5 py-4 text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-300/50 dark:focus:ring-offset-[#05070c]"
+                    className="w-full resize-y rounded-2xl border border-slate-200/80 bg-white/60 px-5 py-4 text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-sky-300/50 dark:focus:ring-offset-[#05070c]"
                     placeholder={
                       "描述你的小说创意，例如：\n• 主角的身份背景和特殊能力\n• 故事的主要冲突和爽点\n• 想要的写作风格和氛围\n\n或者点击右侧的模板快速填充..."
                     }
