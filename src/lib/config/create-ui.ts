@@ -6,6 +6,13 @@ import { prisma } from "@/lib/prisma";
 
 export const CREATE_UI_CONFIG_KEY = "create_ui_v1";
 
+const TOMATO_PROMPT_HINT_V1 =
+  "开篇强钩子、冲突密度高，短期目标明确，爽点快速兑现。";
+
+// Refined, implementation-friendly “Tomato style” summary (no hard numbers).
+const TOMATO_PROMPT_HINT_RECOMMENDED =
+  "情绪优先、开篇就抛冲突；第一章完成“危机-绝境-转机”闭环；每章结尾留钩子；三章一个小爽点、十章一个大高潮；短句短段、对话推进；场景集中，便于短剧化。";
+
 const genreSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().min(1).max(80),
@@ -104,7 +111,7 @@ export function getDefaultCreateUiConfig(): CreateUiConfig {
       {
         id: "tomato",
         label: "番茄小说",
-        promptHint: "开篇强钩子、冲突密度高，短期目标明确，爽点快速兑现。",
+        promptHint: TOMATO_PROMPT_HINT_RECOMMENDED,
         sortOrder: 20,
         active: true,
       },
@@ -183,6 +190,30 @@ export async function getCreateUiConfig() {
   config.wordOptions = [...config.wordOptions].sort(
     (a, b) => a.sortOrder - b.sortOrder,
   );
+
+  // Gentle config upgrade: only auto-update Tomato promptHint if the user still uses the old default
+  // (or left it empty). This avoids overwriting manual customizations.
+  let changed = false;
+  const tomato = config.platforms.find((item) => item.id === "tomato");
+  if (tomato) {
+    const current = tomato.promptHint?.trim() ?? "";
+    if (!current || current === TOMATO_PROMPT_HINT_V1) {
+      tomato.promptHint = TOMATO_PROMPT_HINT_RECOMMENDED;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    try {
+      await prisma.appConfig.update({
+        where: { key: CREATE_UI_CONFIG_KEY },
+        data: { value: config },
+        select: { key: true },
+      });
+    } catch {
+      // Non-fatal: still return the in-memory upgraded config.
+    }
+  }
 
   return config;
 }
