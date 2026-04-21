@@ -1,0 +1,5 @@
+export const SESSION_COOKIE_NAME = "session";
+export const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7;
+export const VERIFICATION_CODE_LENGTH = 6;
+export const VERIFICATION_CODE_TTL_SECONDS = 60 * 10;
+export const VERIFICATION_CODE_RESEND_SECONDS = 60;

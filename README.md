@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BayData Web
 
-## Getting Started
+基于 `Next.js App Router + TypeScript + Tailwind CSS v4 + shadcn/ui + Prisma + PostgreSQL` 的后台项目。
 
-First, run the development server:
+## 当前能力
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- 邮箱 + 密码登录
+- 邮箱验证码注册
+- 邮箱验证码找回密码
+- HttpOnly Cookie 会话
+- `/dashboard` 登录保护
+
+## 认证接口
+
+- 前端对接文档：`docs/auth-frontend-handoff.md`
+- 认证接口目录：`src/app/api/auth/*`
+- 受保护页面：`/dashboard`
+
+## 环境准备
+
+1. 安装 `Node.js`
+2. 安装并启动 `PostgreSQL`
+3. 准备 `.env`
+
+如果项目根目录不存在 `.env`，启动脚本会尝试从 `.env.example` 自动生成一份。
+
+## 一键启动
+
+Windows 下直接运行：
+
+```powershell
+.\start-dev.cmd
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+脚本会自动完成这些步骤：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- 检查 `node` 和 `npm`
+- 在缺少 `node_modules` 时自动执行 `npm install`
+- 检查 `.env` 与 `DATABASE_URL`
+- 检查 PostgreSQL 端口是否可连接
+- 自动确保目标数据库存在
+- 执行 `prisma migrate deploy`
+- 启动开发服务器
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+启动成功后访问：
 
-## Learn More
+- [http://localhost:3000](http://localhost:3000)
 
-To learn more about Next.js, take a look at the following resources:
+## 手动启动
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```powershell
+npm install
+npx prisma migrate deploy
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 健康检查
 
-## Deploy on Vercel
+- [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 常用页面
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/login`
+- `/register`
+- `/forgot-password`
+- `/dashboard`
