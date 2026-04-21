@@ -51,12 +51,14 @@ export default function DashboardCreatePage() {
   const [submitBusy, setSubmitBusy] = useState(false);
   const [platform, setPlatform] = useState("");
   const [dna, setDna] = useState("");
+  const [dnaBookTitle, setDnaBookTitle] = useState("");
   const [words, setWords] = useState("100w");
   const [userEmail, setUserEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [config, setConfig] = useState<CreateUiConfig | null>(null);
   const [hotTemplates, setHotTemplates] = useState<HotTemplate[]>([]);
   const [bootstrapLoading, setBootstrapLoading] = useState(true);
+  const [outline, setOutline] = useState("");
 
   const genres = config?.genres ?? [];
   const platforms = config?.platforms ?? [];
@@ -78,7 +80,12 @@ export default function DashboardCreatePage() {
 
       if (response.success && response.data?.user?.email) {
         setUserEmail(response.data.user.email);
-        setIsAdmin(Boolean(response.data.user.isAdmin));
+        const admin = Boolean(response.data.user.isAdmin);
+        setIsAdmin(admin);
+        if (!admin) {
+          setDna("");
+          setDnaBookTitle("");
+        }
       } else {
         window.location.href = "/login";
         return;
@@ -175,15 +182,17 @@ export default function DashboardCreatePage() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({
-          genre: selectedGenre,
-          tags: selectedTags,
-          platform: platform.trim() ? platform.trim() : undefined,
-          dna: dna.trim() ? dna.trim() : undefined,
-          words: words.trim() ? words.trim() : undefined,
-          existingIdea: idea.trim() ? idea.trim() : undefined,
-        }),
-      });
+          body: JSON.stringify({
+            genre: selectedGenre,
+            tags: selectedTags,
+            platform: platform.trim() ? platform.trim() : undefined,
+            dna: isAdmin && dna.trim() ? dna.trim() : undefined,
+            dnaBookTitle:
+              isAdmin && dnaBookTitle.trim() ? dnaBookTitle.trim() : undefined,
+            words: words.trim() ? words.trim() : undefined,
+            existingIdea: idea.trim() ? idea.trim() : undefined,
+          }),
+        });
 
       const json = (await response.json().catch(() => null)) as
         | { success: true; data: { idea: string }; message?: string }
@@ -203,7 +212,7 @@ export default function DashboardCreatePage() {
     }
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!selectedGenre) {
@@ -213,10 +222,29 @@ export default function DashboardCreatePage() {
 
     setSubmitBusy(true);
 
-    window.setTimeout(() => {
-      window.alert("大纲生成请求成功，进入下一步！");
-      setSubmitBusy(false);
-    }, 1500);
+    const response = await apiRequest<{ outline: string }>("/api/ai/outline", {
+      genre: selectedGenre,
+      tags: selectedTags,
+      platform: platform.trim() ? platform.trim() : undefined,
+      dna: isAdmin && dna.trim() ? dna.trim() : undefined,
+      dnaBookTitle: isAdmin && dnaBookTitle.trim() ? dnaBookTitle.trim() : undefined,
+      words: words.trim() ? words.trim() : undefined,
+      idea: idea.trim() ? idea.trim() : undefined,
+    });
+
+    setSubmitBusy(false);
+
+    if (response.success && response.data?.outline) {
+      setOutline(response.data.outline);
+      window.setTimeout(() => {
+        document
+          .getElementById("outline-panel")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+      return;
+    }
+
+    window.alert(response.message || "大纲生成失败，请稍后重试。");
   }
 
   if (bootstrapLoading) {
@@ -490,13 +518,14 @@ export default function DashboardCreatePage() {
                   <label className="mb-2 block text-sm font-semibold text-slate-900 dark:text-slate-100">
                     仿书 DNA{" "}
                     <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                      (可选，模仿对应风格)
+                      (内测功能，仅管理员可用)
                     </span>
                   </label>
                   <select
                     value={dna}
                     onChange={(event) => setDna(event.target.value)}
-                    className="w-full cursor-pointer appearance-none rounded-2xl border border-slate-200/80 bg-white/60 px-4 py-3 text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:ring-sky-300/50 dark:focus:ring-offset-[#05070c]"
+                    disabled={!isAdmin}
+                    className="w-full cursor-pointer appearance-none rounded-2xl border border-slate-200/80 bg-white/60 px-4 py-3 text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:ring-sky-300/50 dark:focus:ring-offset-[#05070c]"
                   >
                     <option value="">选择仿书 DNA 风格</option>
                     {dnaStyles.map((item) => (
@@ -505,6 +534,32 @@ export default function DashboardCreatePage() {
                       </option>
                     ))}
                   </select>
+
+                  <div className="mt-3">
+                    <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                      自定义书名（可选）
+                    </div>
+                    <input
+                      value={dnaBookTitle}
+                      disabled={!isAdmin}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setDnaBookTitle(value);
+                        if (value.trim()) {
+                          setDna("");
+                        }
+                      }}
+                      placeholder={
+                        isAdmin
+                          ? "例如：诡秘之主 / 凡人修仙传 / 庆余年"
+                          : "内测中：仅管理员可使用"
+                      }
+                      className="mt-2 w-full rounded-2xl border border-slate-200/80 bg-white/60 px-4 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:ring-sky-300/50 dark:focus:ring-offset-[#05070c]"
+                    />
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                      输入书名后，生成大纲时会尝试进行网络检索并抽象其写法与结构（不复刻原作剧情）。
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -586,6 +641,49 @@ export default function DashboardCreatePage() {
             </div>
           </aside>
         </div>
+
+        {outline ? (
+          <section
+            id="outline-panel"
+            className="glass-panel mt-8 rounded-[40px] p-8 shadow-2xl lg:p-10"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-medium text-sky-600 dark:text-sky-300">
+                  输出
+                </div>
+                <h2 className="mt-2 text-xl font-semibold text-slate-900 dark:text-slate-100">
+                  AI 生成大纲（预览）
+                </h2>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300/80">
+                  你可以在此基础上继续编辑，再进入下一步确认流程。
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(outline);
+                    window.alert("已复制到剪贴板");
+                  } catch {
+                    window.alert("复制失败，请手动选择复制");
+                  }
+                }}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white/60 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+              >
+                复制大纲
+              </button>
+            </div>
+
+            <textarea
+              value={outline}
+              readOnly
+              rows={14}
+              className="mt-6 w-full resize-y rounded-3xl border border-slate-200/80 bg-white/60 px-5 py-4 text-sm leading-relaxed text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400/30 focus:ring-offset-2 focus:ring-offset-white dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:focus:ring-sky-300/30 dark:focus:ring-offset-[#05070c]"
+            />
+          </section>
+        ) : null}
       </div>
     </main>
   );

@@ -145,6 +145,34 @@ export function getDefaultCreateUiConfig(): CreateUiConfig {
         sortOrder: 30,
         active: true,
       },
+      {
+        id: "style4",
+        label: "凡人修仙传（凡人流 + 资源经营）",
+        promptHint: "修行逻辑偏务实，资源与门槛清晰，危机来自规则与人心，升级靠积累与选择。",
+        sortOrder: 40,
+        active: true,
+      },
+      {
+        id: "style5",
+        label: "庆余年（权谋反转 + 轻喜）",
+        promptHint: "权谋博弈、多线反转，笑点与紧张交替，信息差推动剧情，角色动机强。",
+        sortOrder: 50,
+        active: true,
+      },
+      {
+        id: "style6",
+        label: "雪中悍刀行（江湖群像 + 意境刀光）",
+        promptHint: "群像推进，江湖规矩与家国权谋并行，战斗强调人物立场与意境表达。",
+        sortOrder: 60,
+        active: true,
+      },
+      {
+        id: "style7",
+        label: "全职高手（电竞群像 + 热血逆袭）",
+        promptHint: "团队成长线清晰，比赛节奏密，爽点来自逆风翻盘与细节操作，群像鲜明。",
+        sortOrder: 70,
+        active: true,
+      },
     ],
     wordOptions: [
       { id: "100w", label: "100 万字（中篇）", sortOrder: 10, active: true },
@@ -201,6 +229,21 @@ export async function getCreateUiConfig() {
       tomato.promptHint = TOMATO_PROMPT_HINT_RECOMMENDED;
       changed = true;
     }
+  }
+
+  // Seed more DNA style examples if the DB config is missing newly added defaults.
+  const recommendedDnaStyles = getDefaultCreateUiConfig().dnaStyles;
+  for (const recommended of recommendedDnaStyles) {
+    if (!config.dnaStyles.some((item) => item.id === recommended.id)) {
+      config.dnaStyles.push(recommended);
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    config.dnaStyles = [...config.dnaStyles].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
   }
 
   if (changed) {

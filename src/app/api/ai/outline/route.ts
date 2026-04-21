@@ -1,23 +1,24 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { buildIdeaSystemPrompt, buildIdeaUserPrompt } from "@/lib/ai/idea-prompt";
+import {
+  buildOutlineSystemPrompt,
+  buildOutlineUserPrompt,
+} from "@/lib/ai/outline-prompt";
 import { isAdminEmail } from "@/lib/auth/admin";
-import { getSessionUserId } from "@/lib/auth/session";
 import { getCurrentUser } from "@/lib/auth/service";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
-import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
 const requestSchema = z.object({
   genre: z.string().min(1).max(64),
+  idea: z.string().min(10).max(2000).optional(),
   tags: z.array(z.string()).max(12).optional(),
   platform: z.string().optional(),
   dna: z.string().optional(),
   dnaBookTitle: z.string().max(120).optional(),
   words: z.string().optional(),
-  existingIdea: z.string().optional(),
 });
 
 function buildChatCompletionsUrl(baseUrl: string) {
@@ -55,8 +56,6 @@ function sleep(ms: number) {
 
 function normalizeModelName(model: string) {
   const trimmed = model.trim();
-  // Some OpenAI-compatible proxies expose GPT-5.2 as "gpt-5.2" (hyphenated).
-  // Accept "gpt5.2" as an alias to reduce config friction.
   if (trimmed === "gpt5.2") return "gpt-5.2";
   return trimmed;
 }
@@ -88,7 +87,34 @@ function shouldRetryWithAlternateModel(status: number, upstreamMessage: unknown)
 }
 
 function isRetryableStatus(status: number) {
-  return status === 0 || status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+  return (
+    status === 0 ||
+    status === 408 ||
+    status === 429 ||
+    status === 500 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504
+  );
+}
+
+async function fetchTextWithTimeout(
+  url: string,
+  init: RequestInit & { timeoutMs?: number },
+) {
+  const controller = new AbortController();
+  const timeoutMs = init.timeoutMs ?? 12000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const text = await response.text().catch(() => "");
+    return { ok: response.ok, status: response.status, text };
+  } catch {
+    return { ok: false, status: 0, text: "" };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function callChatCompletions(params: {
@@ -96,11 +122,14 @@ async function callChatCompletions(params: {
   apiKey: string;
   model: string;
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  maxTokens?: number;
+  temperature?: number;
 }) {
-  const url = buildChatCompletionsUrl(params.baseUrl);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(buildChatCompletionsUrl(params.baseUrl), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${params.apiKey}`,
@@ -109,16 +138,14 @@ async function callChatCompletions(params: {
       },
       body: JSON.stringify({
         model: params.model,
-        temperature: 0.8,
-        max_tokens: 700,
+        temperature: params.temperature ?? 0.75,
+        max_tokens: params.maxTokens ?? 1200,
         messages: params.messages,
       }),
+      signal: controller.signal,
     });
 
-    const json = await response
-      .json()
-      .catch(() => null as unknown);
-
+    const json = await response.json().catch(() => null as unknown);
     return { ok: response.ok, status: response.status, json };
   } catch {
     return {
@@ -126,6 +153,8 @@ async function callChatCompletions(params: {
       status: 0,
       json: { error: { message: "网络异常或上游服务不可达" } },
     };
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -134,6 +163,8 @@ async function callChatCompletionsWithRetry(params: {
   apiKey: string;
   model: string;
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  maxTokens?: number;
+  temperature?: number;
   attempts?: number;
 }) {
   const attempts = Math.max(1, Math.min(3, params.attempts ?? 3));
@@ -144,14 +175,74 @@ async function callChatCompletionsWithRetry(params: {
       return last;
     }
 
-    const baseDelay = 350 * Math.pow(2, attempt - 1);
-    const jitter = Math.floor(Math.random() * 120);
+    const baseDelay = 450 * Math.pow(2, attempt - 1);
+    const jitter = Math.floor(Math.random() * 150);
     await sleep(baseDelay + jitter);
 
     last = await callChatCompletions(params);
   }
 
   return last;
+}
+
+function parseTopLinksFromBing(html: string, limit: number) {
+  const results: string[] = [];
+  const regex = /<li class="b_algo"[\s\S]*?<a href="([^"]+)"/g;
+  let match: RegExpExecArray | null = null;
+
+  while ((match = regex.exec(html)) && results.length < limit) {
+    const url = match[1];
+    if (!url) continue;
+    if (!/^https?:\/\//i.test(url)) continue;
+    if (/^https?:\/\/(www\.)?bing\.com\//i.test(url)) continue;
+    results.push(url);
+  }
+
+  return Array.from(new Set(results));
+}
+
+function clampSnippet(text: string, max = 700) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  return normalized.length > max ? `${normalized.slice(0, max)}…` : normalized;
+}
+
+async function researchBookFromWeb(title: string) {
+  const query = `${title} 小说 简介 世界观 设定 风格`;
+  const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
+
+  const search = await fetchTextWithTimeout(searchUrl, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+      Accept: "text/html",
+    },
+    timeoutMs: 10000,
+  });
+
+  if (!search.ok || !search.text) {
+    return [];
+  }
+
+  const links = parseTopLinksFromBing(search.text, 3);
+  const sources: Array<{ url: string; snippet: string }> = [];
+
+  for (const url of links.slice(0, 2)) {
+    // Jina AI reader proxy: returns a readable text view of the page.
+    const readerUrl = `https://r.jina.ai/${url}`;
+    const page = await fetchTextWithTimeout(readerUrl, {
+      headers: {
+        Accept: "text/plain",
+      },
+      timeoutMs: 12000,
+    });
+
+    if (!page.ok || !page.text) continue;
+    const snippet = clampSnippet(page.text, 780);
+    if (snippet.length < 120) continue;
+    sources.push({ url, snippet });
+  }
+
+  return sources;
 }
 
 export async function POST(request: Request) {
@@ -176,23 +267,12 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { success: false, message: "请求参数校验失败，请检查输入内容。", fieldErrors },
-      { status: 400 },
-    );
-  }
-
-  const baseUrl = process.env.AI_BASE_URL || "https://api.99dun.cc";
-  const apiKey = process.env.AI_API_KEY;
-  const model = normalizeModelName(process.env.AI_MODEL || "gpt-5.2");
-
-  if (!apiKey) {
-    return NextResponse.json(
       {
         success: false,
-        message:
-          "AI 未配置：请在 web/.env 或 web/.env.local 中设置 AI_API_KEY。",
+        message: "请求参数校验失败，请检查输入内容。",
+        fieldErrors,
       },
-      { status: 500 },
+      { status: 400 },
     );
   }
 
@@ -206,12 +286,33 @@ export async function POST(request: Request) {
 
   const isAdmin = isAdminEmail(user.email);
 
+  const baseUrl = process.env.AI_BASE_URL || "https://api.99dun.cc";
+  const apiKey = process.env.AI_API_KEY;
+  const model = normalizeModelName(process.env.AI_MODEL || "gpt-5.2");
+
+  if (!apiKey) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "AI 未配置：请在 web/.env 或 web/.env.local 中设置 AI_API_KEY。",
+      },
+      { status: 500 },
+    );
+  }
+
   const uiConfig = await getCreateUiConfig();
   const genreMeta = uiConfig.genres.find((item) => item.id === parsed.data.genre);
-
   if (!genreMeta) {
     return NextResponse.json(
       { success: false, message: "小说类型无效，请刷新页面后重试。" },
+      { status: 400 },
+    );
+  }
+
+  const effectiveIdea = parsed.data.idea?.trim() || "";
+  if (!effectiveIdea) {
+    return NextResponse.json(
+      { success: false, message: "请先填写创意描述，再生成大纲。" },
       { status: 400 },
     );
   }
@@ -229,30 +330,34 @@ export async function POST(request: Request) {
     ? `${platformMeta.label}${platformMeta.promptHint ? `（${platformMeta.promptHint}）` : ""}`
     : platformId;
 
-  const dnaBookTitle = isAdmin ? parsed.data.dnaBookTitle?.trim() : undefined;
-  const dnaId = isAdmin ? parsed.data.dna?.trim() : undefined;
+  const dnaBookTitleRaw = parsed.data.dnaBookTitle?.trim();
+  const dnaBookTitle = isAdmin && dnaBookTitleRaw ? dnaBookTitleRaw : null;
+
+  const dnaIdRaw = parsed.data.dna?.trim();
+  const dnaId = isAdmin && !dnaBookTitle ? dnaIdRaw : null;
   const dnaMeta = dnaId ? uiConfig.dnaStyles.find((item) => item.id === dnaId) : null;
   const dnaText = dnaBookTitle
     ? `参考书名：${dnaBookTitle}（仅抽象写法与结构，不复刻原作剧情）`
     : dnaMeta
       ? `${dnaMeta.label}${dnaMeta.promptHint ? `（${dnaMeta.promptHint}）` : ""}`
-      : dnaId;
+      : null;
 
   const wordsId = parsed.data.words?.trim();
-  const wordsMeta = wordsId
-    ? uiConfig.wordOptions.find((item) => item.id === wordsId)
-    : null;
+  const wordsMeta = wordsId ? uiConfig.wordOptions.find((item) => item.id === wordsId) : null;
   const wordsText = wordsMeta ? wordsMeta.label : wordsId;
 
-  const systemPrompt = buildIdeaSystemPrompt();
-  const userPrompt = buildIdeaUserPrompt({
-    genre: genreMeta.id,
+  const webSources =
+    dnaBookTitle && isAdmin ? await researchBookFromWeb(dnaBookTitle) : [];
+
+  const systemPrompt = buildOutlineSystemPrompt();
+  const userPrompt = buildOutlineUserPrompt({
     genreLabel: genreMeta.name,
     tags: effectiveTags.length ? effectiveTags : undefined,
     platform: platformText,
-    dna: dnaText,
+    dna: dnaText ?? undefined,
     words: wordsText,
-    existingIdea: parsed.data.existingIdea,
+    idea: effectiveIdea,
+    webSources,
   });
 
   const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> =
@@ -265,13 +370,15 @@ export async function POST(request: Request) {
   let first = await callChatCompletionsWithRetry({
     baseUrl,
     apiKey,
-    model,
+    model: modelUsed,
     messages,
+    maxTokens: 1300,
+    temperature: 0.75,
   });
 
   if (!first.ok) {
     const upstreamMessage = getUpstreamMessage(first.json);
-    const alternateModel = getAlternateModelName(model);
+    const alternateModel = getAlternateModelName(modelUsed);
 
     if (
       alternateModel &&
@@ -282,6 +389,8 @@ export async function POST(request: Request) {
         apiKey,
         model: alternateModel,
         messages,
+        maxTokens: 1300,
+        temperature: 0.75,
       });
 
       if (retry.ok) {
@@ -304,9 +413,11 @@ export async function POST(request: Request) {
               ? "AI 服务请求过于频繁（上游限流），请稍后重试。"
               : first.status === 503
                 ? "AI 服务暂时不可用（上游拥堵或维护），请稍后重试。"
-            : typeof upstreamMessage === "string"
-              ? `AI 服务调用失败：${upstreamMessage}${first.status ? `（HTTP ${first.status}）` : ""}`
-              : "AI 服务调用失败，请稍后重试。",
+                : first.status === 502
+                  ? "AI 服务暂时不可用（上游网关异常 502），请稍后重试。"
+                  : typeof upstreamMessage === "string"
+                    ? `AI 服务调用失败：${upstreamMessage}${first.status ? `（HTTP ${first.status}）` : ""}`
+                    : "AI 服务调用失败，请稍后重试。",
       },
       { status: 502 },
     );
@@ -320,8 +431,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Enforce minimum length; retry once with an explicit expansion request.
-  if (nonWhitespaceLength(content) < 100) {
+  if (nonWhitespaceLength(content) < 450) {
     const second = await callChatCompletionsWithRetry({
       baseUrl,
       apiKey,
@@ -331,40 +441,23 @@ export async function POST(request: Request) {
         { role: "assistant", content },
         {
           role: "user",
-          content:
-            "请在保持逻辑一致的前提下扩写并润色，使内容不少于 120 字，仍然不超过 800 字。",
+          content: "请在保持逻辑一致的前提下补全细节，使输出不少于 700 字。",
         },
       ],
+      maxTokens: 1500,
+      temperature: 0.7,
     });
 
     const expanded = second.ok ? getFirstContent(second.json) : null;
-    if (expanded && nonWhitespaceLength(expanded) >= 100) {
+    if (expanded && nonWhitespaceLength(expanded) >= 450) {
       content = expanded;
     }
   }
 
-  try {
-    const userId = await getSessionUserId();
-    await prisma.ideaGenerationEvent.create({
-      data: {
-        userId,
-        genreId: genreMeta.id,
-        tags: effectiveTags,
-        platformId: platformId || null,
-        dnaStyleId: dnaId || null,
-        wordsId: wordsId || null,
-        inputIdea: parsed.data.existingIdea?.trim() || null,
-        outputIdea: content,
-      },
-      select: { id: true },
-    });
-  } catch (error) {
-    console.warn("Failed to persist IdeaGenerationEvent:", error);
-  }
-
   return NextResponse.json({
     success: true,
-    message: "创意生成成功。",
-    data: { idea: content },
+    message: "大纲生成成功。",
+    data: { outline: content },
   });
 }
+
