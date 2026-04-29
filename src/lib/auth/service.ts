@@ -10,6 +10,7 @@ import { zhCN } from "@/lib/copy/zh-cn";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { getSessionUserId } from "@/lib/auth/session";
 import { sessionUserSelect } from "@/lib/auth/user";
+import { getUniqueConstraintTargets } from "@/lib/auth/user-code";
 import {
   consumeVerificationCode,
   createVerificationCode,
@@ -25,7 +26,9 @@ export async function sendRegisterCode(email: string) {
   });
 
   if (existingUser) {
-    throw new AuthApiError(409, zhCN.auth.error.emailRegistered);
+    throw new AuthApiError(409, zhCN.auth.error.emailRegistered, {
+      email: [zhCN.auth.error.emailRegistered],
+    });
   }
 
   const verificationCode = await createVerificationCode({
@@ -67,7 +70,9 @@ export async function registerWithCode(
       });
 
       if (existingUser) {
-        throw new AuthApiError(409, zhCN.auth.error.emailRegistered);
+        throw new AuthApiError(409, zhCN.auth.error.emailRegistered, {
+          email: [zhCN.auth.error.emailRegistered],
+        });
       }
 
       await consumeVerificationCode(tx, {
@@ -91,6 +96,16 @@ export async function registerWithCode(
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
+      const targets = getUniqueConstraintTargets(error);
+
+      if (targets.includes("email")) {
+        throw new AuthApiError(409, zhCN.auth.error.emailRegistered);
+      }
+
+      if (targets.includes("code")) {
+        throw new AuthApiError(503, "用户编码序列冲突，请稍后重试");
+      }
+
       throw new AuthApiError(409, zhCN.auth.error.emailRegistered);
     }
 
@@ -108,17 +123,23 @@ export async function loginWithPassword(email: string, password: string) {
   });
 
   if (!user) {
-    throw new AuthApiError(404, zhCN.auth.error.emailNotRegistered);
+    throw new AuthApiError(404, zhCN.auth.error.emailNotRegistered, {
+      email: [zhCN.auth.error.emailNotRegistered],
+    });
   }
 
   if (!user.passwordHash) {
-    throw new AuthApiError(400, zhCN.auth.error.passwordMissing);
+    throw new AuthApiError(400, zhCN.auth.error.passwordMissing, {
+      password: [zhCN.auth.error.passwordMissing],
+    });
   }
 
   const isPasswordValid = await verifyPassword(password, user.passwordHash);
 
   if (!isPasswordValid) {
-    throw new AuthApiError(401, zhCN.auth.error.passwordIncorrect);
+    throw new AuthApiError(401, zhCN.auth.error.passwordIncorrect, {
+      password: [zhCN.auth.error.passwordIncorrect],
+    });
   }
 
   return prisma.user.update({
@@ -137,7 +158,9 @@ export async function sendPasswordResetCode(email: string) {
   });
 
   if (!existingUser) {
-    throw new AuthApiError(404, zhCN.auth.error.emailNotRegistered);
+    throw new AuthApiError(404, zhCN.auth.error.emailNotRegistered, {
+      email: [zhCN.auth.error.emailNotRegistered],
+    });
   }
 
   const verificationCode = await createVerificationCode({
@@ -178,7 +201,9 @@ export async function resetPasswordWithCode(
     });
 
     if (!existingUser) {
-      throw new AuthApiError(404, zhCN.auth.error.emailNotRegistered);
+      throw new AuthApiError(404, zhCN.auth.error.emailNotRegistered, {
+        email: [zhCN.auth.error.emailNotRegistered],
+      });
     }
 
     await consumeVerificationCode(tx, {

@@ -1,8 +1,9 @@
 export const zhCN = {
   app: {
-    name: "BayData 控制台",
-    shortName: "BayData",
-    description: "基于 Next.js 与 Prisma 构建的邮箱认证与创作工作台。",
+    name: "我要当作者",
+    shortName: "我要当作者",
+    description:
+      "一个面向小说创作者的 AI 工作台，提供创意生成、大纲规划、章节管理与创作辅助能力。",
   },
   auth: {
     response: {

@@ -46,11 +46,20 @@ export function getDefaultCreateUiConfig(): CreateUiConfig {
     version: 1,
     genres: [
       {
+        id: "custom",
+        name: "自定义",
+        tags: ["自由题材", "混合设定", "原创类型"],
+        icon: "✍️",
+        gradient: "from-emerald-500 to-teal-500",
+        sortOrder: 5,
+        active: true,
+      },
+      {
         id: "fantasy",
         name: "玄幻修仙",
         tags: ["系统", "重生", "废材逆袭"],
         icon: "⚡",
-        gradient: "from-blue-500 to-indigo-500",
+        gradient: "from-slate-700 to-emerald-600",
         sortOrder: 10,
         active: true,
       },
@@ -59,7 +68,7 @@ export function getDefaultCreateUiConfig(): CreateUiConfig {
         name: "都市爽文",
         tags: ["赘婿", "神医", "兵王"],
         icon: "🏙️",
-        gradient: "from-cyan-500 to-blue-500",
+        gradient: "from-teal-500 to-emerald-600",
         sortOrder: 20,
         active: true,
       },
@@ -68,7 +77,7 @@ export function getDefaultCreateUiConfig(): CreateUiConfig {
         name: "科幻未来",
         tags: ["星际", "机甲", "末日"],
         icon: "🛸",
-        gradient: "from-purple-500 to-pink-500",
+        gradient: "from-stone-500 to-slate-700",
         sortOrder: 30,
         active: true,
       },
@@ -231,6 +240,18 @@ export async function getCreateUiConfig() {
     }
   }
 
+  // Seed the standalone custom entry without restoring any genre the admin removed.
+  const recommendedCustomGenre = getDefaultCreateUiConfig().genres.find(
+    (item) => item.id === "custom",
+  );
+  if (
+    recommendedCustomGenre &&
+    !config.genres.some((item) => item.id === recommendedCustomGenre.id)
+  ) {
+    config.genres.push(recommendedCustomGenre);
+    changed = true;
+  }
+
   // Seed more DNA style examples if the DB config is missing newly added defaults.
   const recommendedDnaStyles = getDefaultCreateUiConfig().dnaStyles;
   for (const recommended of recommendedDnaStyles) {
@@ -241,6 +262,9 @@ export async function getCreateUiConfig() {
   }
 
   if (changed) {
+    config.genres = [...config.genres].sort(
+      (a, b) => a.sortOrder - b.sortOrder,
+    );
     config.dnaStyles = [...config.dnaStyles].sort(
       (a, b) => a.sortOrder - b.sortOrder,
     );

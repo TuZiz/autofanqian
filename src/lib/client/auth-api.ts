@@ -7,6 +7,7 @@ export type AuthApiResponse<T = unknown> = {
   message: string;
   data?: T;
   fieldErrors?: ApiFieldErrors;
+  status?: number;
 };
 
 export async function apiRequest<T = unknown>(
@@ -14,17 +15,26 @@ export async function apiRequest<T = unknown>(
   payload?: unknown,
   init?: Omit<RequestInit, "body">
 ): Promise<AuthApiResponse<T>> {
-  const response = await fetch(url, {
-    method: init?.method ?? (payload ? "POST" : "GET"),
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    credentials: "include",
-    body: payload ? JSON.stringify(payload) : undefined,
-    ...init,
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: init?.method ?? (payload ? "POST" : "GET"),
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      credentials: "include",
+      body: payload ? JSON.stringify(payload) : undefined,
+      ...init,
+    });
+  } catch {
+    return {
+      success: false,
+      message: zhCN.auth.response.networkError,
+    };
+  }
 
   let json: AuthApiResponse<T> | null = null;
 
@@ -37,13 +47,17 @@ export async function apiRequest<T = unknown>(
   if (!json) {
     return {
       success: false,
+      status: response.status,
       message: response.ok
         ? zhCN.auth.response.emptyResponse
         : zhCN.auth.response.networkError,
     };
   }
 
-  return json;
+  return {
+    ...json,
+    status: response.status,
+  };
 }
 
 export function firstFieldErrors(fieldErrors?: ApiFieldErrors) {

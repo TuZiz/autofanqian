@@ -7,11 +7,12 @@ import { zhCN } from "@/lib/copy/zh-cn";
 type ApiSuccessOptions = {
   message: string;
   status?: number;
+  headers?: HeadersInit;
 };
 
 export function successResponse<T>(
   data: T,
-  { message, status = 200 }: ApiSuccessOptions
+  { message, status = 200, headers }: ApiSuccessOptions
 ) {
   return NextResponse.json(
     {
@@ -19,7 +20,7 @@ export function successResponse<T>(
       message,
       data,
     },
-    { status }
+    { status, headers }
   );
 }
 

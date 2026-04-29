@@ -2,6 +2,42 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 
+function sanitizeTemplateContent(text: string) {
+  let value = text.trim();
+
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("“") && value.endsWith("”"))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+
+  value = value.replace(/^["“”'‘’]+/, "").replace(/["“”'‘’]+$/, "").trim();
+
+  value = value
+    .replace(/\\\\r\\\\n/g, "\n")
+    .replace(/\\\\n/g, "\n")
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
+
+  value = value.replace(
+    /(标签|核心设定|设定|世界规则|主角目标|阻力|爽点|开篇钩子|断章钩子|钩子)\s*[:：]\s*/g,
+    "",
+  );
+
+  value = value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(" ");
+
+  value = value.replace(/\s+/g, " ").trim();
+
+  return value || text;
+}
+
 const seedTemplates: Record<string, string[]> = {
   fantasy: [
     "【经典废材流】主角本是家族天才，突遭变故修为全失，被未婚妻退婚。偶得神秘戒指，内藏远古大能灵魂，从此开启逆袭之路……",
@@ -58,7 +94,7 @@ export async function listHotTemplates(params: {
   const take = Math.max(1, Math.min(20, params.take ?? 10));
   await ensureSeedTemplates(params.genreId);
 
-  return prisma.createTemplate.findMany({
+  const templates = await prisma.createTemplate.findMany({
     where: {
       genreId: params.genreId,
       isActive: true,
@@ -73,6 +109,85 @@ export async function listHotTemplates(params: {
       updatedAt: true,
     },
   });
+
+  return templates.map((item) => ({
+    ...item,
+    content: sanitizeTemplateContent(item.content),
+  }));
+}
+
+export async function listHotTemplatesShowcase(params: {
+  genreId: string;
+  hotCount?: number;
+  randomCount?: number;
+}) {
+  const hotCount = Math.max(0, Math.min(6, params.hotCount ?? 2));
+  const randomCount = Math.max(0, Math.min(6, params.randomCount ?? 2));
+
+  await ensureSeedTemplates(params.genreId);
+
+  const select = {
+    id: true,
+    content: true,
+    usageCount: true,
+    source: true,
+    updatedAt: true,
+  } as const;
+
+  const hotTemplates = hotCount
+    ? await prisma.createTemplate.findMany({
+        where: {
+          genreId: params.genreId,
+          isActive: true,
+        },
+        orderBy: [{ usageCount: "desc" }, { updatedAt: "desc" }],
+        take: hotCount,
+        select,
+      })
+    : [];
+
+  const selected = [...hotTemplates];
+  const selectedIds = new Set(selected.map((item) => item.id));
+
+  let remainingCount = randomCount
+    ? await prisma.createTemplate.count({
+        where: {
+          genreId: params.genreId,
+          isActive: true,
+          id: { notIn: Array.from(selectedIds) },
+        },
+      })
+    : 0;
+
+  for (let index = 0; index < randomCount && remainingCount > 0; index++) {
+    const skip = Math.floor(Math.random() * remainingCount);
+
+    const templates = await prisma.createTemplate.findMany({
+      where: {
+        genreId: params.genreId,
+        isActive: true,
+        id: { notIn: Array.from(selectedIds) },
+      },
+      orderBy: { id: "asc" },
+      skip,
+      take: 1,
+      select,
+    });
+
+    const template = templates[0];
+    if (!template) {
+      break;
+    }
+
+    selected.push(template);
+    selectedIds.add(template.id);
+    remainingCount -= 1;
+  }
+
+  return selected.map((item) => ({
+    ...item,
+    content: sanitizeTemplateContent(item.content),
+  }));
 }
 
 export async function recordTemplateUsage(params: {
@@ -103,4 +218,3 @@ export async function recordTemplateUsage(params: {
     return template;
   });
 }
-

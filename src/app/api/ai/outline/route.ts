@@ -5,14 +5,22 @@ import {
   buildOutlineSystemPrompt,
   buildOutlineUserPrompt,
 } from "@/lib/ai/outline-prompt";
+import { logAiUsage } from "@/lib/ai/usage-log";
+import { callAiText, getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
 import { isAdminEmail } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/service";
+import { getAiModelConfig } from "@/lib/config/ai-model";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
+import {
+  normalizeStoryOutline,
+  storyOutlineSchema,
+} from "@/lib/create/outline-schema";
 
 export const runtime = "nodejs";
 
 const requestSchema = z.object({
   genre: z.string().min(1).max(64),
+  customGenreLabel: z.string().max(80).optional(),
   idea: z.string().min(10).max(2000).optional(),
   tags: z.array(z.string()).max(12).optional(),
   platform: z.string().optional(),
@@ -21,81 +29,23 @@ const requestSchema = z.object({
   words: z.string().optional(),
 });
 
-function buildChatCompletionsUrl(baseUrl: string) {
-  const trimmed = baseUrl.replace(/\/+$/, "");
-  if (trimmed.endsWith("/v1")) {
-    return `${trimmed}/chat/completions`;
+function extractJson(text: string) {
+  const trimmed = text.trim();
+  const withoutFence = trimmed
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
+  const start = withoutFence.indexOf("{");
+  const end = withoutFence.lastIndexOf("}");
+  if (start < 0 || end < 0 || end <= start) return null;
+
+  const candidate = withoutFence.slice(start, end + 1);
+  try {
+    return JSON.parse(candidate) as unknown;
+  } catch {
+    return null;
   }
-  return `${trimmed}/v1/chat/completions`;
-}
-
-function getFirstContent(payload: unknown) {
-  if (!payload || typeof payload !== "object") return null;
-
-  const data = payload as {
-    choices?: Array<{
-      message?: { content?: string | null };
-      text?: string | null;
-    }>;
-  };
-
-  const choice = data.choices?.[0];
-  const content = choice?.message?.content ?? choice?.text ?? null;
-  return typeof content === "string" ? content.trim() : null;
-}
-
-function nonWhitespaceLength(text: string) {
-  return text.replace(/\s/g, "").length;
-}
-
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-function normalizeModelName(model: string) {
-  const trimmed = model.trim();
-  if (trimmed === "gpt5.2") return "gpt-5.2";
-  return trimmed;
-}
-
-function getAlternateModelName(model: string) {
-  if (model === "gpt5.2") return "gpt-5.2";
-  if (model === "gpt-5.2") return "gpt5.2";
-  return null;
-}
-
-function getUpstreamMessage(payload: unknown) {
-  if (!payload || typeof payload !== "object") return null;
-
-  const data = payload as {
-    error?: { message?: unknown };
-    message?: unknown;
-  };
-
-  const message = data.error?.message ?? data.message ?? null;
-  return typeof message === "string" ? message : null;
-}
-
-function shouldRetryWithAlternateModel(status: number, upstreamMessage: unknown) {
-  if (status !== 400 && status !== 404) return false;
-  if (typeof upstreamMessage !== "string") return false;
-  return /(model|not\s*found|unknown|invalid|不存在|未找到|无效|不支持)/i.test(
-    upstreamMessage,
-  );
-}
-
-function isRetryableStatus(status: number) {
-  return (
-    status === 0 ||
-    status === 408 ||
-    status === 429 ||
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504
-  );
 }
 
 async function fetchTextWithTimeout(
@@ -117,74 +67,6 @@ async function fetchTextWithTimeout(
   }
 }
 
-async function callChatCompletions(params: {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
-  maxTokens?: number;
-  temperature?: number;
-}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
-
-  try {
-    const response = await fetch(buildChatCompletionsUrl(params.baseUrl), {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${params.apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        model: params.model,
-        temperature: params.temperature ?? 0.75,
-        max_tokens: params.maxTokens ?? 1200,
-        messages: params.messages,
-      }),
-      signal: controller.signal,
-    });
-
-    const json = await response.json().catch(() => null as unknown);
-    return { ok: response.ok, status: response.status, json };
-  } catch {
-    return {
-      ok: false,
-      status: 0,
-      json: { error: { message: "网络异常或上游服务不可达" } },
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function callChatCompletionsWithRetry(params: {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
-  maxTokens?: number;
-  temperature?: number;
-  attempts?: number;
-}) {
-  const attempts = Math.max(1, Math.min(3, params.attempts ?? 3));
-  let last = await callChatCompletions(params);
-
-  for (let attempt = 1; attempt < attempts; attempt += 1) {
-    if (last.ok || !isRetryableStatus(last.status)) {
-      return last;
-    }
-
-    const baseDelay = 450 * Math.pow(2, attempt - 1);
-    const jitter = Math.floor(Math.random() * 150);
-    await sleep(baseDelay + jitter);
-
-    last = await callChatCompletions(params);
-  }
-
-  return last;
-}
-
 function parseTopLinksFromBing(html: string, limit: number) {
   const results: string[] = [];
   const regex = /<li class="b_algo"[\s\S]*?<a href="([^"]+)"/g;
@@ -203,7 +85,7 @@ function parseTopLinksFromBing(html: string, limit: number) {
 
 function clampSnippet(text: string, max = 700) {
   const normalized = text.replace(/\s+/g, " ").trim();
-  return normalized.length > max ? `${normalized.slice(0, max)}…` : normalized;
+  return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
 }
 
 async function researchBookFromWeb(title: string) {
@@ -230,9 +112,7 @@ async function researchBookFromWeb(title: string) {
     // Jina AI reader proxy: returns a readable text view of the page.
     const readerUrl = `https://r.jina.ai/${url}`;
     const page = await fetchTextWithTimeout(readerUrl, {
-      headers: {
-        Accept: "text/plain",
-      },
+      headers: { Accept: "text/plain" },
       timeoutMs: 12000,
     });
 
@@ -267,11 +147,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        message: "请求参数校验失败，请检查输入内容。",
-        fieldErrors,
-      },
+      { success: false, message: "请求参数校验失败，请检查输入内容。", fieldErrors },
       { status: 400 },
     );
   }
@@ -284,22 +160,34 @@ export async function POST(request: Request) {
     );
   }
 
-  const isAdmin = isAdminEmail(user.email);
+  const providersFromEnv = getAiProvidersFromEnv();
+  const aiModelConfig = await getAiModelConfig();
+  const target = aiModelConfig.outlineGenerate;
 
-  const baseUrl = process.env.AI_BASE_URL || "https://api.99dun.cc";
-  const apiKey = process.env.AI_API_KEY;
-  const model = normalizeModelName(process.env.AI_MODEL || "gpt-5.2");
+  const selectedProvider = providersFromEnv.find(
+    (provider) => provider.id === target.providerId,
+  );
 
-  if (!apiKey) {
+  if (!selectedProvider) {
+    const envKey = target.providerId === "primary" ? "AI_API_KEY" : "ARK_API_KEY";
     return NextResponse.json(
       {
         success: false,
-        message: "AI 未配置：请在 web/.env 或 web/.env.local 中设置 AI_API_KEY。",
+        message:
+          `AI 未配置：当前“生成大纲”配置使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
       },
       { status: 500 },
     );
   }
 
+  const providers = [
+    {
+      ...selectedProvider,
+      model: target.model ?? selectedProvider.model,
+    },
+  ];
+
+  const isAdmin = isAdminEmail(user.email);
   const uiConfig = await getCreateUiConfig();
   const genreMeta = uiConfig.genres.find((item) => item.id === parsed.data.genre);
   if (!genreMeta) {
@@ -308,6 +196,11 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  const genreLabel =
+    genreMeta.id === "custom" && parsed.data.customGenreLabel?.trim()
+      ? parsed.data.customGenreLabel.trim()
+      : genreMeta.name;
 
   const effectiveIdea = parsed.data.idea?.trim() || "";
   if (!effectiveIdea) {
@@ -323,9 +216,7 @@ export async function POST(request: Request) {
     .slice(0, 8);
 
   const platformId = parsed.data.platform?.trim();
-  const platformMeta = platformId
-    ? uiConfig.platforms.find((item) => item.id === platformId)
-    : null;
+  const platformMeta = platformId ? uiConfig.platforms.find((item) => item.id === platformId) : null;
   const platformText = platformMeta
     ? `${platformMeta.label}${platformMeta.promptHint ? `（${platformMeta.promptHint}）` : ""}`
     : platformId;
@@ -337,7 +228,7 @@ export async function POST(request: Request) {
   const dnaId = isAdmin && !dnaBookTitle ? dnaIdRaw : null;
   const dnaMeta = dnaId ? uiConfig.dnaStyles.find((item) => item.id === dnaId) : null;
   const dnaText = dnaBookTitle
-    ? `参考书名：${dnaBookTitle}（仅抽象写法与结构，不复刻原作剧情）`
+    ? `参考书名：${dnaBookTitle}（只抽象写法与结构，不复刻原作剧情）`
     : dnaMeta
       ? `${dnaMeta.label}${dnaMeta.promptHint ? `（${dnaMeta.promptHint}）` : ""}`
       : null;
@@ -346,12 +237,11 @@ export async function POST(request: Request) {
   const wordsMeta = wordsId ? uiConfig.wordOptions.find((item) => item.id === wordsId) : null;
   const wordsText = wordsMeta ? wordsMeta.label : wordsId;
 
-  const webSources =
-    dnaBookTitle && isAdmin ? await researchBookFromWeb(dnaBookTitle) : [];
+  const webSources = dnaBookTitle && isAdmin ? await researchBookFromWeb(dnaBookTitle) : [];
 
   const systemPrompt = buildOutlineSystemPrompt();
   const userPrompt = buildOutlineUserPrompt({
-    genreLabel: genreMeta.name,
+    genreLabel,
     tags: effectiveTags.length ? effectiveTags : undefined,
     platform: platformText,
     dna: dnaText ?? undefined,
@@ -366,49 +256,26 @@ export async function POST(request: Request) {
       { role: "user", content: userPrompt },
     ];
 
-  let modelUsed = model;
-  let first = await callChatCompletionsWithRetry({
-    baseUrl,
-    apiKey,
-    model: modelUsed,
+  const first = await callAiText({
+    providers,
     messages,
-    maxTokens: 1300,
-    temperature: 0.75,
+    temperature: 0.78,
+    maxTokens: 4200,
+    attempts: 3,
+    preferredProviderId: target.providerId,
   });
 
-  if (!first.ok) {
-    const upstreamMessage = getUpstreamMessage(first.json);
-    const alternateModel = getAlternateModelName(modelUsed);
+  await logAiUsage({ userId: user.id, action: "outline_generate", result: first });
 
-    if (
-      alternateModel &&
-      shouldRetryWithAlternateModel(first.status, upstreamMessage)
-    ) {
-      const retry = await callChatCompletionsWithRetry({
-        baseUrl,
-        apiKey,
-        model: alternateModel,
-        messages,
-        maxTokens: 1300,
-        temperature: 0.75,
-      });
-
-      if (retry.ok) {
-        first = retry;
-        modelUsed = alternateModel;
-      }
-    }
-  }
-
-  if (!first.ok) {
-    const upstreamMessage = getUpstreamMessage(first.json);
+  if (!first.ok || !first.text) {
+    const upstreamMessage = first.upstreamMessage;
 
     return NextResponse.json(
       {
         success: false,
         message:
           first.status === 401
-            ? "AI 服务鉴权失败，请检查 AI_API_KEY。"
+            ? "AI 服务鉴权失败，请检查 AI_API_KEY / ARK_API_KEY。"
             : first.status === 429
               ? "AI 服务请求过于频繁（上游限流），请稍后重试。"
               : first.status === 503
@@ -423,41 +290,50 @@ export async function POST(request: Request) {
     );
   }
 
-  let content = getFirstContent(first.json);
-  if (!content) {
-    return NextResponse.json(
-      { success: false, message: "AI 服务未返回有效内容，请稍后重试。" },
-      { status: 502 },
-    );
-  }
+  let content = first.text;
+  let storyRaw = extractJson(content);
 
-  if (nonWhitespaceLength(content) < 450) {
-    const second = await callChatCompletionsWithRetry({
-      baseUrl,
-      apiKey,
-      model: modelUsed,
+  if (!storyRaw) {
+    const second = await callAiText({
+      providers,
+      preferredProviderId: first.providerId,
       messages: [
         ...messages,
         { role: "assistant", content },
         {
           role: "user",
-          content: "请在保持逻辑一致的前提下补全细节，使输出不少于 700 字。",
+          content:
+            "上一次输出不是合法 JSON。请严格只输出 JSON 对象，且必须符合 schema，不能包含任何多余文字。",
         },
       ],
-      maxTokens: 1500,
-      temperature: 0.7,
+      temperature: 0.5,
+      maxTokens: 4200,
+      attempts: 2,
     });
 
-    const expanded = second.ok ? getFirstContent(second.json) : null;
-    if (expanded && nonWhitespaceLength(expanded) >= 450) {
-      content = expanded;
+    await logAiUsage({
+      userId: user.id,
+      action: "outline_generate_retry",
+      result: second,
+    });
+
+    if (second.ok && second.text) {
+      content = second.text;
+      storyRaw = extractJson(second.text);
     }
+  }
+
+  const validated = storyOutlineSchema.safeParse(storyRaw);
+  if (!validated.success) {
+    return NextResponse.json(
+      { success: false, message: "大纲解析失败，请点击“重新生成”重试。" },
+      { status: 502 },
+    );
   }
 
   return NextResponse.json({
     success: true,
     message: "大纲生成成功。",
-    data: { outline: content },
+    data: { story: normalizeStoryOutline(validated.data) },
   });
 }
-

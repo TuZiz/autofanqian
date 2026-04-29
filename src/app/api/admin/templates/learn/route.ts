@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { callAiText, getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
+import { logAiUsage } from "@/lib/ai/usage-log";
 import { requireAdminUser } from "@/lib/auth/admin";
+import { getAiModelConfig } from "@/lib/config/ai-model";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
 import { prisma } from "@/lib/prisma";
 
@@ -12,68 +15,32 @@ const bodySchema = z.object({
   perGenre: z.number().int().min(1).max(10).optional(),
 });
 
-function buildChatCompletionsUrl(baseUrl: string) {
-  const trimmed = baseUrl.replace(/\/+$/, "");
-  if (trimmed.endsWith("/v1")) {
-    return `${trimmed}/chat/completions`;
-  }
-  return `${trimmed}/v1/chat/completions`;
-}
-
-function getFirstContent(payload: unknown) {
-  if (!payload || typeof payload !== "object") return null;
-
-  const data = payload as {
-    choices?: Array<{
-      message?: { content?: string | null };
-      text?: string | null;
-    }>;
-  };
-
-  const choice = data.choices?.[0];
-  const content = choice?.message?.content ?? choice?.text ?? null;
-  return typeof content === "string" ? content.trim() : null;
-}
-
-function normalizeModelName(model: string) {
-  const trimmed = model.trim();
-  if (trimmed === "gpt5.2") return "gpt-5.2";
-  return trimmed;
-}
-
-function getAlternateModelName(model: string) {
-  if (model === "gpt5.2") return "gpt-5.2";
-  if (model === "gpt-5.2") return "gpt5.2";
-  return null;
-}
-
-function getUpstreamMessage(payload: unknown) {
-  if (!payload || typeof payload !== "object") return null;
-
-  const data = payload as {
-    error?: { message?: unknown };
-    message?: unknown;
-  };
-
-  const message = data.error?.message ?? data.message ?? null;
-  return typeof message === "string" ? message : null;
-}
-
-function shouldRetryWithAlternateModel(status: number, upstreamMessage: unknown) {
-  if (status !== 400 && status !== 404) return false;
-  if (typeof upstreamMessage !== "string") return false;
-  return /(model|not\s*found|unknown|invalid|不存在|未找到|无效|不支持)/i.test(
-    upstreamMessage,
-  );
-}
-
 function parseStringArrayFromModel(text: string) {
   const trimmed = text.trim();
 
   try {
     const json = JSON.parse(trimmed) as unknown;
+
     if (Array.isArray(json)) {
-      return json.filter((item) => typeof item === "string") as string[];
+      return json
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object") {
+            const content = (item as { content?: unknown }).content;
+            if (typeof content === "string") return content;
+          }
+          return null;
+        })
+        .filter((item): item is string => typeof item === "string");
+    }
+
+    if (json && typeof json === "object") {
+      const templates = (json as { templates?: unknown }).templates;
+      if (Array.isArray(templates)) {
+        return templates
+          .map((item) => (typeof item === "string" ? item : null))
+          .filter((item): item is string => typeof item === "string");
+      }
     }
   } catch {
     // fallthrough
@@ -90,7 +57,7 @@ function parseStringArrayFromModel(text: string) {
     const normalized = line
       .replace(/^[-*]\s+/, "")
       .replace(/^\d+\.\s+/, "")
-      .replace(/^（\d+）\s*/, "")
+      .replace(/^\(\d+\)\s*/, "")
       .trim();
     if (normalized.length >= 20) {
       items.push(normalized);
@@ -100,108 +67,102 @@ function parseStringArrayFromModel(text: string) {
   return items;
 }
 
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+function sanitizeTemplateText(raw: string, fallbackTitle: string) {
+  let text = raw.trim();
 
-function isRetryableStatus(status: number) {
-  return (
-    status === 0 ||
-    status === 408 ||
-    status === 429 ||
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504
+  text = text.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+
+  // Strip wrapping quotes.
+  if (
+    (text.startsWith('"') && text.endsWith('"')) ||
+    (text.startsWith("“") && text.endsWith("”"))
+  ) {
+    text = text.slice(1, -1).trim();
+  }
+
+  // Convert literal "\n"/"\\n" sequences into newlines, then flatten.
+  text = text
+    .replace(/\\\\r\\\\n/g, "\n")
+    .replace(/\\\\n/g, "\n")
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
+
+  // Remove blueprint labels if they appear.
+  text = text.replace(
+    /(标签|核心设定|设定|世界规则|主角目标|阻力|爽点|开篇钩子|断章钩子|钩子)\s*[:：]\s*/g,
+    "",
   );
-}
 
-async function callChatCompletions(params: {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
-  maxTokens?: number;
-  temperature?: number;
-}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  // Flatten to a single paragraph to match existing UI cards.
+  text = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(" ");
 
-  try {
-    const response = await fetch(buildChatCompletionsUrl(params.baseUrl), {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${params.apiKey}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        model: params.model,
-        temperature: params.temperature ?? 0.8,
-        max_tokens: params.maxTokens ?? 900,
-        messages: params.messages,
-      }),
-      signal: controller.signal,
-    });
+  text = text.replace(/\s+/g, " ").trim();
+  text = text.replace(/^["“”'‘’]+/, "").replace(/["“”'‘’]+$/, "").trim();
 
-    const json = await response.json().catch(() => null as unknown);
-    return { ok: response.ok, status: response.status, json };
-  } catch {
-    return {
-      ok: false,
-      status: 0,
-      json: { error: { message: "网络异常或上游服务不可达" } },
-    };
-  } finally {
-    clearTimeout(timeout);
+  if (!text) return null;
+
+  // Ensure starts with 【标题】 for consistent template cards.
+  if (!/^【[^】]{1,12}】/.test(text)) {
+    const title = (fallbackTitle || "热门模板").trim().slice(0, 8) || "热门模板";
+    text = `【${title}】${text}`;
   }
-}
 
-async function callChatCompletionsWithRetry(params: {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
-  maxTokens?: number;
-  temperature?: number;
-  attempts?: number;
-}) {
-  const attempts = Math.max(1, Math.min(3, params.attempts ?? 3));
-  let last = await callChatCompletions(params);
-
-  for (let attempt = 1; attempt < attempts; attempt += 1) {
-    if (last.ok || !isRetryableStatus(last.status)) {
-      return last;
+  // Clamp length so templates stay compact.
+  const maxLen = 240;
+  if (text.length > maxLen) {
+    let sliced = text.slice(0, maxLen);
+    const lastPunct = Math.max(
+      sliced.lastIndexOf("。"),
+      sliced.lastIndexOf("！"),
+      sliced.lastIndexOf("？"),
+      sliced.lastIndexOf("…"),
+    );
+    if (lastPunct > 80) {
+      sliced = sliced.slice(0, lastPunct + 1);
     }
-
-    const baseDelay = 450 * Math.pow(2, attempt - 1);
-    const jitter = Math.floor(Math.random() * 150);
-    await sleep(baseDelay + jitter);
-
-    last = await callChatCompletions(params);
+    text = sliced;
   }
 
-  return last;
+  if (text.length < 50) return null;
+
+  return text;
 }
 
 export async function POST(request: Request) {
-  await requireAdminUser();
+  const adminUser = await requireAdminUser();
 
-  const apiKey = process.env.AI_API_KEY;
-  const baseUrl = process.env.AI_BASE_URL || "https://api.99dun.cc";
-  const model = normalizeModelName(process.env.AI_MODEL || "gpt-5.2");
+  const providersFromEnv = getAiProvidersFromEnv();
+  const aiModelConfig = await getAiModelConfig();
+  const target = aiModelConfig.templatesLearn;
 
-  if (!apiKey) {
+  const selectedProvider = providersFromEnv.find(
+    (provider) => provider.id === target.providerId,
+  );
+
+  if (!selectedProvider) {
+    const envKey = target.providerId === "primary" ? "AI_API_KEY" : "ARK_API_KEY";
     return NextResponse.json(
       {
         success: false,
-        message: "AI 未配置：请先设置 AI_API_KEY。",
+        message:
+          `AI 未配置：当前“AI 学习生成（预设模板库）”配置使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
       },
       { status: 500 },
     );
   }
+
+  const providers = [
+    {
+      ...selectedProvider,
+      model: target.model ?? selectedProvider.model,
+    },
+  ];
 
   let body: z.infer<typeof bodySchema>;
   try {
@@ -221,9 +182,9 @@ export async function POST(request: Request) {
 
   const results: Array<{ genreId: string; created: number; skipped: number }> = [];
 
-  const clampSnippet = (text: string, max = 520) => {
+  const clampSnippet = (text: string, max = 320) => {
     const normalized = text.replace(/\s+/g, " ").trim();
-    return normalized.length > max ? `${normalized.slice(0, max)}…` : normalized;
+    return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
   };
 
   for (const genreId of genreIds) {
@@ -233,7 +194,7 @@ export async function POST(request: Request) {
     const recentIdeas = await prisma.ideaGenerationEvent.findMany({
       where: { genreId },
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: 16,
       select: { outputIdea: true },
     });
 
@@ -244,115 +205,96 @@ export async function POST(request: Request) {
       select: { content: true, usageCount: true },
     });
 
-    const templateSamples = topTemplates.slice(0, 8);
-    const ideaSamples = recentIdeas.slice(0, 12);
+    const templateSamples = topTemplates.slice(0, 6);
+    const ideaSamples = recentIdeas.slice(0, 10);
 
     const systemPrompt = [
-      "你是一名中文网文策划编辑，擅长把零散素材提炼成可复用的热门模板。",
-      "整体风格偏番茄平台：情绪优先、快节奏、短句短段、对话推进、结尾留钩子，且尽量适配短剧化改编。",
-      "请只输出 JSON，不要输出 Markdown，不要输出多余解释。",
-      `输出一个 JSON 数组，包含 ${perGenre} 条“热门模板”文本（数组元素为字符串）。`,
-      "每条模板 160-280 字左右，结构完整：核心设定 + 世界规则/限制（至少2条）+ 主角目标与阻力 + 3个看点/爽点 + 开篇钩子事件（1句）+ 第一章结尾断章钩子（1句）。",
-      "每条模板第一行必须以“标签：”开头，且必须包含给定标签（用顿号或逗号分隔）。",
-      "不要直接照抄输入素材，不要出现“AI/模型/提示词”等字样。",
+      "你是中文网文平台的爆款编辑，负责产出“热门模板”短文案。",
+      "风格偏番茄：情绪直给、节奏快、短句、强冲突、适配短剧化。",
+      "请只输出 JSON 数组（不要 Markdown / 不要多余解释），数组长度等于要求条数。",
+      `每条模板 80-180 字（最多 240 字），必须以【模板名】开头（8 字以内）。`,
+      "结构建议：一句设定 + 一句冲突/爽点 + 一句结尾钩子（例如“就在这时……”）。",
+      "严格禁止：编号列表、字段名冒号（如“标签：/世界规则：”）、出现“\\n”字样、整段被引号包裹。",
     ].join("\n");
 
     const userPrompt = [
       `小说类型：${meta.name}`,
-      `固定标签：${meta.tags.join("、") || "无"}`,
+      `常用标签：${meta.tags.join("、") || "无"}`,
       "",
-      "现有热门模板（供参考，不要照抄）：",
+      "参考模板（仅参考风格，不要抄袭/不要太像）：",
       templateSamples.length
         ? templateSamples
             .map(
               (item, idx) =>
-                `${idx + 1})（使用次数${item.usageCount}）${clampSnippet(item.content, 420)}`,
+                `${idx + 1}) ${clampSnippet(item.content)}（使用：${item.usageCount}）`,
             )
             .join("\n")
         : "（暂无）",
       "",
-      "最近用户创意（供学习，不要照抄）：",
+      "近期用户创意（仅参考热点，不要照抄）：",
       ideaSamples.length
         ? ideaSamples
-            .map((item, idx) => `${idx + 1}) ${clampSnippet(item.outputIdea, 480)}`)
+            .map((item, idx) => `${idx + 1}) ${clampSnippet(item.outputIdea)}`)
             .join("\n")
         : "（暂无）",
       "",
-      "请生成新的热门模板数组。",
+      `请生成 ${perGenre} 条新的热门模板（JSON 数组）。`,
     ].join("\n");
 
-    let modelUsed = model;
-    let response = await callChatCompletionsWithRetry({
-      baseUrl,
-      apiKey,
-      model: modelUsed,
+    const response = await callAiText({
+      providers,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
+      temperature: 0.7,
+      maxTokens: 800,
+      attempts: 3,
+      preferredProviderId: target.providerId,
     });
 
-    if (!response.ok) {
-      const upstreamMessage = getUpstreamMessage(response.json);
-      const alternateModel = getAlternateModelName(modelUsed);
+    await logAiUsage({
+      userId: adminUser.id,
+      action: "templates_learn",
+      result: response,
+    });
 
-      if (
-        alternateModel &&
-        shouldRetryWithAlternateModel(response.status, upstreamMessage)
-      ) {
-        const retry = await callChatCompletionsWithRetry({
-          baseUrl,
-          apiKey,
-          model: alternateModel,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        });
-
-        if (retry.ok) {
-          response = retry;
-          modelUsed = alternateModel;
-        }
-      }
-    }
-
-    if (!response.ok) {
-      const upstreamMessage = getUpstreamMessage(response.json);
+    if (!response.ok || !response.text) {
+      const upstreamMessage = response.upstreamMessage;
 
       return NextResponse.json(
         {
           success: false,
           message:
             response.status === 401
-              ? "AI 学习失败：鉴权失败，请检查 AI_API_KEY。"
+              ? "AI 学习失败：鉴权失败，请检查 AI_API_KEY / ARK_API_KEY。"
               : response.status === 429
                 ? "AI 学习失败：上游限流（429），请稍后重试。"
                 : response.status === 503
-                  ? "AI 学习失败：上游服务暂时不可用（503），请稍后重试。"
+                  ? "AI 学习失败：上游服务暂不可用（503），请稍后重试。"
                   : response.status === 502
                     ? "AI 学习失败：上游网关异常（502），请稍后重试。"
                     : typeof upstreamMessage === "string"
-                      ? `AI 学习失败：${upstreamMessage}${response.status ? `（HTTP ${response.status}）` : ""}`
-                      : `AI 学习失败（HTTP ${response.status || 0}）`,
+                      ? `AI 学习失败：${upstreamMessage}${
+                          response.status ? `（HTTP ${response.status}）` : ""
+                        }`
+                      : `AI 学习失败（HTTP ${response.status || 0}）。`,
         },
         { status: 502 },
       );
     }
 
-    const content = getFirstContent(response.json);
-    if (!content) {
-      return NextResponse.json(
-        { success: false, message: "AI 学习失败：未返回有效内容。" },
-        { status: 502 },
-      );
-    }
+    const content = response.text;
 
-    const candidates = parseStringArrayFromModel(content)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .map((item) => item.slice(0, 1200))
-      .filter((item) => item.length >= 60)
+    const candidates = Array.from(
+      new Set(
+        parseStringArrayFromModel(content)
+          .map((item) => sanitizeTemplateText(item, meta.name))
+          .filter((item): item is string => typeof item === "string" && Boolean(item)),
+      ),
+    )
+      .map((item) => item.slice(0, 420))
+      .filter((item) => item.length >= 50)
       .slice(0, perGenre);
 
     if (!candidates.length) {
@@ -379,7 +321,7 @@ export async function POST(request: Request) {
     await prisma.createTemplate.createMany({
       data: next.map((contentText) => ({
         genreId,
-        title: "Learned",
+        title: null,
         content: contentText,
         source: "learned",
         usageCount: 0,

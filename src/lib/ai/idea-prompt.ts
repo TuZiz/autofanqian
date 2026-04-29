@@ -6,6 +6,8 @@ type IdeaPromptInput = {
   dna?: string;
   words?: string;
   existingIdea?: string;
+  minChars?: number;
+  maxChars?: number;
 };
 
 const genreName: Record<string, string> = {
@@ -17,13 +19,33 @@ const genreName: Record<string, string> = {
   game: "游戏竞技",
 };
 
-export function buildIdeaSystemPrompt() {
+export function buildIdeaSystemPrompt(options?: { minChars?: number; maxChars?: number }) {
+  const minChars = options?.minChars ?? 420;
+  const maxChars = options?.maxChars ?? 1500;
+
   return [
     "你是一名中文网文小说策划与编辑，擅长把零散需求整理成可执行、逻辑自洽的故事创意。",
     "请用简体中文输出，语气专业、克制、有说服力。",
-    "输出内容必须不少于 120 字，且不超过 800 字。",
+    `输出内容必须不少于 ${minChars} 字，且不超过 ${maxChars} 字。`,
     "不要提到“AI”“提示词”“模型”“系统消息”等字样。",
     "不要输出代码块或 Markdown 标题符号（例如 #、```）。",
+  ].join("\n");
+}
+
+export function buildIdeaExistingIdeaPrompt(existingIdea: string) {
+  const trimmed = (existingIdea ?? "").trim();
+  const clipped = trimmed.length > 1800 ? trimmed.slice(0, 1800) : trimmed;
+
+  return [
+    "下面是用户在「创意输入框」里已经写好的草稿，请先完整阅读并理解：",
+    "【用户草稿开始】",
+    clipped,
+    "【用户草稿结束】",
+    "",
+    "要求：",
+    "1) 你必须以该草稿为核心设定，不要改写成另一个完全不同的故事。",
+    "2) 你要做的是：润色、补充、结构化、增强冲突与爽点，让它更适合直接粘贴到创意输入框。",
+    "3) 接下来我会给你小说类型/标签/平台/风格等约束，你必须同时遵守。",
   ].join("\n");
 }
 
@@ -37,6 +59,9 @@ export function buildIdeaUserPrompt(input: IdeaPromptInput) {
   const dna = input.dna?.trim();
   const words = input.words?.trim();
   const existingIdea = input.existingIdea?.trim();
+  const minChars = input.minChars ?? 420;
+  const maxChars = input.maxChars ?? 1500;
+  const isCustomGenre = input.genre === "custom";
 
   const constraints: string[] = [];
   if (platform) constraints.push(`目标平台：${platform}`);
@@ -49,9 +74,15 @@ export function buildIdeaUserPrompt(input: IdeaPromptInput) {
     "请为“创建新作品”的创意描述输入框生成一段可直接粘贴的创意文本。",
     `小说类型：${resolvedGenre}`,
     constraints.length ? `补充约束：${constraints.join("；")}` : "补充约束：无",
-    existingIdea ? `用户已有草稿（请润色并补全）：${existingIdea}` : "用户已有草稿：无",
+    existingIdea
+      ? "用户已有草稿：见上文（请基于草稿润色扩写，保持核心设定不变）。"
+      : "用户已有草稿：无",
     "",
     "要求：",
+    `- 长度要求：正文不少于 ${minChars} 字，不超过 ${maxChars} 字；不要因为标签少就写短。`,
+    isCustomGenre
+      ? "- 自定义题材要求：必须把用户输入的“类型”和每一个标签都扩展成剧情规则、人物处境、核心谜团或爽点，不要只复述标签。"
+      : "- 已有题材要求：题材套路可以参考，但必须落到具体人物、规则和冲突。",
     tags.length
       ? `0) 文案首行先输出：标签：${tags.join("、")}（必须包含全部标签，使用顿号或逗号分隔）。`
       : "0) 可选：文案首行用“标签：…”列出 3-6 个关键词（不强制）。",

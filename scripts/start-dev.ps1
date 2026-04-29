@@ -118,6 +118,9 @@ Remove-Item Env:TARGET_DATABASE -ErrorAction SilentlyContinue
 Write-Step "Applying database migrations"
 npx prisma migrate deploy
 
+Write-Step "Generating Prisma client"
+npx prisma generate
+
 if ($SkipDevServer) {
   Write-Step "Preflight complete"
   Write-Host "Dependencies, database, and migrations are ready." -ForegroundColor Green

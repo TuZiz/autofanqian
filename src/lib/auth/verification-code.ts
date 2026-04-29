@@ -58,7 +58,14 @@ export async function createVerificationCode({
         429,
         zhCN.auth.error.requestCodeTooFast(
           VERIFICATION_CODE_RESEND_SECONDS - secondsSinceLastCode
-        )
+        ),
+        {
+          email: [
+            zhCN.auth.error.requestCodeTooFast(
+              VERIFICATION_CODE_RESEND_SECONDS - secondsSinceLastCode
+            ),
+          ],
+        }
       );
     }
   }
@@ -102,19 +109,27 @@ export async function consumeVerificationCode(
   });
 
   if (!record) {
-    throw new AuthApiError(400, zhCN.auth.error.codeMissing);
+    throw new AuthApiError(400, zhCN.auth.error.codeMissing, {
+      code: [zhCN.auth.error.codeMissing],
+    });
   }
 
   if (record.usedAt) {
-    throw new AuthApiError(400, zhCN.auth.error.codeUnavailable);
+    throw new AuthApiError(400, zhCN.auth.error.codeUnavailable, {
+      code: [zhCN.auth.error.codeUnavailable],
+    });
   }
 
   if (record.expiresAt.getTime() <= Date.now()) {
-    throw new AuthApiError(400, zhCN.auth.error.codeExpired);
+    throw new AuthApiError(400, zhCN.auth.error.codeExpired, {
+      code: [zhCN.auth.error.codeExpired],
+    });
   }
 
   if (record.codeHash !== hashVerificationCode(code)) {
-    throw new AuthApiError(400, zhCN.auth.error.codeIncorrect);
+    throw new AuthApiError(400, zhCN.auth.error.codeIncorrect, {
+      code: [zhCN.auth.error.codeIncorrect],
+    });
   }
 
   const updateResult = await db.emailVerificationCode.updateMany({
@@ -128,7 +143,9 @@ export async function consumeVerificationCode(
   });
 
   if (updateResult.count !== 1) {
-    throw new AuthApiError(400, zhCN.auth.error.codeUnavailable);
+    throw new AuthApiError(400, zhCN.auth.error.codeUnavailable, {
+      code: [zhCN.auth.error.codeUnavailable],
+    });
   }
 
   return record;

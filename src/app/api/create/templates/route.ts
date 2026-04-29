@@ -3,9 +3,10 @@ import { z } from "zod";
 import { AuthApiError } from "@/lib/auth/errors";
 import { errorResponse, successResponse } from "@/lib/auth/api";
 import { getCurrentUser } from "@/lib/auth/service";
-import { listHotTemplates } from "@/lib/create/templates";
+import { listHotTemplatesShowcase } from "@/lib/create/templates";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const querySchema = z.object({
   genreId: z.string().min(1).max(64),
@@ -23,14 +24,17 @@ export async function GET(request: Request) {
       genreId: url.searchParams.get("genreId") ?? "",
     });
 
-    const templates = await listHotTemplates({ genreId: query.genreId, take: 10 });
+    const templates = await listHotTemplatesShowcase({
+      genreId: query.genreId,
+      hotCount: 2,
+      randomCount: 2,
+    });
 
     return successResponse(
       { templates },
-      { message: "热门模板已加载。" },
+      { message: "热门模板已加载。", headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
     return errorResponse(error);
   }
 }
-
