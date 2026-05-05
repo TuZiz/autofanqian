@@ -76,30 +76,30 @@ function WorkSectionNav({ dashboard }: { dashboard: WorkDashboardController }) {
 
   return (
     <aside className="min-[1160px]:sticky min-[1160px]:top-24">
-      <section className="rounded-2xl border border-zinc-200/50 bg-white/60 p-4 shadow-sm backdrop-blur-md dark:border-zinc-800/50 dark:bg-zinc-900/60">
-        <div className="mb-4 border-b border-zinc-200/50 pb-4 dark:border-zinc-800/50">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+      <section className="rounded-[32px] border border-white/60 bg-white/70 p-6 shadow-sm ring-1 ring-zinc-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60 dark:ring-white/10">
+        <div className="mb-5 border-b border-zinc-200/50 pb-5 dark:border-zinc-800/50">
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             作品模块
           </div>
-          <h2 className="font-serif-display mt-2 truncate text-base font-black text-zinc-900 dark:text-zinc-100">
+          <h2 className="mt-2 truncate text-lg font-black tracking-tight text-zinc-950 dark:text-white">
             {dashboard.work?.title || "作品管理"}
           </h2>
         </div>
-        <nav className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-1">
+        <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
           {items.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-bold text-zinc-600 transition-all hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100"
+              className="group flex min-h-[48px] items-center justify-between gap-3 rounded-[16px] px-4 py-2 text-sm font-bold text-zinc-600 transition-all hover:bg-white hover:text-zinc-950 hover:shadow-sm hover:ring-1 hover:ring-zinc-200/80 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-white dark:hover:ring-zinc-700/80"
             >
               <span>{item.label}</span>
-              <span className="rounded-lg border border-zinc-200/80 bg-zinc-100/50 px-2 py-1 text-[11px] font-bold text-zinc-500 dark:border-zinc-700/80 dark:bg-zinc-800/50 dark:text-zinc-400">
+              <span className="rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-2 py-1 text-[11px] font-bold tracking-widest text-zinc-500 shadow-sm transition-colors group-hover:border-zinc-300/80 group-hover:bg-zinc-100/80 group-hover:text-zinc-700 dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-400 dark:group-hover:border-zinc-600/80 dark:group-hover:bg-zinc-800/80 dark:group-hover:text-zinc-300">
                 {item.value}
               </span>
             </a>
           ))}
         </nav>
-        <div className="mt-4 rounded-xl border border-blue-200/50 bg-blue-50/50 p-3.5 text-xs font-semibold leading-relaxed text-blue-700 dark:border-blue-800/30 dark:bg-blue-900/20 dark:text-blue-300">
+        <div className="mt-5 rounded-2xl border border-blue-200/80 bg-blue-50/80 p-4 text-[13px] font-bold leading-relaxed text-blue-700 shadow-sm dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
           伏笔、设定、时间线都已接入，点击条目可在右侧抽屉直接修正。
         </div>
       </section>
