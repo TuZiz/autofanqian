@@ -78,7 +78,7 @@ export function DashboardShell({ dashboard }: DashboardShellProps) {
   }, [activeWork, overview]);
 
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-black text-zinc-950 dark:text-zinc-50 selection:bg-blue-500/30 font-sans transition-colors duration-500">
+    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 selection:bg-blue-200/50 dark:selection:bg-blue-500/30 font-sans transition-colors duration-500">
       <div className="flex h-screen overflow-hidden">
         
         {/* 悬浮侧边栏 */}
@@ -95,60 +95,64 @@ export function DashboardShell({ dashboard }: DashboardShellProps) {
         {/* 右侧主内容区 */}
         <section className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden relative">
           
-          {/* 背景光晕 */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-blue-500/5 dark:bg-blue-500/10 blur-[100px] pointer-events-none rounded-full" />
-          
-          <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-10 px-6 py-10 lg:px-12 lg:py-12">
-            
-            {/* 顶栏与欢迎区 */}
-            <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between relative z-10">
-              <div className="min-w-0">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/60 dark:bg-white/5 px-3 py-1 text-xs font-black tracking-widest text-zinc-500 dark:text-zinc-400 mb-4 ring-1 ring-black/5 dark:ring-white/10 backdrop-blur-md">
-                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                  <span>CREATOR COCKPIT</span>
+          {/* 背景光晕和网格 */}
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+            <div className="absolute -left-[10%] top-[10%] h-[40%] w-[40%] rounded-full bg-blue-400/10 blur-[120px] mix-blend-multiply dark:bg-blue-500/10" />
+            <div className="absolute right-[10%] top-[30%] h-[30%] w-[30%] rounded-full bg-purple-400/10 blur-[120px] mix-blend-multiply dark:bg-purple-500/10" />
+          </div>
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] mix-blend-overlay dark:opacity-[0.03]" />
+
+          <div className="relative z-10 mx-auto w-full max-w-[1540px] px-4 py-8 sm:px-8 lg:px-12 xl:px-16">
+            <div className="flex flex-col gap-10">
+              {/* 顶栏与欢迎区 */}
+              <header className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div className="min-w-0">
+                  <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/60 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 shadow-sm ring-1 ring-zinc-200/50 backdrop-blur-md dark:bg-white/5 dark:text-zinc-400 dark:ring-white/10">
+                    <Sparkles className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+                    <span>Creator Cockpit</span>
+                  </div>
+                  <h1 className="text-4xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-5xl lg:text-[56px]">
+                    工作台
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-base font-bold leading-relaxed text-zinc-500 dark:text-zinc-400 sm:text-lg">
+                    {activeWork
+                      ? `欢迎回来。您正在构建《${activeWork.title}》的世界。`
+                      : "欢迎回来。创建一个新故事，开启今天的旅程。"}
+                  </p>
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black tracking-tight text-zinc-900 dark:text-white">
-                  工作台
-                </h1>
-                <p className="mt-3 max-w-2xl text-base sm:text-lg font-medium text-zinc-500 dark:text-zinc-400">
-                  {activeWork
-                    ? `欢迎回来。您正在构建《${activeWork.title}》的世界。`
-                    : "欢迎回来。创建一个新故事，开启今天的旅程。"}
-                </p>
-              </div>
 
-              <div className="flex shrink-0 items-center gap-3">
-                <ThemeToggle className="h-12 w-12 rounded-full border border-white/20 bg-white/60 shadow-lg backdrop-blur-xl hover:bg-white/80 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 transition-all" />
-                <button
-                  onClick={() => router.push(continueHref)}
-                  className="group flex h-12 items-center gap-2 rounded-full bg-zinc-900 px-6 text-sm font-bold text-white shadow-xl shadow-zinc-900/20 transition-all hover:scale-105 active:scale-95 dark:bg-white dark:text-zinc-900 dark:shadow-white/10"
-                >
-                  {activeWork ? <PenTool className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                  {activeWork ? "继续写作" : "新建作品"}
-                </button>
-              </div>
-            </header>
+                <div className="flex shrink-0 items-center gap-4">
+                  <ThemeToggle className="h-12 w-12 rounded-[16px] border border-zinc-200/80 bg-white/80 shadow-sm backdrop-blur-xl transition-all hover:bg-zinc-50 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-950/80 dark:hover:bg-zinc-900" />
+                  <button
+                    onClick={() => router.push(continueHref)}
+                    className="group flex h-12 items-center gap-2 rounded-2xl bg-zinc-950 px-6 text-sm font-bold text-white shadow-lg shadow-zinc-950/20 transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-xl active:scale-[0.98] dark:bg-white dark:text-zinc-950 dark:shadow-white/10 dark:hover:bg-zinc-200"
+                  >
+                    {activeWork ? <PenTool className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    {activeWork ? "继续写作" : "新建作品"}
+                  </button>
+                </div>
+              </header>
 
-            {/* Hero 数据与活动项卡片区 */}
-            <section className="grid gap-6 lg:grid-cols-12 relative z-10">
-              <div className="lg:col-span-8 xl:col-span-8">
-                <ActiveWorkPanel
-                  activeProgress={activeProgress}
-                  activeWork={activeWork}
-                  onCreate={() => router.push("/dashboard/create")}
-                  onContinue={() => router.push(continueHref)}
-                />
-              </div>
-              <div className="lg:col-span-4 xl:col-span-4">
-                <StatsPanel stats={stats} />
-              </div>
-            </section>
+              {/* Hero 数据与活动项卡片区 */}
+              <section className="relative z-10 grid gap-6 lg:grid-cols-12">
+                <div className="lg:col-span-8 xl:col-span-8">
+                  <ActiveWorkPanel
+                    activeProgress={activeProgress}
+                    activeWork={activeWork}
+                    onCreate={() => router.push("/dashboard/create")}
+                    onContinue={() => router.push(continueHref)}
+                  />
+                </div>
+                <div className="lg:col-span-4 xl:col-span-4">
+                  <StatsPanel stats={stats} />
+                </div>
+              </section>
 
-            {/* 作品列表区 */}
-            <div className="relative z-10">
-              <DashboardWorksSection dashboard={dashboard} />
+              {/* 作品列表区 */}
+              <div className="relative z-10">
+                <DashboardWorksSection dashboard={dashboard} />
+              </div>
             </div>
-
           </div>
         </section>
       </div>
@@ -197,26 +201,26 @@ function DashboardSidebar({
   recentWorks: DashboardWork[];
 }) {
   return (
-    <aside className="hidden lg:flex w-[280px] shrink-0 flex-col border-r border-zinc-200/50 bg-white/40 p-6 backdrop-blur-3xl dark:border-white/5 dark:bg-black/20">
+    <aside className="hidden lg:flex w-[300px] shrink-0 flex-col border-r border-zinc-200/50 bg-white/40 p-6 backdrop-blur-3xl dark:border-zinc-800/50 dark:bg-zinc-950/40">
       
       {/* 侧栏顶端 Logo 区 */}
-      <div className="flex items-center gap-3 mb-10 pl-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-zinc-800 to-zinc-950 text-white shadow-lg dark:from-white dark:to-zinc-200 dark:text-black">
-          <Sparkles className="h-5 w-5" />
+      <div className="flex items-center gap-4 mb-10 pl-2">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-950 text-white shadow-lg shadow-zinc-950/20 dark:bg-white dark:text-zinc-950 dark:shadow-white/10">
+          <Sparkles className="h-6 w-6" />
         </div>
         <div>
-          <h2 className="text-xl font-black tracking-tight text-zinc-900 dark:text-white">我要当作者</h2>
+          <h2 className="text-xl font-black tracking-tight text-zinc-950 dark:text-white">我要当作者</h2>
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-2">
+      <nav className="flex flex-1 flex-col gap-2.5">
         <SidebarLink active href="/dashboard" icon={<LayoutGrid className="h-5 w-5" />}>
           控制台
         </SidebarLink>
         <button
           type="button"
           onClick={onCreate}
-          className="group flex min-h-12 items-center gap-3 rounded-2xl px-4 text-left text-[15px] font-bold text-zinc-600 transition-all hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+          className="group flex h-12 items-center gap-3 rounded-2xl px-4 text-left text-[15px] font-bold text-zinc-600 transition-all hover:bg-white hover:text-zinc-950 hover:shadow-sm dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white"
         >
           <Plus className="h-5 w-5 transition-transform group-hover:rotate-90" />
           新建作品
@@ -229,10 +233,10 @@ function DashboardSidebar({
 
         {recentWorks.length > 0 && (
           <div className="mt-8">
-            <h3 className="mb-3 px-4 text-xs font-black tracking-widest text-zinc-400 uppercase">
+            <h3 className="mb-4 px-4 text-[11px] font-bold tracking-[0.2em] text-zinc-500 uppercase dark:text-zinc-400">
               近期宇宙
             </h3>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               {recentWorks.map((work) => (
                 <RecentWorkLink key={work.id} work={work} />
               ))}
@@ -242,26 +246,26 @@ function DashboardSidebar({
       </nav>
 
       {/* 底部个人信息卡片 */}
-      <div className="mt-4 rounded-3xl bg-white/60 p-2 shadow-sm ring-1 ring-zinc-900/5 dark:bg-white/5 dark:ring-white/10 backdrop-blur-md">
+      <div className="mt-6 rounded-[24px] border border-white/60 bg-white/70 p-2 shadow-sm ring-1 ring-zinc-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60 dark:ring-white/10">
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={onProfileOpen}
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-2 transition-colors hover:bg-white dark:hover:bg-white/10"
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-[20px] p-2 transition-colors hover:bg-white dark:hover:bg-zinc-800/80"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 font-black">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] bg-blue-50 text-base font-black text-blue-600 shadow-inner ring-1 ring-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-400/20">
               {displayName.slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0 text-left">
-              <div className="truncate text-sm font-black text-zinc-900 dark:text-white">{displayName}</div>
-              <div className="text-xs font-bold text-zinc-500">作者设置</div>
+              <div className="truncate text-sm font-black text-zinc-950 dark:text-white">{displayName}</div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">作者设置</div>
             </div>
           </button>
           <button
             type="button"
             disabled={logoutBusy}
             onClick={onLogoutOpen}
-            className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition-colors hover:bg-red-100 hover:text-red-600 dark:bg-zinc-800 dark:hover:bg-red-500/20 dark:hover:text-red-400"
+            className="mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100/80 text-zinc-500 transition-all hover:bg-red-50 hover:text-red-600 dark:bg-zinc-800/80 dark:hover:bg-red-500/10 dark:hover:text-red-400"
             title="退出"
           >
             <LogOut className="h-4 w-4" />
@@ -287,10 +291,10 @@ function SidebarLink({
     <Link
       href={href}
       className={cn(
-        "flex min-h-12 items-center gap-3 rounded-2xl px-4 text-[15px] font-bold no-underline transition-all",
+        "flex h-12 items-center gap-3 rounded-2xl px-4 text-[15px] font-bold no-underline transition-all",
         active
-          ? "bg-zinc-900 text-white shadow-lg dark:bg-white dark:text-black"
-          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white",
+          ? "bg-zinc-950 text-white shadow-lg shadow-zinc-950/20 dark:bg-white dark:text-zinc-950 dark:shadow-white/10"
+          : "text-zinc-600 hover:bg-white hover:text-zinc-950 hover:shadow-sm dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white",
       )}
     >
       {icon}
@@ -305,19 +309,19 @@ function RecentWorkLink({ work }: { work: DashboardWork }) {
   return (
     <Link
       href={`/dashboard/novel/${work.id}`}
-      className="group flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors hover:bg-white dark:hover:bg-white/10"
+      className="group flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors hover:bg-white dark:hover:bg-zinc-900"
     >
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black text-white shadow-sm"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white shadow-sm"
         style={{ backgroundImage: tone.coverGradient }}
       >
         {getTitleInitial(work.title)}
       </span>
       <div className="min-w-0">
-        <span className="block truncate text-[13px] font-black text-zinc-700 group-hover:text-zinc-950 dark:text-zinc-300 dark:group-hover:text-white">
+        <span className="block truncate text-sm font-black text-zinc-700 transition-colors group-hover:text-zinc-950 dark:text-zinc-300 dark:group-hover:text-white">
           {work.title}
         </span>
-        <span className="block truncate text-[11px] font-semibold text-zinc-400">
+        <span className="mt-0.5 block truncate text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           {formatRelativeTime(work.updatedAt)}
         </span>
       </div>
@@ -338,19 +342,19 @@ function ActiveWorkPanel({
 }) {
   if (!activeWork) {
     return (
-      <div className="flex h-full min-h-[280px] flex-col justify-between rounded-[32px] border border-dashed border-zinc-300 bg-white/40 p-8 dark:border-zinc-800 dark:bg-zinc-900/30 backdrop-blur-xl transition-all">
+      <div className="flex h-full min-h-[300px] flex-col justify-between rounded-[32px] border border-dashed border-zinc-300/80 bg-zinc-50/50 p-8 shadow-inner backdrop-blur-xl transition-all dark:border-zinc-700/80 dark:bg-zinc-900/50 sm:p-10">
         <div>
-          <div className="inline-flex rounded-full bg-zinc-200/50 px-3 py-1 text-xs font-black text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+          <div className="inline-flex items-center gap-2 rounded-xl bg-zinc-200/50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-zinc-600 dark:bg-zinc-800/80 dark:text-zinc-400">
             等待开辟
           </div>
-          <h2 className="mt-6 text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
+          <h2 className="mt-6 text-3xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
             空白的宇宙
           </h2>
-          <p className="mt-3 max-w-lg text-sm font-medium leading-relaxed text-zinc-500 dark:text-zinc-400">
+          <p className="mt-4 max-w-lg text-sm font-bold leading-relaxed text-zinc-500 dark:text-zinc-400">
             还没有任何进行中的故事。开启第一部作品，工作台会自动追踪进度与灵感。
           </p>
         </div>
-        <button onClick={onCreate} className="group mt-8 inline-flex h-12 w-fit items-center gap-2 rounded-full bg-zinc-900 px-6 font-bold text-white transition-all hover:scale-105 active:scale-95 dark:bg-white dark:text-black">
+        <button onClick={onCreate} className="group mt-8 inline-flex h-12 w-fit items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-6 font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg active:scale-[0.98] dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">
           <Plus className="h-4 w-4" />
           创建第一部作品
         </button>
