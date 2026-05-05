@@ -83,21 +83,21 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
 
   return (
     <aside className="min-w-0 lg:col-span-4 lg:h-full lg:self-stretch xl:col-span-3">
-      <div className="chapter-editor-sidebar-panel flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-100/[0.08] bg-white/72 shadow-sm shadow-zinc-900/[0.04] backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/52 dark:shadow-black/20 lg:min-h-[1180px] xl:min-h-[1320px]">
-        <div className="flex-1 space-y-3 p-3">
-          <section className="rounded-xl border border-zinc-100/[0.06] bg-white/86 p-4 dark:border-white/10 dark:bg-white/[0.04]">
-            <div className="flex items-start justify-between gap-3">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border border-white/60 bg-white/60 shadow-xl shadow-zinc-900/5 ring-1 ring-zinc-900/5 backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-950/60 dark:shadow-black/20 dark:ring-white/10 lg:min-h-[1180px] xl:min-h-[1320px]">
+        <div className="flex-1 space-y-4 p-4 sm:p-5">
+          <section className="rounded-3xl border border-zinc-200/50 bg-white/50 p-5 shadow-sm dark:border-zinc-800/50 dark:bg-zinc-900/50">
+            <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase text-zinc-500 dark:text-zinc-400">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
                   上下文工具
                 </p>
-                <h2 className="mt-1 truncate text-base font-black text-zinc-950 dark:text-zinc-50">
+                <h2 className="mt-1 truncate text-lg font-black tracking-tight text-zinc-950 dark:text-white">
                   {currentChapterLabel}
                 </h2>
               </div>
               <span
                 className={cn(
-                  "shrink-0 rounded-full px-2 py-1 text-[10px] font-black ring-1",
+                  "shrink-0 rounded-xl px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest shadow-sm",
                   currentChapterEdited
                     ? "bg-emerald-50 text-emerald-700 ring-emerald-200/70 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-300/20"
                     : "bg-amber-50 text-amber-700 ring-amber-200/70 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-300/20",

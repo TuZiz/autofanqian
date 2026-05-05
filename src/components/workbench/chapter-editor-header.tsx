@@ -152,19 +152,19 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
   useEffect(() => () => clearChapterMenuCloseTimer(), [clearChapterMenuCloseTimer]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200/50 bg-white/70 shadow-sm shadow-black/5 backdrop-blur-2xl dark:border-white/5 dark:bg-black/40">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex min-h-12 items-center gap-2 sm:gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+    <header className="sticky top-0 z-50 border-b border-zinc-200/50 bg-white/60 shadow-sm backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/60">
+      <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-2 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="flex min-h-12 items-center gap-2 sm:gap-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
             <Link
               href={workId ? `/dashboard/work/${workId}` : "/dashboard"}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-zinc-200/50 transition-all hover:bg-zinc-50 hover:shadow-md hover:ring-zinc-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 dark:bg-zinc-900 dark:ring-zinc-800/50 dark:hover:bg-zinc-800 dark:hover:ring-zinc-700"
               title="返回作品面板"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100" />
             </Link>
 
-            <div className="hidden h-5 w-px bg-zinc-200 dark:bg-white/10 sm:block" />
+            <div className="hidden h-8 w-px bg-zinc-200/60 dark:bg-zinc-800/60 sm:block" />
 
             <div
               ref={chapterMenuRef}
@@ -180,38 +180,38 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
                 onClick={() => {
                   openChapterMenu({ focusSearch: true, resetQuery: true });
                 }}
-                className="group flex min-w-0 max-w-[45vw] items-center gap-2 rounded-xl border border-zinc-200 bg-white/75 px-2.5 py-2 text-left shadow-sm transition-colors hover:border-zinc-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-white/15 dark:hover:bg-white/[0.08] sm:max-w-[52vw] sm:px-3 lg:max-w-[34rem]"
+                className="group flex min-w-0 max-w-[45vw] items-center gap-2 rounded-xl bg-white px-3 py-2 text-left shadow-sm ring-1 ring-zinc-200/50 transition-all hover:bg-zinc-50 hover:shadow-md hover:ring-zinc-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900 dark:ring-zinc-800/50 dark:hover:bg-zinc-800 dark:hover:ring-zinc-700 sm:max-w-[52vw] lg:max-w-[34rem]"
               >
                 <span className="min-w-0 truncate text-sm font-black leading-none text-zinc-950 dark:text-zinc-100 sm:text-base">
                   {currentChapterLabel}
                   {title ? (
-                    <span className="font-semibold text-zinc-500 dark:text-zinc-400">
+                    <span className="font-bold text-zinc-500 dark:text-zinc-400">
                       ：{title}
                     </span>
                   ) : null}
                 </span>
                 <ChevronDown
                   className={cn(
-                    "h-4 w-4 shrink-0 text-zinc-500 transition-transform group-hover:text-blue-600 dark:group-hover:text-sky-300",
-                    chapterMenuOpen && "rotate-180 text-blue-600 dark:text-blue-300",
+                    "h-4 w-4 shrink-0 text-zinc-500 transition-transform group-hover:text-blue-600 dark:group-hover:text-blue-400",
+                    chapterMenuOpen && "rotate-180 text-blue-600 dark:text-blue-400",
                   )}
                 />
               </button>
 
               {chapterMenuOpen ? (
-                <div className="absolute left-0 top-[calc(100%+0.5rem)] z-50 flex w-[min(32rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white/95 shadow-2xl shadow-stone-900/12 ring-1 ring-stone-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/95 dark:shadow-black/50">
+                <div className="absolute left-0 top-[calc(100%+0.5rem)] z-50 flex w-[min(32rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[24px] border border-white/60 bg-white/90 shadow-2xl shadow-zinc-950/20 ring-1 ring-zinc-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-950/90 dark:shadow-black/30 dark:ring-white/10">
                   <div className="absolute -top-2 left-0 h-2 w-full" />
-                  <div className="space-y-3 border-b border-zinc-100 px-4 py-3 dark:border-white/10">
+                  <div className="space-y-3 border-b border-zinc-200/50 bg-white/50 px-5 py-4 dark:border-zinc-800/50 dark:bg-zinc-900/50">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="line-clamp-1 text-[11px] font-black text-zinc-500 dark:text-zinc-400">
+                      <p className="line-clamp-1 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
                         {chapterMenuVolumeLabel}
                       </p>
-                      <kbd className="hidden shrink-0 rounded-md border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] font-black text-zinc-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-400 sm:block">
+                      <kbd className="hidden shrink-0 rounded-lg border border-zinc-200/80 bg-zinc-50/80 px-2 py-0.5 font-mono text-[10px] font-black text-zinc-500 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-400 sm:block">
                         Ctrl K
                       </kbd>
                     </div>
-                    <label className="flex h-10 items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 text-sm text-zinc-500 ring-1 ring-transparent transition-colors focus-within:border-blue-200 focus-within:bg-white focus-within:ring-blue-100 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-400 dark:focus-within:border-blue-300/30 dark:focus-within:bg-white/[0.06] dark:focus-within:ring-blue-300/10">
-                      <Search className="h-4 w-4 shrink-0 text-zinc-500" />
+                    <label className="flex h-12 items-center gap-3 rounded-xl border border-zinc-200/80 bg-white/80 px-4 text-sm text-zinc-500 shadow-sm transition-all focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-400/20 dark:border-zinc-700/80 dark:bg-zinc-950/80 dark:text-zinc-400 dark:focus-within:border-blue-500 dark:focus-within:ring-blue-500/20">
+                      <Search className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400" />
                       <span className="sr-only">搜索章节</span>
                       <input
                         ref={chapterSearchInputRef}
@@ -222,12 +222,12 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
                             event.stopPropagation();
                           }
                         }}
-                        className="min-w-0 flex-1 bg-transparent font-semibold text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-                        placeholder="搜索章节名、章节号或关键词..."
+                        className="min-w-0 flex-1 bg-transparent font-bold text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                        placeholder="搜索章节名、卷号或关键词..."
                       />
                     </label>
                     {disabledReason ? (
-                      <div className="rounded-xl border border-amber-200/70 bg-amber-50 px-3 py-2 text-xs font-semibold leading-relaxed text-amber-800 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-200">
+                      <div className="rounded-xl border border-amber-200/60 bg-amber-50/80 px-4 py-3 text-xs font-bold leading-relaxed text-amber-700 shadow-inner dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300">
                         {disabledReason}
                       </div>
                     ) : null}
@@ -251,24 +251,24 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
                               void goToChapter(item.index);
                             }}
                             className={cn(
-                              "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
+                              "flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left transition-all",
                               active
-                                ? "bg-sky-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-200"
-                                : "group text-stone-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-stone-300 dark:hover:bg-white/[0.06]",
+                                ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-200"
+                                : "group text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:text-zinc-300 dark:hover:bg-white/[0.06]",
                             )}
                             role="option"
                             aria-selected={active}
                             data-current-chapter={active ? "true" : undefined}
                           >
-                            <span className="min-w-0 truncate text-sm font-bold">
+                            <span className="min-w-0 truncate text-sm font-black">
                               {formatChapterLabel(item.index)}：{item.title || "未命名"}
                             </span>
                             {active ? (
-                              <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700 dark:bg-blue-400/10 dark:text-blue-200">
+                              <span className="shrink-0 rounded-lg bg-blue-100/80 px-2 py-0.5 text-[11px] font-black text-blue-700 dark:bg-blue-400/20 dark:text-blue-300">
                                 当前
                               </span>
                             ) : edited ? (
-                              <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700 ring-1 ring-emerald-200/60 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20">
+                              <span className="shrink-0 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-2 py-0.5 text-[11px] font-black text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
                                 已写
                               </span>
                             ) : null}
@@ -276,12 +276,12 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
                         );
                       })
                     ) : (
-                      <div className="px-4 py-8 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        {commandQuery.trim() ? "没有匹配的章节。" : "暂无可切换章节。"}
+                      <div className="px-4 py-10 text-center text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                        {commandQuery.trim() ? "没有匹配的章节。" : "暂无可以切换的章节。"}
                       </div>
                     )}
                   </div>
-                  <div className="border-t border-zinc-100 bg-zinc-50/80 p-2.5 dark:border-white/10 dark:bg-white/[0.03]">
+                  <div className="border-t border-zinc-200/50 bg-zinc-50/50 p-3 dark:border-zinc-800/50 dark:bg-zinc-900/50">
                     <button
                       type="button"
                       disabled={actionLocked}
@@ -290,7 +290,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
                         closeChapterMenu();
                         void handleBatchAddChapters();
                       }}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2.5 text-xs font-black text-stone-600 ring-1 ring-stone-200 transition-colors hover:bg-sky-50 hover:text-blue-700 hover:ring-sky-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white disabled:text-zinc-400 disabled:hover:bg-white disabled:hover:ring-stone-200 dark:bg-white/[0.03] dark:text-stone-300 dark:ring-white/10 dark:hover:bg-blue-400/10 dark:hover:text-blue-200 dark:hover:ring-sky-300/20 dark:disabled:text-zinc-500 dark:disabled:hover:bg-white/[0.03] dark:disabled:hover:ring-white/10"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200/80 bg-white px-4 py-3 text-xs font-black text-zinc-600 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-1 hover:ring-zinc-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
                     >
                       <Plus className="h-4 w-4" />
                       新增章节 · {nextChapterLabel}起
@@ -301,7 +301,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
             </div>
           </div>
 
-          <div className="hidden min-w-0 items-center gap-2 md:flex">
+          <div className="hidden min-w-0 items-center gap-4 md:flex">
             <SaveStatusPill
               dirty={dirty}
               error={error}
@@ -312,7 +312,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
               aiLabel={aiStageMessage}
               aiProgress={progress}
             />
-            <span className="max-w-28 truncate text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+            <span className="max-w-[120px] truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               {userEmail?.split("@")[0]}
             </span>
           </div>
@@ -320,7 +320,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
           {isAdmin ? (
             <Link
               href="/dashboard/admin"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/35 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:hover:bg-emerald-400/15 sm:w-auto sm:gap-1.5 sm:px-3 sm:text-xs sm:font-black"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 shadow-inner ring-1 ring-blue-200/50 transition-all hover:bg-blue-100 hover:ring-blue-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/20 dark:hover:bg-blue-500/20 dark:hover:ring-blue-500/30 sm:w-auto sm:gap-2 sm:px-4 sm:text-xs sm:font-black"
               title="管理员"
             >
               <ShieldCheck className="h-4 w-4" />
@@ -335,7 +335,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
             progress={progress}
             onClick={handleAiActionClick}
           />
-          <ThemeToggle className="h-9 w-9 shrink-0 rounded-lg text-zinc-500 hover:bg-stone-900/[0.06] hover:text-stone-900 dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-white" />
+          <ThemeToggle className="h-10 w-10 shrink-0 rounded-xl bg-white shadow-sm ring-1 ring-zinc-200/50 transition-all hover:bg-zinc-50 hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800/50 dark:hover:bg-zinc-800 dark:hover:ring-zinc-700" />
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
@@ -349,7 +349,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
             aiLabel={aiStageMessage}
             aiProgress={progress}
           />
-          <span className="min-w-0 truncate text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+          <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
             {userEmail?.split("@")[0]}
           </span>
         </div>
@@ -401,21 +401,28 @@ function PrimaryAiButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "relative flex h-9 max-w-[7.5rem] shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-lg border px-3 text-xs font-black shadow-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 sm:max-w-[13rem] sm:px-4",
+        "relative flex h-10 max-w-[8rem] shrink-0 items-center justify-center gap-2 overflow-hidden rounded-xl px-4 text-sm font-bold shadow-md transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20 sm:max-w-[14rem]",
         busy
-          ? "cursor-default border-sky-200 bg-sky-50 text-blue-700 shadow-inner shadow-blue-500/[0.04] hover:border-sky-200 hover:bg-sky-50 disabled:opacity-100 dark:border-blue-300/20 dark:bg-blue-400/10 dark:text-blue-200 dark:hover:bg-blue-400/10"
-          : "border-transparent bg-stone-950 text-white hover:-transtone-y-0.5 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-sky-400 dark:hover:shadow-blue-500/20",
+          ? "cursor-default bg-blue-50/80 text-blue-700 shadow-inner ring-1 ring-blue-200/50 hover:bg-blue-50/80 disabled:opacity-100 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/20 dark:hover:bg-blue-500/10"
+          : "bg-zinc-950 text-white hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200",
       )}
     >
       {busy ? (
-        <span className="relative h-2 w-2 shrink-0 rounded-full bg-blue-500 dark:bg-blue-300" />
+        <span className="relative flex h-2 w-2 shrink-0 items-center justify-center">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75 dark:bg-blue-400" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-500" />
+        </span>
       ) : (
         <Sparkles className="relative h-4 w-4 shrink-0" />
       )}
-      <span className="relative hidden min-w-0 truncate min-[390px]:block">{label}</span>
-      <span className="relative min-w-0 truncate min-[390px]:hidden">{compactLabel}</span>
+      <span className="relative hidden min-w-0 truncate font-black tracking-wide min-[390px]:block">
+        {label}
+      </span>
+      <span className="relative min-w-0 truncate font-black tracking-wide min-[390px]:hidden">
+        {compactLabel}
+      </span>
       {busy ? (
-        <span className="relative hidden rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] tabular-nums text-blue-700 dark:bg-blue-300/10 dark:text-blue-200 sm:block">
+        <span className="relative hidden rounded-lg bg-blue-100/80 px-2 py-0.5 text-[11px] font-black tabular-nums text-blue-700 dark:bg-blue-400/20 dark:text-blue-300 sm:block">
           {progress}%
         </span>
       ) : null}
@@ -454,7 +461,7 @@ function SaveStatusPill({
 }) {
   if (error) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-black text-red-700 ring-1 ring-red-200/70 dark:bg-red-500/10 dark:text-red-200 dark:ring-red-400/20">
+      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-red-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-red-700 shadow-sm dark:bg-red-500/10 dark:text-red-300">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">有错误</span>
       </span>
@@ -463,8 +470,11 @@ function SaveStatusPill({
 
   if (aiBusy) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-black text-blue-700 ring-1 ring-blue-200/70 dark:bg-blue-400/10 dark:text-blue-200 dark:ring-blue-300/20">
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 dark:bg-blue-300" />
+      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-blue-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-blue-700 shadow-sm dark:bg-blue-500/10 dark:text-blue-300">
+        <span className="relative flex h-2 w-2 shrink-0 items-center justify-center">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75 dark:bg-blue-400" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-500" />
+        </span>
         <span className="truncate">{normalizeChapterCopy(aiLabel || `AI生成 ${aiProgress}%`)}</span>
       </span>
     );
@@ -472,7 +482,7 @@ function SaveStatusPill({
 
   if (saving || metaSaving) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700 ring-1 ring-amber-200/70 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-300/20">
+      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-amber-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-amber-700 shadow-sm dark:bg-amber-500/10 dark:text-amber-300">
         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
         <span className="truncate">保存中</span>
       </span>
@@ -481,7 +491,7 @@ function SaveStatusPill({
 
   if (dirty) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-black text-orange-700 ring-1 ring-orange-200/70 dark:bg-orange-400/10 dark:text-orange-200 dark:ring-orange-300/20">
+      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-orange-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-orange-700 shadow-sm dark:bg-orange-500/10 dark:text-orange-300">
         <Clock3 className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">未保存</span>
       </span>
@@ -489,7 +499,7 @@ function SaveStatusPill({
   }
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700 ring-1 ring-emerald-200/70 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-300/20">
+    <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700 shadow-sm dark:bg-emerald-500/10 dark:text-emerald-300">
       <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{normalizeChapterCopy(statusText)}</span>
     </span>
