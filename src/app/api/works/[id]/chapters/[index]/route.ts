@@ -1,17 +1,21 @@
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
-import { isAdminEmail } from "@/lib/auth/admin";
+import { isAdminUser } from "@/lib/auth/admin";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
+import type { StoryOutline } from "@/lib/create/outline-draft";
+import { getEffectivePlannedUntil, isChapterWithinPlanning } from "@/lib/create/progressive-planning";
 import { prisma } from "@/lib/prisma";
+import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const paramsSchema = z.object({
   id: z.string().min(1).max(64),
-  index: z.coerce.number().int().min(1).max(999),
+  index: z.coerce.number().int().min(1).max(9999),
 });
 
 const updateSchema = z.object({
@@ -40,10 +44,13 @@ async function requireWorkAccess(params: { workId: string; userId: string; isAdm
       title: true,
       tag: true,
       outline: true,
+      plannedUntilChapter: true,
+      targetChapters: true,
+      deletedAt: true,
     },
   });
 
-  if (!work) {
+  if (!work || work.deletedAt) {
     throw new AuthApiError(404, "作品不存在或已被删除。");
   }
 
@@ -52,6 +59,23 @@ async function requireWorkAccess(params: { workId: string; userId: string; isAdm
   }
 
   return work;
+}
+
+function assertChapterIsPlanned(work: Awaited<ReturnType<typeof requireWorkAccess>>, index: number) {
+  const outline = work.outline as unknown as StoryOutline;
+  const plannedUntilChapter = getEffectivePlannedUntil({
+    outline,
+    plannedUntilChapter: work.plannedUntilChapter,
+  });
+
+  if (!isChapterWithinPlanning({ index, outline, plannedUntilChapter })) {
+    throw new AuthApiError(
+      423,
+      `第${index}章尚未规划，当前只开放到第${plannedUntilChapter}章。请先在作品页点击“规划下一段”。`,
+    );
+  }
+
+  return plannedUntilChapter;
 }
 
 export async function GET(
@@ -67,8 +91,18 @@ export async function GET(
     const rawParams = await context.params;
     const parsed = paramsSchema.parse({ id: rawParams.id ?? "", index: rawParams.index ?? "" });
 
-    const isAdmin = isAdminEmail(user.email);
+    const isAdmin = isAdminUser(user);
     const work = await requireWorkAccess({ workId: parsed.id, userId: user.id, isAdmin });
+    const plannedUntilChapter = assertChapterIsPlanned(work, parsed.index);
+
+    const existingChapter = await prisma.chapter.findUnique({
+      where: { workId_index: { workId: work.id, index: parsed.index } },
+      select: { id: true, deletedAt: true },
+    });
+
+    if (existingChapter?.deletedAt) {
+      throw new AuthApiError(410, "章节已删除，请先恢复后再编辑。");
+    }
 
     const chapter = await prisma.chapter.upsert({
       where: { workId_index: { workId: work.id, index: parsed.index } },
@@ -78,6 +112,7 @@ export async function GET(
         title: getDefaultChapterTitle(parsed.index),
         content: "",
         wordCount: 0,
+        status: parsed.index <= plannedUntilChapter ? "planned" : "locked",
         details: [],
       },
       update: {},
@@ -102,6 +137,8 @@ export async function GET(
           title: work.title,
           tag: work.tag,
           outline: work.outline,
+          targetChapters: work.targetChapters,
+          plannedUntilChapter,
         },
         chapter: {
           ...chapter,
@@ -142,8 +179,9 @@ export async function PUT(
     const parsed = paramsSchema.parse({ id: rawParams.id ?? "", index: rawParams.index ?? "" });
     const body = await parseJsonBody(request, updateSchema);
 
-    const isAdmin = isAdminEmail(user.email);
+    const isAdmin = isAdminUser(user);
     const work = await requireWorkAccess({ workId: parsed.id, userId: user.id, isAdmin });
+    const plannedUntilChapter = assertChapterIsPlanned(work, parsed.index);
 
     let nextTitle: string | null | undefined = undefined;
     if (body.title !== undefined) {
@@ -173,6 +211,27 @@ export async function PUT(
       nextDetails = rawDetails.map((item) => item.trim()).filter(Boolean).slice(0, 200);
     }
 
+    const previousChapter = await prisma.chapter.findUnique({
+      where: { workId_index: { workId: work.id, index: parsed.index } },
+      select: { id: true, deletedAt: true },
+    });
+
+    if (previousChapter?.deletedAt) {
+      throw new AuthApiError(410, "章节已删除，请先恢复后再编辑。");
+    }
+
+    if (previousChapter) {
+      try {
+        await createChapterRevisionSnapshot({
+          workId: work.id,
+          index: parsed.index,
+          source: "manual_save",
+        });
+      } catch (revisionError) {
+        console.error("create chapter revision failed", revisionError);
+      }
+    }
+
     const chapter = await prisma.chapter.upsert({
       where: { workId_index: { workId: work.id, index: parsed.index } },
       create: {
@@ -181,6 +240,8 @@ export async function PUT(
         title: nextTitle ?? getDefaultChapterTitle(parsed.index),
         content: nextContent ?? "",
         wordCount: typeof nextWordCount === "number" ? nextWordCount : 0,
+        status:
+          typeof nextWordCount === "number" && nextWordCount > 0 ? "written" : "planned",
         summary: nextSummary ?? null,
         chapterOutline: nextChapterOutline ?? null,
         details: nextDetails ?? [],
@@ -189,6 +250,12 @@ export async function PUT(
         title: nextTitle,
         content: nextContent,
         wordCount: typeof nextWordCount === "number" ? nextWordCount : undefined,
+        status:
+          typeof nextWordCount === "number"
+            ? nextWordCount > 0
+              ? "written"
+              : "planned"
+            : undefined,
         summary: nextSummary,
         chapterOutline: nextChapterOutline,
         details: nextDetails,
@@ -207,12 +274,26 @@ export async function PUT(
       },
     });
 
+    if (typeof nextContent === "string" && nextContent.trim()) {
+      await prisma.generationJob.create({
+        data: {
+          novelId: work.id,
+          chapterId: chapter.id,
+          action: "context.extract",
+          status: "queued",
+          resultSummary: "章节保存后等待后台提取上下文记忆。",
+        },
+      });
+    }
+
     return successResponse(
       {
         work: {
           id: work.id,
           title: work.title,
           tag: work.tag,
+          targetChapters: work.targetChapters,
+          plannedUntilChapter,
         },
         chapter: {
           ...chapter,
@@ -235,6 +316,45 @@ export async function PUT(
       );
     }
 
+    return errorResponse(error);
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id?: string; index?: string }> },
+) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      throw new AuthApiError(401, "未登录或登录已失效，请先登录。");
+    }
+
+    const rawParams = await context.params;
+    const parsed = paramsSchema.parse({ id: rawParams.id ?? "", index: rawParams.index ?? "" });
+
+    const isAdmin = isAdminUser(user);
+    const work = await requireWorkAccess({ workId: parsed.id, userId: user.id, isAdmin });
+
+    const chapter = await prisma.chapter.findUnique({
+      where: { workId_index: { workId: work.id, index: parsed.index } },
+      select: { id: true, deletedAt: true },
+    });
+
+    if (!chapter || chapter.deletedAt) {
+      throw new AuthApiError(404, "章节不存在或已被删除。");
+    }
+
+    await prisma.chapter.update({
+      where: { id: chapter.id },
+      data: { deletedAt: new Date() },
+    });
+
+    return successResponse(
+      { deleted: { id: chapter.id, index: parsed.index } },
+      { message: "章节已删除。" },
+    );
+  } catch (error) {
     return errorResponse(error);
   }
 }

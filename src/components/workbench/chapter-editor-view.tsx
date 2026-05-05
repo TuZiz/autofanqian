@@ -1,5 +1,7 @@
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 
+import { ChapterRewriteDialog } from "./chapter-rewrite-dialog";
+import { ChapterRevisionDialog } from "./chapter-revision-dialog";
 import { ChapterEditorHeader } from "./chapter-editor-header";
 import { ChapterEditorMain } from "./chapter-editor-main";
 import {
@@ -12,14 +14,18 @@ import { ChapterEditorSidebar } from "./chapter-editor-sidebar";
 
 export function ChapterEditorView({ editor }: { editor: WorkChapterEditorController }) {
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-[#f6f7f3] font-sans text-slate-950 antialiased selection:bg-sky-200 dark:bg-slate-950 dark:text-slate-100 dark:selection:bg-sky-500/30">
-      <div className="pointer-events-none fixed inset-0 z-0 app-noise opacity-[0.025] dark:opacity-[0.04]" />
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-40 border-b border-slate-900/[0.04] bg-white/55 dark:border-white/[0.06] dark:bg-slate-900/30" />
+    <div className="relative min-h-screen overflow-x-clip bg-zinc-50 font-sans text-zinc-900 transition-colors duration-500 selection:bg-blue-500/30 dark:bg-black dark:text-zinc-50">
+      {/* 沉浸式弥散背景 */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute left-[-10%] top-[20%] h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-[120px] mix-blend-multiply dark:bg-blue-600/10" />
+        <div className="absolute right-[-5%] top-[10%] h-[400px] w-[400px] rounded-full bg-purple-500/10 blur-[120px] mix-blend-multiply dark:bg-purple-600/10" />
+      </div>
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <ChapterEditorHeader editor={editor} />
 
-        <main className="grid w-full flex-1 grid-cols-1 items-stretch gap-4 px-3 py-4 sm:px-4 md:gap-5 md:px-6 lg:grid-cols-12 lg:px-8">
+        <main className="grid w-full flex-1 grid-cols-1 items-stretch gap-6 px-4 py-6 md:px-8 lg:grid-cols-12 lg:gap-8 lg:px-12 xl:px-16">
           <ChapterEditorMain editor={editor} />
           <ChapterEditorSidebar editor={editor} />
         </main>
@@ -29,6 +35,8 @@ export function ChapterEditorView({ editor }: { editor: WorkChapterEditorControl
       <RegenerateDialog editor={editor} />
       <MetaGenerateDialog editor={editor} />
       <MetaEditorDialog editor={editor} />
+      <ChapterRevisionDialog editor={editor} />
+      <ChapterRewriteDialog editor={editor} />
     </div>
   );
 }

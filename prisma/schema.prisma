@@ -16,6 +16,26 @@ enum EmailVerificationPurpose {
   reset_password
 }
 
+enum UserStatus {
+  active
+  banned
+  limited
+  deleted
+}
+
+enum UserRole {
+  user
+  admin
+  super_admin
+}
+
+enum MembershipTier {
+  default
+  plus
+  pro
+  max
+}
+
 enum TemplateSource {
   seed
   ai
@@ -23,33 +43,131 @@ enum TemplateSource {
   learned
 }
 
+enum PlanningMode {
+  progressive
+}
+
+enum VolumeDetailLevel {
+  macro
+  detailed
+}
+
+enum ChapterStatus {
+  locked
+  planned
+  drafting
+  written
+}
+
+enum MemoryKind {
+  fact
+  style
+  constraint
+  character_state
+  plot_thread
+  detail
+  continuity
+}
+
+enum ForeshadowingStatus {
+  open
+  partial
+  resolved
+  dropped
+}
+
+enum GenerationJobStatus {
+  queued
+  running
+  success
+  failed
+}
+
+enum PromptTemplateCategory {
+  idea
+  outline
+  chapter
+  context
+  template
+  regenerate
+}
+
 model User {
-  id            String   @id @default(cuid())
-  code          Int      @unique @default(autoincrement())
-  email         String   @unique
+  id            String     @id @default(cuid())
+  code          Int        @unique @default(autoincrement())
+  email         String     @unique
   name          String?
   passwordHash  String?
-  emailVerified Boolean  @default(false)
+  emailVerified Boolean    @default(false)
+  status        UserStatus @default(active)
+  role          UserRole   @default(user)
+  membershipTier MembershipTier @default(default)
+  bannedReason  String?
+  bannedAt      DateTime?
   lastLoginAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
+  sessions             UserSession[]
+  loginAttempts        LoginAttempt[]
   templateUsages       CreateTemplateUsage[]
   ideaGenerationEvents IdeaGenerationEvent[]
   aiUsageEvents        AiUsageEvent[]
-  works               Work[]
+  works                Work[]
+  adminAuditLogs       AdminAuditLog[]
+}
+
+model UserSession {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  ip         String?
+  userAgent  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([expiresAt])
+}
+
+model LoginAttempt {
+  id            String   @id @default(cuid())
+  userId        String?
+  email         String
+  ip            String?
+  userAgent     String?
+  success       Boolean  @default(false)
+  failureReason String?
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email, success, createdAt(sort: Desc)])
+  @@index([ip, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model EmailVerificationCode {
-  id        String                   @id @default(cuid())
-  email     String
-  purpose   EmailVerificationPurpose
-  codeHash  String
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime                 @default(now())
+  id             String                   @id @default(cuid())
+  email          String
+  purpose        EmailVerificationPurpose
+  codeHash       String
+  failedAttempts Int                      @default(0)
+  lockedAt       DateTime?
+  requestIp      String?
+  userAgent      String?
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime                 @default(now())
 
   @@index([email, purpose, createdAt(sort: Desc)])
+  @@index([email, createdAt(sort: Desc)])
+  @@index([requestIp, createdAt(sort: Desc)])
 }
 
 model AppConfig {
@@ -89,16 +207,16 @@ model CreateTemplateUsage {
 }
 
 model IdeaGenerationEvent {
-  id        String   @id @default(cuid())
-  userId    String?
-  genreId   String
-  tags      String[]
+  id         String   @id @default(cuid())
+  userId     String?
+  genreId    String
+  tags       String[]
   platformId String?
   dnaStyleId String?
   wordsId    String?
-  inputIdea String?
+  inputIdea  String?
   outputIdea String
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -129,45 +247,340 @@ model AiUsageEvent {
 }
 
 model Work {
-  id            String   @id @default(cuid())
-  userId        String
-  genreId       String
-  genreLabel    String?
-  idea          String
-  tags          String[]
-  platformId    String?
-  platformLabel String?
-  words         String?
-  dnaBookTitle  String?
-  tag           String
-  title         String
-  synopsis      String
-  outline       Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String       @id @default(cuid())
+  userId              String
+  genreId             String
+  genreLabel          String?
+  idea                String
+  tags                String[]
+  platformId          String?
+  platformLabel       String?
+  words               String?
+  dnaBookTitle        String?
+  tag                 String
+  title               String
+  synopsis            String
+  outline             Json
+  outlineState        Json?
+  canonState          Json?
+  targetChapters      Int?
+  plannedUntilChapter Int          @default(0)
+  planningMode        PlanningMode @default(progressive)
+  rawOutline          Json?
+  deletedAt           DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chapters Chapter[]
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapters         Chapter[]
+  chapterDrafts    ChapterDraft[]
+  volumes          Volume[]
+  characters       Character[]
+  worldSettings    WorldSetting[]
+  timelineEvents   TimelineEvent[]
+  foreshadowings   Foreshadowing[]
+  relationships    Relationship[]
+  writingMemories  WritingMemory[]
+  chapterRevisions ChapterRevision[]
+  generationJobs   GenerationJob[]
 
   @@index([userId, updatedAt(sort: Desc)])
+  @@index([deletedAt])
 }
 
 model Chapter {
-  id        String   @id @default(cuid())
-  workId    String
-  index     Int
-  title     String?
-  content   String   @default("")
-  wordCount Int      @default(0)
+  id             String        @id @default(cuid())
+  workId         String
+  volumeId       String?
+  index          Int
+  title          String?
+  content        String        @default("")
+  wordCount      Int           @default(0)
+  status         ChapterStatus @default(locked)
   summary        String?
   chapterOutline String?
   details        Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  plan           Json?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
+  work            Work              @relation(fields: [workId], references: [id], onDelete: Cascade)
+  volume          Volume?           @relation(fields: [volumeId], references: [id], onDelete: SetNull)
+  revisions       ChapterRevision[]
+  drafts          ChapterDraft[]
+  timelineEvents  TimelineEvent[]
+  writingMemories WritingMemory[]
+  generationJobs  GenerationJob[]
 
   @@unique([workId, index])
   @@index([workId, index])
   @@index([workId, updatedAt(sort: Desc)])
+  @@index([workId, deletedAt])
+  @@index([volumeId])
+}
+
+model ChapterDraft {
+  id             String   @id @default(cuid())
+  workId         String
+  chapterId      String?
+  index          Int
+  title          String?
+  content        String   @default("")
+  wordCount      Int      @default(0)
+  summary        String?
+  chapterOutline String?
+  details        Json?
+  isSynced       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  work    Work     @relation(fields: [workId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  @@unique([workId, index])
+  @@index([workId, updatedAt(sort: Desc)])
+  @@index([chapterId])
+}
+
+model Volume {
+  id           String            @id @default(cuid())
+  novelId      String
+  order        Int
+  name         String
+  desc         String            @default("")
+  startChapter Int?
+  endChapter   Int?
+  detailLevel  VolumeDetailLevel @default(macro)
+  status       String            @default("locked")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  novel    Work      @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapters Chapter[]
+
+  @@unique([novelId, order])
+  @@index([novelId, startChapter, endChapter])
+}
+
+model Character {
+  id           String    @id @default(cuid())
+  novelId      String
+  name         String
+  aliases      String[]  @default([])
+  identity     String?
+  role         String
+  desc         String
+  personality  String?
+  goal         String?
+  secret       String?
+  appearance   String?
+  relations    Json?
+  notes        String?
+  arc          String?
+  currentState String?
+  firstChapter Int?
+  lastChapter  Int?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  novel            Work           @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  relationshipsAsA Relationship[] @relation("RelationshipCharacterA")
+  relationshipsAsB Relationship[] @relation("RelationshipCharacterB")
+
+  @@unique([novelId, name])
+  @@index([novelId, role])
+  @@index([novelId, deletedAt])
+}
+
+model WorldSetting {
+  id                 String    @id @default(cuid())
+  novelId            String
+  kind               String
+  name               String
+  desc               String
+  firstChapter       Int?
+  lastUpdatedChapter Int?
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  novel Work @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@unique([novelId, kind, name])
+  @@index([novelId, kind])
+  @@index([novelId, deletedAt])
+}
+
+model TimelineEvent {
+  id           String    @id @default(cuid())
+  novelId      String
+  chapterId    String?
+  chapterIndex Int?
+  order        Int       @default(0)
+  title        String?
+  summary      String
+  description  String?
+  storyTime    String?
+  canonical    Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  novel   Work     @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  @@index([novelId, chapterIndex, order])
+  @@index([novelId, deletedAt])
+  @@index([chapterId])
+}
+
+model Foreshadowing {
+  id              String              @id @default(cuid())
+  novelId         String
+  plantedChapter  Int?
+  resolvedChapter Int?
+  status          ForeshadowingStatus @default(open)
+  title           String?
+  description     String?
+  importance      Int                 @default(50)
+  hint            String
+  payoff          String?
+  deletedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  novel Work @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@index([novelId, status])
+  @@index([novelId, plantedChapter])
+  @@index([novelId, deletedAt])
+}
+
+model Relationship {
+  id                  String   @id @default(cuid())
+  novelId             String
+  characterAId        String?
+  characterBId        String?
+  characterAName      String
+  characterBName      String
+  status              String
+  conflict            String?
+  recentChangeChapter Int?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  novel      Work       @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  characterA Character? @relation("RelationshipCharacterA", fields: [characterAId], references: [id], onDelete: SetNull)
+  characterB Character? @relation("RelationshipCharacterB", fields: [characterBId], references: [id], onDelete: SetNull)
+
+  @@index([novelId])
+  @@index([characterAId])
+  @@index([characterBId])
+}
+
+model WritingMemory {
+  id        String     @id @default(cuid())
+  novelId   String
+  chapterId String?
+  kind      MemoryKind @default(fact)
+  priority  Int        @default(50)
+  content   String
+  source    String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  novel   Work     @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  @@index([novelId, kind, priority])
+  @@index([chapterId])
+}
+
+model ChapterRevision {
+  id             String   @id @default(cuid())
+  workId         String
+  chapterId      String
+  index          Int
+  title          String?
+  content        String
+  summary        String?
+  chapterOutline String?
+  details        Json?
+  wordCount      Int      @default(0)
+  source         String   @default("manual_save")
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  novel   Work    @relation(fields: [workId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([workId, index, createdAt(sort: Desc)])
+  @@index([chapterId, createdAt(sort: Desc)])
+}
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  adminUserId String?
+  adminEmail  String?
+  action      String
+  targetType  String
+  targetId    String?
+  before      Json?
+  after       Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  adminUser User? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId, createdAt(sort: Desc)])
+  @@index([targetType, targetId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model GenerationJob {
+  id                    String              @id @default(cuid())
+  novelId               String
+  chapterId             String?
+  action                String
+  status                GenerationJobStatus @default(queued)
+  providerId            String?
+  modelUsed             String?
+  promptTemplateKey     String?
+  promptTemplateVersion Int?
+  promptSnapshot        String?
+  resultSummary         String?
+  error                 String?
+  inputTokens           Int?
+  outputTokens          Int?
+  totalTokens           Int?
+  durationMs            Int?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  completedAt           DateTime?
+
+  novel   Work     @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+
+  @@index([novelId, action, createdAt(sort: Desc)])
+  @@index([chapterId])
+  @@index([status, createdAt])
+}
+
+model PromptTemplate {
+  id        String                 @id @default(cuid())
+  key       String
+  category  PromptTemplateCategory
+  name      String
+  content   String
+  version   Int                    @default(1)
+  isActive  Boolean                @default(true)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  @@unique([key, version])
+  @@index([key, isActive])
 }

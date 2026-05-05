@@ -2,7 +2,8 @@ import { AuthApiError } from "@/lib/auth/errors";
 import { errorResponse, successResponse } from "@/lib/auth/api";
 import { zhCN } from "@/lib/copy/zh-cn";
 import { getCurrentUser } from "@/lib/auth/service";
-import { isAdminEmail } from "@/lib/auth/admin";
+import { getUserAccessSnapshot } from "@/lib/auth/admin";
+import { createClearedSessionCookie } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
@@ -11,14 +12,23 @@ export async function GET() {
     const user = await getCurrentUser();
 
     if (!user) {
-      throw new AuthApiError(401, zhCN.auth.response.unauthenticated);
+      const response = errorResponse(
+        new AuthApiError(401, zhCN.auth.response.unauthenticated)
+      );
+      const clearedCookie = createClearedSessionCookie();
+      response.cookies.set(
+        clearedCookie.name,
+        clearedCookie.value,
+        clearedCookie.options
+      );
+      return response;
     }
 
     return successResponse(
       {
         user: {
           ...user,
-          isAdmin: isAdminEmail(user.email),
+          ...getUserAccessSnapshot(user),
         },
       },
       {

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Sparkles } from "lucide-react";
 
 import { apiRequest } from "@/lib/client/auth-api";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import {
   AI_THINKING_COPY,
   DOTS,
@@ -26,7 +27,7 @@ export default function DashboardCreateOutlineRedirectPage() {
   const [userEmail, setUserEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [stage, setStage] = useState<OutlineStage>("outline");
-  const [status, setStatus] = useState("正在准备...");
+  const [status, setStatus] = useState<string>(aiZhCN.outline.preparing);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
   const [thinkingIndex, setThinkingIndex] = useState(0);
@@ -144,7 +145,7 @@ export default function DashboardCreateOutlineRedirectPage() {
       try {
         setError("");
         setStage("outline");
-        setStatus("大纲生成中，预计需要几秒到几十秒，请不要关闭页面。");
+        setStatus(aiZhCN.outline.generatingStatus);
         setProgress(0);
         startThinkingLoop();
         startDotsLoop();
@@ -188,12 +189,12 @@ export default function DashboardCreateOutlineRedirectPage() {
           stopThinkingLoop();
           stopDotsLoop();
           clearProgressTimers();
-          setError(outlineRes.message || "生成大纲失败，请返回重新生成。");
+          setError(outlineRes.message || aiZhCN.outline.generateFailed);
           return;
         }
 
         setStage("work");
-        setStatus("正在创建作品并写入数据库...");
+        setStatus(aiZhCN.outline.creatingWorkStatus);
         setProgress((current) => Math.max(current, 88));
         startProgress(96);
         const workRes = await apiRequest<{ workId: string }>("/api/works", {
@@ -214,7 +215,7 @@ export default function DashboardCreateOutlineRedirectPage() {
 
         const nextWorkId = workRes.data.workId;
         setStage("done");
-        setStatus("已完成，即将进入作品页。");
+        setStatus(aiZhCN.outline.doneStatus);
         finishProgress();
 
         try {
@@ -233,7 +234,7 @@ export default function DashboardCreateOutlineRedirectPage() {
         stopThinkingLoop();
         stopDotsLoop();
         clearProgressTimers();
-        setError("网络请求异常，请稍后重试。");
+        setError(aiZhCN.common.networkFailed);
       }
     }
 
@@ -254,7 +255,7 @@ export default function DashboardCreateOutlineRedirectPage() {
   ]);
 
   return (
-    <main className="theme-page relative min-h-screen overflow-hidden bg-[#f5f6f2] font-sans transition-[background-color,color] dark:bg-[#0d1117]">
+    <main className="theme-page relative min-h-screen overflow-hidden bg-[#faf9f6] font-sans transition-[background-color,color] dark:bg-[#1a1816]">
       <div className="pointer-events-none absolute inset-0 theme-app-surface" />
       <div className="pointer-events-none absolute inset-0 theme-app-grid" />
       <div className="pointer-events-none absolute inset-0 theme-app-vignette" />
@@ -285,26 +286,26 @@ export default function DashboardCreateOutlineRedirectPage() {
             </div>
 
             <div className="mt-6 space-y-3">
-              <div className="h-10 w-[min(720px,92%)] rounded-lg bg-slate-900/5 dark:bg-white/10" />
-              <div className="h-4 w-[min(980px,96%)] rounded-md bg-slate-900/5 dark:bg-white/10" />
-              <div className="h-4 w-[min(940px,90%)] rounded-md bg-slate-900/5 dark:bg-white/10" />
+              <div className="h-10 w-[min(720px,92%)] rounded-lg bg-stone-900/5 dark:bg-white/10" />
+              <div className="h-4 w-[min(980px,96%)] rounded-md bg-stone-900/5 dark:bg-white/10" />
+              <div className="h-4 w-[min(940px,90%)] rounded-md bg-stone-900/5 dark:bg-white/10" />
             </div>
 
             <div className="mt-10 grid gap-6 lg:grid-cols-3">
               <div className="theme-card-soft rounded-lg p-6 lg:col-span-2">
-                <div className="h-6 w-32 rounded-md bg-slate-900/5 dark:bg-white/10" />
+                <div className="h-6 w-32 rounded-md bg-stone-900/5 dark:bg-white/10" />
                 <div className="mt-4 space-y-3">
-                  <div className="h-4 w-full rounded-md bg-slate-900/5 dark:bg-white/10" />
-                  <div className="h-4 w-[92%] rounded-md bg-slate-900/5 dark:bg-white/10" />
-                  <div className="h-4 w-[88%] rounded-md bg-slate-900/5 dark:bg-white/10" />
+                  <div className="h-4 w-full rounded-md bg-stone-900/5 dark:bg-white/10" />
+                  <div className="h-4 w-[92%] rounded-md bg-stone-900/5 dark:bg-white/10" />
+                  <div className="h-4 w-[88%] rounded-md bg-stone-900/5 dark:bg-white/10" />
                 </div>
               </div>
               <div className="theme-card-soft rounded-lg p-6">
-                <div className="h-6 w-24 rounded-md bg-slate-900/5 dark:bg-white/10" />
+                <div className="h-6 w-24 rounded-md bg-stone-900/5 dark:bg-white/10" />
                 <div className="mt-4 space-y-3">
-                  <div className="h-10 w-full rounded-lg bg-slate-900/5 dark:bg-white/10" />
-                  <div className="h-10 w-full rounded-lg bg-slate-900/5 dark:bg-white/10" />
-                  <div className="h-10 w-full rounded-lg bg-slate-900/5 dark:bg-white/10" />
+                  <div className="h-10 w-full rounded-lg bg-stone-900/5 dark:bg-white/10" />
+                  <div className="h-10 w-full rounded-lg bg-stone-900/5 dark:bg-white/10" />
+                  <div className="h-10 w-full rounded-lg bg-stone-900/5 dark:bg-white/10" />
                 </div>
               </div>
             </div>
@@ -317,13 +318,13 @@ export default function DashboardCreateOutlineRedirectPage() {
           <div className="glass-panel relative w-full max-w-2xl overflow-hidden rounded-lg p-8 text-center shadow-sm sm:p-10">
             {stage === "done" || stage === "error" ? null : (
               <>
-                <span className="pointer-events-none absolute left-0 top-0 z-0 h-full w-1.5 bg-slate-900/5 dark:bg-white/10" />
+                <span className="pointer-events-none absolute left-0 top-0 z-0 h-full w-1.5 bg-stone-900/5 dark:bg-white/10" />
                 <span className="pointer-events-none absolute left-0 top-0 z-0 h-[45%] w-1.5 bg-emerald-500 animate-[ai-progress-sweep_1.2s_ease-in-out_infinite] motion-reduce:animate-none" />
               </>
             )}
 
             <div className="relative z-10">
-              <div className="mx-auto relative inline-flex items-center gap-2 overflow-hidden rounded-md border border-slate-900 bg-slate-950 px-3 py-1 text-xs font-semibold text-white shadow-sm dark:border-white dark:bg-white dark:text-slate-950">
+              <div className="mx-auto relative inline-flex items-center gap-2 overflow-hidden rounded-md border border-stone-900 bg-stone-950 px-3 py-1 text-xs font-semibold text-white shadow-sm dark:border-white dark:bg-white dark:text-stone-950">
                 {stage === "done" ? (
                   <CheckCircle2 className="relative h-4 w-4" />
                 ) : (
@@ -367,7 +368,7 @@ export default function DashboardCreateOutlineRedirectPage() {
                     </span>
                   </div>
                   <div className="relative mt-3">
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-200/70 dark:bg-white/10">
+                    <div className="h-2 overflow-hidden rounded-full bg-stone-200/70 dark:bg-white/10">
                       <div
                         className="h-full rounded-full bg-emerald-500 transition-[width] duration-300 ease-linear motion-reduce:animate-none"
                         style={{
@@ -377,7 +378,7 @@ export default function DashboardCreateOutlineRedirectPage() {
                       />
                     </div>
                     <div
-                      className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md border border-black/10 bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-slate-900 shadow-sm backdrop-blur transition-[left] duration-300 ease-linear motion-reduce:transition-none dark:border-white/10 dark:bg-zinc-900/90 dark:text-white"
+                      className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md border border-black/10 bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-stone-900 shadow-sm backdrop-blur transition-[left] duration-300 ease-linear motion-reduce:transition-none dark:border-white/10 dark:bg-zinc-900/90 dark:text-white"
                       style={{ left: `${progressLabelLeft}%` }}
                     >
                       {progressPercent}%

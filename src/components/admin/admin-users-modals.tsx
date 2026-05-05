@@ -1,7 +1,12 @@
 "use client";
 
 import { Copy, Key, PencilLine, Plus } from "lucide-react";
+import { useEffect } from "react";
 
+import {
+  membershipTierLabels,
+  membershipTierValues,
+} from "@/lib/auth/user-groups";
 import type { AdminUsersController } from "@/lib/admin/use-admin-users";
 
 type AdminUsersModalsProps = {
@@ -21,7 +26,7 @@ export function AdminUsersModals({ users }: AdminUsersModalsProps) {
 
 function CreateUserModal({ users }: AdminUsersModalsProps) {
   return (
-    <ModalFrame zIndex="z-[60]">
+    <ModalFrame zIndex="z-[60]" onClose={() => users.setCreateOpen(false)}>
       <ModalHeader
         kicker="管理操作"
         title="新增用户"
@@ -77,6 +82,9 @@ function CreateUserModal({ users }: AdminUsersModalsProps) {
 function UserEditorModal({ users }: AdminUsersModalsProps) {
   const editor = users.userEditor;
   if (!editor) return null;
+  const targetIsRootAdmin = editor.user.isRootAdmin;
+  const profileLockedForViewer = targetIsRootAdmin && !users.isRootAdmin;
+  const emailLocked = targetIsRootAdmin;
 
   function close() {
     if (users.userEditorBusy) return;
@@ -84,7 +92,7 @@ function UserEditorModal({ users }: AdminUsersModalsProps) {
   }
 
   return (
-    <ModalFrame zIndex="z-[65]">
+    <ModalFrame zIndex="z-[65]" onClose={close}>
       <ModalHeader
         kicker="用户资料"
         title="编辑用户"
@@ -104,6 +112,7 @@ function UserEditorModal({ users }: AdminUsersModalsProps) {
           type="email"
           autoFocus={editor.focus === "email"}
           placeholder="user@example.com"
+          disabled={emailLocked || profileLockedForViewer}
         />
         <TextField
           label="昵称"
@@ -111,6 +120,7 @@ function UserEditorModal({ users }: AdminUsersModalsProps) {
           onChange={(value) => users.setUserEditor({ ...editor, name: value })}
           autoFocus={editor.focus === "name"}
           placeholder="可留空"
+          disabled={profileLockedForViewer}
         />
 
         <label className="theme-subheading flex cursor-pointer items-center gap-2 text-sm font-semibold">
@@ -118,13 +128,56 @@ function UserEditorModal({ users }: AdminUsersModalsProps) {
             type="checkbox"
             checked={editor.emailVerified}
             onChange={(event) => users.setUserEditor({ ...editor, emailVerified: event.target.checked })}
-            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/50 dark:border-white/20 dark:bg-white/10"
+            disabled={profileLockedForViewer}
+            className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500/50 dark:border-white/20 dark:bg-white/10"
           />
           邮箱已验证
         </label>
 
+        {users.isRootAdmin ? (
+          <SelectField
+            label="会员组"
+            value={editor.membershipTier}
+            onChange={(value) =>
+              users.setUserEditor({
+                ...editor,
+                membershipTier: value as typeof editor.membershipTier,
+              })
+            }
+            disabled={targetIsRootAdmin}
+            options={membershipTierValues.map((value) => ({
+              value,
+              label: membershipTierLabels[value],
+            }))}
+          />
+        ) : null}
+
+        {users.isRootAdmin ? (
+          <SelectField
+            label="后台权限"
+            value={editor.role}
+            onChange={(value) =>
+              users.setUserEditor({
+                ...editor,
+                role: value as typeof editor.role,
+              })
+            }
+            disabled={targetIsRootAdmin}
+            options={[
+              { value: "user", label: "普通用户" },
+              { value: "admin", label: "管理员" },
+            ]}
+          />
+        ) : null}
+
         <p className="theme-muted text-xs">
-          提示：修改邮箱可能影响管理员权限（若生产环境使用 ADMIN_EMAILS 白名单）。
+          {profileLockedForViewer
+            ? "提示：根管理员账号受保护，普通管理员不能修改。"
+            : targetIsRootAdmin
+              ? "提示：根管理员账号的邮箱、会员组和管理员角色已锁定。"
+              : users.isRootAdmin
+                ? "提示：根管理员可以调整普通用户的会员组和管理员权限。"
+                : "提示：普通管理员只能修改基础资料和密码，不能调整用户组或管理员权限。"}
         </p>
       </div>
 
@@ -155,7 +208,7 @@ function PasswordResultModal({ users }: AdminUsersModalsProps) {
   if (!modal) return null;
 
   return (
-    <ModalFrame zIndex="z-[70]">
+    <ModalFrame zIndex="z-[70]" onClose={() => users.setPasswordModal(null)}>
       <ModalHeader
         kicker="密码结果"
         title={modal.title}
@@ -208,7 +261,7 @@ function PasswordEditorModal({ users }: AdminUsersModalsProps) {
   }
 
   return (
-    <ModalFrame zIndex="z-[80]">
+    <ModalFrame zIndex="z-[80]" onClose={close}>
       <ModalHeader
         kicker="管理操作"
         title="修改密码"
@@ -250,10 +303,25 @@ function PasswordEditorModal({ users }: AdminUsersModalsProps) {
   );
 }
 
-function ModalFrame({ children, zIndex }: { children: React.ReactNode; zIndex: string }) {
+function ModalFrame({ children, onClose, zIndex }: { children: React.ReactNode; onClose: () => void; zIndex: string }) {
+  const titleId = `modal-title-${zIndex}`;
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, zIndex]);
+
   return (
     <div
-      className={`fixed inset-0 ${zIndex} flex items-center justify-center bg-slate-950/30 px-4 py-10 backdrop-blur-sm dark:bg-black/70`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      className={`fixed inset-0 ${zIndex} flex items-center justify-center bg-stone-950/30 px-4 py-10 backdrop-blur-sm dark:bg-black/70`}
     >
       <div className="glass-panel w-full max-w-xl rounded-lg p-6 shadow-sm">{children}</div>
     </div>
@@ -291,6 +359,7 @@ function ModalHeader({
 
 function TextField({
   autoFocus,
+  disabled,
   inputClassName,
   label,
   onChange,
@@ -300,6 +369,7 @@ function TextField({
   value,
 }: {
   autoFocus?: boolean;
+  disabled?: boolean;
   inputClassName?: string;
   label: string;
   onChange: (value: string) => void;
@@ -319,9 +389,45 @@ function TextField({
         }}
         type={type}
         autoFocus={autoFocus}
+        disabled={disabled}
         placeholder={placeholder}
-        className={["theme-input mt-2 w-full rounded-lg px-4 py-2.5 text-sm", inputClassName ?? ""].join(" ")}
+        className={[
+          "theme-input mt-2 w-full rounded-lg px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60",
+          inputClassName ?? "",
+        ].join(" ")}
       />
+    </div>
+  );
+}
+
+function SelectField({
+  disabled,
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  disabled?: boolean;
+  label: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}) {
+  return (
+    <div>
+      <label className="theme-subheading text-sm font-semibold">{label}</label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        className="theme-select mt-2 w-full rounded-lg px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

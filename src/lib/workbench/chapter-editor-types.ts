@@ -1,8 +1,8 @@
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import type { SessionAccessFields } from "@/lib/auth/session-user-types";
 
-export type ChapterSessionUser = {
+export type ChapterSessionUser = SessionAccessFields & {
   email: string;
-  isAdmin?: boolean;
 };
 
 export type WorkLite = {
@@ -10,6 +10,8 @@ export type WorkLite = {
   title: string;
   tag: string;
   outline?: StoryOutline | null;
+  targetChapters?: number | null;
+  plannedUntilChapter?: number | null;
 };
 
 export type ChapterDetail = {

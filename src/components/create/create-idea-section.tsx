@@ -1,7 +1,8 @@
 "use client";
 
 import { RefreshCcw, Sparkles, Star, Zap } from "lucide-react";
-
+import { cn } from "@/lib/utils";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import type { DashboardCreateController } from "@/lib/create/use-dashboard-create";
 
 type CreateIdeaSectionProps = {
@@ -31,88 +32,85 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
     showAiProgress,
     wordCount,
   } = create;
+  const hasIdeaError = create.formErrorTarget === "idea" || create.formErrorTarget === "ai";
 
   return (
-    <div>
-      <div className="mb-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <label className="theme-heading block text-sm font-semibold">
-            <span className="mr-1 text-rose-500">*</span>
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <label className="text-xl font-black tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+            <span className="text-blue-500">*</span>
             详细描述你的创意
           </label>
-          <button
-            type="button"
-            disabled={aiBusy || !canGenerateAi}
-            onClick={handleGenerateAi}
-            title={canGenerateAi ? "让 AI 根据当前创意继续优化" : "请先填写至少 10 个字的创意描述"}
-            aria-label={canGenerateAi ? "AI 优化创意" : "请先填写创意描述"}
-            className="theme-button-secondary relative inline-flex cursor-pointer items-center gap-2 overflow-hidden rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {aiBusy ? (
-              <>
-                <span className="pointer-events-none absolute left-0 top-0 h-full w-1.5 rounded-r-full bg-slate-900/5 dark:bg-white/10" />
-                <span className="pointer-events-none absolute left-0 top-0 h-[45%] w-1.5 rounded-r-full bg-emerald-500 animate-[ai-progress-sweep_1.2s_ease-in-out_infinite] motion-reduce:animate-none" />
-              </>
-            ) : null}
-
-            <span className="relative z-10 inline-flex items-center gap-2">
-              {aiBusy ? (
-                <Sparkles className="h-4 w-4 animate-pulse text-emerald-600 dark:text-emerald-300" />
-              ) : (
-                <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-              )}
-              {aiBusy ? (
-                <span
-                  key={aiThinkingCopyIndex}
-                  className="animate-[ai-copy-swap_220ms_ease-out] motion-reduce:animate-none"
-                >
-                  {aiThinkingCopy}
-                </span>
-              ) : !canGenerateAi ? (
-                "先写创意"
-              ) : (
-                "AI 优化创意"
-              )}
-            </span>
-          </button>
-        </div>
-
-        {!canGenerateAi ? (
-          <p className="theme-muted mt-2 text-xs leading-relaxed">
-            先写下至少 10 个字的核心创意，再让 AI 帮你扩写和润色。
+          <p className="mt-1 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            写下至少 10 个字的核心创意，然后让 AI 帮你扩写和润色。
           </p>
-        ) : null}
+        </div>
+        
+        <button
+          type="button"
+          disabled={aiBusy || !canGenerateAi}
+          onClick={handleGenerateAi}
+          title={canGenerateAi ? "让 AI 根据当前创意继续优化" : "请先填写至少 10 个字的创意描述"}
+          aria-label={canGenerateAi ? aiZhCN.idea.optimize : "请先填写创意描述"}
+          className="group relative inline-flex cursor-pointer items-center gap-2 overflow-hidden rounded-full bg-blue-50 px-5 py-2.5 text-sm font-bold text-blue-600 transition-all hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+        >
+          {aiBusy ? (
+            <>
+              <span className="pointer-events-none absolute left-0 top-0 h-full w-1.5 bg-blue-500/20" />
+              <span className="pointer-events-none absolute left-0 top-0 h-[45%] w-1.5 bg-blue-500 animate-[ai-progress-sweep_1.2s_ease-in-out_infinite] motion-reduce:animate-none" />
+            </>
+          ) : null}
 
-        {showAiProgress ? (
-          <div
-            className="mt-3"
-            role="progressbar"
-            aria-label="AI 生成进度"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={aiProgressPercent}
-          >
-            <div className="relative">
-              <div className="h-2 overflow-hidden rounded-full bg-slate-200/70 dark:bg-white/10">
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-[width] duration-300 ease-linear motion-reduce:animate-none animate-[ai-progress-shimmer_1.2s_linear_infinite]"
-                  style={{
-                    width: `${aiProgressValue}%`,
-                    backgroundSize: "200% 100%",
-                  }}
-                />
-              </div>
-
-              <div
-                  className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md border border-black/10 bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-slate-900 shadow-sm backdrop-blur transition-[left] duration-300 ease-linear motion-reduce:transition-none dark:border-white/10 dark:bg-zinc-900/90 dark:text-white"
-                style={{ left: `${aiProgressLabelLeft}%` }}
+          <span className="relative z-10 inline-flex items-center gap-2">
+            {aiBusy ? (
+              <Sparkles className="h-4 w-4 animate-pulse" />
+            ) : (
+              <Zap className="h-4 w-4 transition-transform group-hover:scale-110" />
+            )}
+            {aiBusy ? (
+              <span
+                key={aiThinkingCopyIndex}
+                className="animate-[ai-copy-swap_220ms_ease-out] motion-reduce:animate-none"
               >
-                {aiProgressPercent}%
-              </div>
+                {aiThinkingCopy}
+              </span>
+            ) : !canGenerateAi ? (
+              aiZhCN.idea.needInput
+            ) : (
+              aiZhCN.idea.optimize
+            )}
+          </span>
+        </button>
+      </div>
+
+      {showAiProgress ? (
+        <div
+          role="progressbar"
+          aria-label="AI 生成进度"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={aiProgressPercent}
+        >
+          <div className="relative">
+            <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-white/5">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-[width] duration-300 ease-linear animate-[ai-progress-shimmer_1.2s_linear_infinite] motion-reduce:animate-none"
+                style={{
+                  width: `${aiProgressValue}%`,
+                  backgroundSize: "200% 100%",
+                }}
+              />
+            </div>
+            <div
+              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/5 bg-white px-2.5 py-0.5 text-[11px] font-black text-zinc-900 shadow-sm transition-[left] duration-300 ease-linear dark:border-white/10 dark:bg-zinc-800 dark:text-white"
+              style={{ left: `${aiProgressLabelLeft}%` }}
+            >
+              {aiProgressPercent}%
             </div>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div
         className="relative"
@@ -126,83 +124,89 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
         }}
       >
         <textarea
+          id="create-idea-input"
           value={idea}
           onChange={(event) => {
             updateIdea(event.target.value);
             setIdeaAnalysis(null);
           }}
-          rows={6}
-          required
-            className="theme-textarea w-full resize-y rounded-lg px-5 py-4"
+          rows={8}
+          aria-invalid={hasIdeaError}
+          aria-describedby={hasIdeaError ? "create-form-error" : undefined}
+          className={cn(
+            "w-full resize-y rounded-[24px] bg-white p-6 text-[15px] font-medium leading-relaxed text-zinc-900 shadow-inner ring-1 ring-zinc-200 outline-none transition-all placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500 dark:bg-black/40 dark:text-zinc-100 dark:ring-white/10 dark:placeholder:text-zinc-600",
+            hasIdeaError && "ring-2 ring-red-500"
+          )}
           placeholder={
-            "描述你的小说创意，例如：\n• 主角的身份背景和特殊能力\n• 故事的主要冲突和爽点\n• 想要的写作风格和氛围\n\n或者点击右侧的模板快速填充..."
+            "描述你的小说创意，例如：\n· 主角的身份背景和特殊能力\n· 故事的主要冲突和爽点\n· 想要的写作风格和氛围\n\n或者点击右侧的模板快速填充..."
           }
         />
-        <div className="theme-weak absolute bottom-3 right-4 text-xs">
-          <span className={wordCount > 2000 ? "text-rose-500" : ""}>{wordCount}</span>{" "}
+        
+        <div className="absolute bottom-5 right-6 flex items-center gap-2 text-xs font-bold text-zinc-400 dark:text-zinc-500">
+          <span className={wordCount > 2000 ? "text-red-500" : "text-zinc-700 dark:text-zinc-300"}>{wordCount}</span>
           / 2000
         </div>
 
+        {/* 创意解析面板 */}
         {analysisPanelVisible ? (
-          <div className="theme-card-soft mt-4 rounded-lg p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="theme-heading flex items-center gap-2 text-sm font-semibold">
-                  <Star className="h-4 w-4 text-emerald-600/90 dark:text-emerald-300/90" />
-                  AI 创意分析
+          <div className="mt-6 overflow-hidden rounded-[24px] border border-blue-100 bg-blue-50/50 shadow-inner dark:border-blue-500/20 dark:bg-blue-900/10">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-100/50 px-6 py-4 dark:border-blue-500/10">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-sm font-black text-zinc-900 dark:text-white">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                    <Star className="h-3 w-3" />
+                  </div>
+                  {aiZhCN.idea.analyzeTitle}
                 </div>
+                
                 <button
                   type="button"
                   onClick={() => void handleAnalyzeIdea(idea)}
                   disabled={analyzeBlockedByAiThinking || analysisBusy || !canAnalyzeIdea}
-                className="theme-button-secondary inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                  aria-label={
-                    analyzeBlockedByAiThinking
-                      ? "请等待 AI 生成结束后再分析"
-                      : "开始 AI 创意分析"
-                  }
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition-all hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-white/10 dark:hover:bg-zinc-700"
                 >
                   <Sparkles
-                    className={
-                      analyzeBlockedByAiThinking
-                        ? "h-4 w-4 animate-pulse text-slate-500 dark:text-white/60"
-                        : analysisBusy
-                          ? "h-4 w-4 animate-pulse text-emerald-600 dark:text-emerald-300"
-                          : "h-4 w-4 text-emerald-600 dark:text-emerald-300"
-                    }
+                    className={cn(
+                      "h-3 w-3",
+                      analyzeBlockedByAiThinking || analysisBusy ? "animate-pulse" : "",
+                      analyzeBlockedByAiThinking ? "text-zinc-400" : "text-blue-500"
+                    )}
                   />
                   {analyzeBlockedByAiThinking
-                    ? "请等待..."
+                    ? aiZhCN.idea.analyzeWait
                     : analysisBusy
-                      ? "分析中..."
+                      ? aiZhCN.idea.analyzeBusy
                       : ideaAnalysis
-                        ? "重新分析"
-                        : "开始分析"}
+                        ? aiZhCN.idea.analyzeRetry
+                        : aiZhCN.idea.analyzeStart}
                 </button>
               </div>
+              
               <button
                 type="button"
                 onClick={handleGenerateAi}
                 disabled={aiBusy || analysisBusy || !canGenerateAi}
-              className="theme-button-secondary inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-bold text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
-                <RefreshCcw className={["h-4 w-4", aiBusy ? "animate-spin" : ""].join(" ")} />
-                换一个
+                <RefreshCcw className={cn("h-3.5 w-3.5", aiBusy && "animate-spin")} />
+                {aiZhCN.idea.swap}
               </button>
             </div>
 
-            {analysisBusy ? (
-              <div className="theme-subheading mt-4 flex items-center gap-2 text-sm">
-                <Sparkles className="h-4 w-4 animate-pulse text-emerald-600 dark:text-emerald-300" />
-                正在分析创意...
-              </div>
-            ) : ideaAnalysis ? (
-              <IdeaAnalysisPanel analysis={ideaAnalysis} />
-            ) : (
-              <p className="theme-subheading mt-4 text-sm leading-relaxed">
-                点击上方“开始分析”生成创意分析（至少 10 个字）。想换一条创意可点右侧“换一个”。
-              </p>
-            )}
+            <div className="p-6">
+              {analysisBusy ? (
+                <div className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400">
+                  <Sparkles className="h-4 w-4 animate-pulse" />
+                  {aiZhCN.idea.analyzePanelBusy}
+                </div>
+              ) : ideaAnalysis ? (
+                <IdeaAnalysisPanel analysis={ideaAnalysis} />
+              ) : (
+                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                  {aiZhCN.idea.analyzePanelEmpty}
+                </p>
+              )}
+            </div>
           </div>
         ) : null}
       </div>
@@ -216,18 +220,20 @@ type IdeaAnalysisPanelProps = {
 
 function IdeaAnalysisPanel({ analysis }: IdeaAnalysisPanelProps) {
   return (
-    <div className="mt-4 space-y-5">
-      <p className="theme-subheading text-sm leading-relaxed">{analysis.oneLinePitch}</p>
+    <div className="space-y-6">
+      <p className="text-base font-bold leading-relaxed text-zinc-800 dark:text-zinc-200">
+        {analysis.oneLinePitch}
+      </p>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-4">
+      <div className="grid gap-8 md:grid-cols-2">
+        <div className="space-y-6">
           <div>
-            <div className="theme-muted text-xs font-medium">推荐书名</div>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mb-3 text-[11px] font-black uppercase tracking-widest text-zinc-400">推荐书名</div>
+            <div className="flex flex-wrap gap-2">
               {analysis.recommendedTitles.map((title) => (
                 <span
                   key={title}
-                  className="theme-chip-brand inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold"
+                  className="rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-black text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
                 >
                   {title}
                 </span>
@@ -235,30 +241,30 @@ function IdeaAnalysisPanel({ analysis }: IdeaAnalysisPanelProps) {
             </div>
           </div>
 
-          {analysis.keyPhrases.length ? (
+          {analysis.keyPhrases.length > 0 && (
             <div>
-              <div className="theme-muted text-xs font-medium">关键词</div>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mb-3 text-[11px] font-black uppercase tracking-widest text-zinc-400">关键词</div>
+              <div className="flex flex-wrap gap-2">
                 {analysis.keyPhrases.map((phrase) => (
                   <span
                     key={phrase}
-                    className="theme-chip inline-flex items-center rounded-md px-3 py-1 text-xs font-medium"
+                    className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-bold text-zinc-600 dark:bg-white/5 dark:text-zinc-300"
                   >
                     {phrase}
                   </span>
                 ))}
               </div>
             </div>
-          ) : null}
+          )}
         </div>
 
         <div>
-          <div className="theme-muted text-xs font-medium">核心卖点</div>
-          <div className="mt-2 space-y-2">
+          <div className="mb-3 text-[11px] font-black uppercase tracking-widest text-zinc-400">核心卖点</div>
+          <div className="space-y-2">
             {analysis.coreSellingPoints.map((point) => (
               <div
                 key={point}
-                className="theme-chip-success rounded-lg px-3 py-2 text-sm leading-relaxed shadow-sm"
+                className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold leading-relaxed text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200"
               >
                 {point}
               </div>
@@ -267,8 +273,8 @@ function IdeaAnalysisPanel({ analysis }: IdeaAnalysisPanelProps) {
         </div>
       </div>
 
-      <div className="theme-inline-note rounded-lg px-4 py-3 text-sm">
-        <span className="theme-muted mr-2 text-xs font-medium">目标读者:</span>
+      <div className="rounded-xl bg-zinc-50 px-5 py-4 text-sm font-medium text-zinc-700 dark:bg-white/5 dark:text-zinc-300">
+        <span className="mr-3 font-black text-zinc-900 dark:text-white">目标读者</span>
         {analysis.targetReaders}
       </div>
     </div>

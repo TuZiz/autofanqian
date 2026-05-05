@@ -1,7 +1,9 @@
-export type AdminUsersSessionUser = {
+import type { MembershipTierValue } from "@/lib/auth/user-groups";
+import type { SessionAccessFields, SessionAccessRole } from "@/lib/auth/session-user-types";
+
+export type AdminUsersSessionUser = SessionAccessFields & {
   id: string;
   email: string;
-  isAdmin?: boolean;
 };
 
 export type AdminUserRow = {
@@ -13,6 +15,10 @@ export type AdminUserRow = {
   lastLoginAt: string | null;
   createdAt: string;
   isAdmin: boolean;
+  isRootAdmin: boolean;
+  membershipTier: MembershipTierValue;
+  role: SessionAccessRole;
+  displayGroup: string;
   hasPassword: boolean;
 };
 
@@ -40,5 +46,7 @@ export type UserEditorState = {
   email: string;
   name: string;
   emailVerified: boolean;
+  membershipTier: MembershipTierValue;
+  role: "user" | "admin";
   focus?: "email" | "name";
 };

@@ -2,6 +2,7 @@
 
 import { CheckCircle2, FileText, Lightbulb } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const createSteps: Array<{
   title: string;
@@ -15,43 +16,40 @@ const createSteps: Array<{
 
 export function CreateSteps() {
   return (
-    <section className="glass-panel mt-6 overflow-hidden rounded-lg p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-5">
-        {createSteps.map((step, index) => {
+    <section className="relative mx-auto w-full max-w-3xl">
+      <div className="absolute left-[10%] right-[10%] top-[28px] h-[2px] -translate-y-1/2 bg-zinc-200 dark:bg-zinc-800 sm:top-[32px]" />
+      
+      <div className="relative flex justify-between">
+        {createSteps.map((step) => {
           const Icon = step.icon;
+          const isActive = step.active;
 
           return (
             <div
               key={step.title}
-              className="contents md:flex md:min-w-0 md:flex-1 md:items-center md:gap-5"
+              className="flex w-1/3 flex-col items-center justify-center gap-3 relative z-10"
             >
-              <div className="flex min-w-0 items-center gap-4">
-                <div
-                  className={
-                    step.active
-                      ? "flex h-14 w-14 items-center justify-center rounded-lg border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] shadow-sm"
-                      : "flex h-14 w-14 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] theme-weak"
-                  }
-                >
-                  <Icon className="h-7 w-7" />
-                </div>
-
-                <div className="min-w-0">
-                  <div
-                    className={
-                      step.active
-                        ? "theme-heading text-xl font-semibold tracking-tight"
-                        : "theme-subheading text-xl font-medium tracking-tight"
-                    }
-                  >
-                    {step.title}
-                  </div>
-                </div>
+              <div
+                className={cn(
+                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-all duration-500 sm:h-16 sm:w-16",
+                  isActive
+                    ? "bg-blue-600 text-white shadow-blue-500/30 ring-4 ring-white dark:ring-black scale-110"
+                    : "bg-white text-zinc-400 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800"
+                )}
+              >
+                <Icon className={cn("h-6 w-6 sm:h-7 sm:w-7", isActive && "animate-pulse")} />
               </div>
 
-              {index < createSteps.length - 1 ? (
-                <div className="theme-divider ml-7 h-10 w-px border-l md:ml-0 md:h-px md:flex-1 md:border-l-0 md:border-t" />
-              ) : null}
+              <div
+                className={cn(
+                  "text-center text-sm font-black tracking-tight sm:text-base",
+                  isActive
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-zinc-400 dark:text-zinc-600"
+                )}
+              >
+                {step.title}
+              </div>
             </div>
           );
         })}

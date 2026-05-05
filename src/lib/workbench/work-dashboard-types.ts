@@ -1,8 +1,8 @@
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import type { SessionAccessFields } from "@/lib/auth/session-user-types";
 
-export type SessionUser = {
+export type SessionUser = SessionAccessFields & {
   email: string;
-  isAdmin?: boolean;
 };
 
 export type WorkDetail = {
@@ -19,6 +19,10 @@ export type WorkDetail = {
   title: string;
   synopsis: string;
   outline: StoryOutline;
+  targetChapters?: number | null;
+  plannedUntilChapter?: number | null;
+  planningMode?: "progressive" | string | null;
+  rawOutline?: StoryOutline | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,7 +37,13 @@ export type ChapterListItem = {
 };
 
 export type ChaptersOverview = {
-  work: { id: string; title: string; tag: string };
+  work: {
+    id: string;
+    title: string;
+    tag: string;
+    targetChapters?: number | null;
+    plannedUntilChapter?: number | null;
+  };
   nextIndex: number;
   maxIndex: number;
   lastEditedIndex: number;

@@ -4,150 +4,190 @@
 This version has breaking changes - APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# BayData Web Agent Rules
+# 西红柿 Web Agent Rules
 
-`web/` is the real Next.js application and git repository. Run Web commands from this directory unless a task explicitly targets the parent workspace.
+`web/` 是真实 Next.js 应用和 Git 仓库。所有 Web 命令默认从本目录执行。根目录只做项目总控说明，不承载业务实现。
 
-## Fast Reading Contract
+默认中文回复，先给结论，再给执行路径。用户通常要的是实际落地：改代码、修 UI、同步远端、验证页面，而不是只给建议。
 
-BayData's active product is the `web/` Next.js App Router app. Start every web task from the smallest route, component, hook, or API slice that can explain the behavior. Avoid broad repository scans unless the first narrow pass cannot identify ownership.
+## 快速工作契约
 
-Use this file as the project-local AI reading map: it tells agents where state lives, where UI lives, where API contracts live, and which files should stay thin.
+- 先看 `git status --short`，保护用户和上一轮留下的改动。
+- 从用户给的截图、URL、组件名、接口名或报错入手，先查最小范围。
+- 不要盲扫 `.next`、`node_modules`、`output`、日志和构建产物。
+- UI 问题必须落实到用户能看见的变化；“结构已改但页面没变化”视为未完成。
+- 业务代码优先遵循现有写法，少做无关抽象和大范围重命名。
+- 文档或 AGENTS 调整只改说明文件，不顺手改业务代码。
 
-## Current Split Architecture
+## 用户产品偏好
 
-- Route files under `src/app/**/page.tsx` should stay as thin containers: route params, high-level hook calls, and page composition only.
-- UI belongs in `src/components/<domain>/`. Prefer domain folders such as `workbench`, `create`, `admin`, `dashboard`, and `auth`.
-- Client state and behavior belong in `src/lib/<domain>/use-*.ts`.
-- Shared types, formatters, parsers, and small helpers belong in `src/lib/<domain>/`.
-- Business TS/TSX files should normally stay around 300-400 lines. If a file grows beyond that, split by responsibility before adding more behavior.
-- `src/app/globals.css` is the global theme and token entry. Do not split or redesign it during behavior-only tasks.
+- 这是小说创作工作台，不是通用后台模板；所有页面要服务“快速写作、规划、续写、管理配置”。
+- UI 要清爽、紧凑、可扫描。避免大面积黑色、突兀蓝色、紫蓝渐变、过重装饰和营销式 hero。
+- 用户常用宽屏桌面缩放看页面，信息密度和左右栏对齐很重要。
+- 按钮、输入框、弹窗必须一眼看出用途；不要让可编辑区域像普通文本。
+- 复制成功提示要鲜明但不突兀，按钮状态变化要清楚。
+- 修改书名、个人信息、昵称、密码这类操作优先用弹窗遮罩，不跳到第二页面。
+- 管理员默认页要高可编辑度：左侧导航分模块、列表摘要展示、右侧抽屉编辑、统一保存栏。避免所有大表单默认展开。
+- 写作页正文区域要显示更多内容；左侧正文高度和右侧工具栏高度要协调，不要只拉长一边。
 
-## Multi-Agent Mode
+## 当前领域模型
 
-When the user asks for multi-agent work, parallel work, broad optimization, UI plus API changes, database plus route changes, or a failing flow that needs diagnosis and verification, use a coordinator-led multi-agent workflow.
+用户语义上把作品视为 `Novel`，但代码里仍可能存在旧 `Work` 兼容层。改动前先确认实际模型和路由，不要凭名字猜。
 
-Keep tiny one-file fixes single-agent. The goal is token savings and higher confidence, not ceremony.
+重点概念：
 
-### Coordinator
+- `Novel / Work`：小说主体，包含标题、简介、题材、目标字数、长期目标章数、原始大纲。
+- `Volume`：卷纲，区分宏观卷纲和可写详细规划。
+- `Chapter`：章节正文、摘要、章节大纲、细节、状态。
+- `WritingMemory`：长期写作记忆，用于人物状态、事实约束、风格要求、未解决问题。
+- `GenerationJob`：AI 生成记录、模型、耗时、错误和 prompt 快照。
+- `PromptTemplate`：AI 提示词模板版本。
 
-- Check `git status --short` before editing and protect unrelated user changes.
-- Assign exact write ownership before any worker edits files.
-- Keep the final integration local: review diffs, resolve overlaps, run verification, and report one coherent result.
+渐进式规划是当前重要约束：
 
-### Explorer
+- 不要默认一次展示或生成 1560 章详细规划。
+- 初始只生成全书宏观卷纲 + 当前可写窗口。
+- 默认详细窗口约 20-40 章，单次硬上限 60 章。
+- 超出 `plannedUntilChapter` 的章节不能进入写作或生成。
+- “延展”在 UI 中应表达为“规划下一段”。
 
-- Read-only role for locating route groups, components, API handlers, Prisma models, docs, and existing patterns.
-- Report exact paths and line-level risks. Do not edit files.
-- Prefer narrow searches in `src/app`, `src/components`, `src/lib`, and `prisma`.
+## 架构边界
 
-### Worker
+- `src/app/**/page.tsx` 保持薄：路由参数、权限/session、hook 调用和页面组合。
+- UI 放在 `src/components/<domain>/`，如 `dashboard`、`workbench`、`create`、`admin`、`auth`。
+- 客户端状态和行为放在 `src/lib/<domain>/use-*.ts`。
+- 业务 helper、类型、解析器、格式化放在 `src/lib/<domain>/`。
+- API 在 `src/app/api/**/route.ts`，数据库模型在 `prisma/schema.prisma`。
+- `src/app/globals.css` 是全局主题入口。行为任务不要顺手大改全局视觉。
+- 普通业务 TS/TSX 文件尽量控制在 300-400 行附近；超出时按职责拆分。
 
-- Edit only the assigned write set.
-- Assume other people or agents are editing nearby files; never revert unrelated changes.
-- If a required change crosses ownership, stop and report the needed file instead of modifying it.
+## 高频入口
 
-### Verifier
+### 登录与会话
 
-- Run the smallest useful checks first, then broaden when the change touches shared behavior.
-- Default checks: `npm run lint` and `npm run build`.
-- UI changes should also be checked in a browser or with a screenshot when a dev server is available.
+- 登录页：`src/app/login/page.tsx`
+- Auth UI：`src/components/auth/`
+- 登录 API：`src/app/api/auth/login/route.ts`
+- 登出 API：`src/app/api/auth/logout/route.ts`
+- Session API：`src/app/api/auth/session/route.ts`
+- Session 工具：`src/lib/auth/session.ts`
+- 路由保护：`src/proxy.ts`
 
-## Common Ownership Splits
+如果页面一直停在“正在验证身份信息”或自动刷新，优先检查 session cookie、`/api/auth/session`、`src/proxy.ts` 和数据库用户是否存在。
 
-- Dashboard UI: `src/app/dashboard/**`, `src/components/dashboard/**`, related CSS in `src/app/globals.css`
-- Auth UI/API: `src/app/login`, `src/app/register`, `src/app/forgot-password`, `src/app/api/auth/**`, `src/components/auth/**`, `src/lib/auth/**`
-- AI routes and prompts: `src/app/api/ai/**`, `src/lib/ai/**`, `src/lib/client/chapter-generation.ts`
-- Workbench and chapters: `src/app/api/works/**`, `src/app/dashboard/work/**`, `src/components/workbench/**`, `src/lib/workbench/**`
-- Create flow: `src/app/dashboard/create/**`, `src/components/create/**`, `src/lib/create/**`
-- Admin: `src/app/dashboard/admin/**`, `src/app/api/admin/**`, `src/components/admin/**`, `src/lib/admin/**`, `src/lib/config/**`
-- Data model: `prisma/schema.prisma`, `prisma/migrations/**`, `src/lib/prisma.ts`
+### Dashboard 首页
 
-Do not split two workers across the same route group or component file. Prefer one worker per route family.
+- 首页路由：`src/app/dashboard/page.tsx`
+- 首页客户端：`src/components/dashboard/dashboard-client.tsx`
+- 顶栏：`src/components/dashboard/dashboard-topbar.tsx`
+- 外壳和作品列表：`src/components/dashboard/dashboard-shell.tsx`、`src/components/dashboard/dashboard-works-section.tsx`
+- 行为 hook：`src/lib/dashboard/use-dashboard-client.ts`
 
-## Search And Editing Rules
+个人信息入口放在顶部邮箱/用户区域，采用遮罩弹窗，不新增第二页面。
 
-- Start from concrete paths. Avoid broad scans of `node_modules`, `.next`, `output`, `.playwright-cli`, and logs.
-- Only enter `node_modules/next/dist/docs/` to confirm Next.js 16 behavior before changing framework-sensitive code.
-- In PowerShell, use `-LiteralPath` for bracketed routes such as `src/app/dashboard/work/[id]`.
-- Keep user-visible Chinese copy centralized when an existing copy/config file already owns it.
+### 创建流程
 
-## High-Frequency Entrypoints
+- 创建页：`src/app/dashboard/create/page.tsx`
+- 创建 UI：`src/components/create/`
+- 创建状态：`src/lib/create/use-dashboard-create.ts`
+- 类型和工具：`src/lib/create/dashboard-create-types.ts`、`src/lib/create/dashboard-create-utils.ts`
+- 大纲草稿：`src/lib/create/outline-draft.ts`、`src/lib/create/outline-schema.ts`
+- 渐进规划：`src/lib/create/progressive-planning.ts`
+- 大纲流程：`src/app/dashboard/create/outline/page.tsx`、`src/lib/create/outline-flow.ts`
 
-### Auth
+创建长篇时只生成宏观卷纲和首个详细窗口，不要把长期目标章节全部展开。
 
-- Login page: `src/app/login/page.tsx`
-- Auth UI: `src/components/auth/`
-- Login API: `src/app/api/auth/login/route.ts`
-- Logout API: `src/app/api/auth/logout/route.ts`
-- Auth helpers and session utilities: `src/lib/auth/**`
+### 作品页与写作页
 
-### Dashboard Home
+- 旧作品页：`src/app/dashboard/work/[id]/page.tsx`
+- 旧写作页：`src/app/dashboard/work/[id]/chapter/[index]/page.tsx`
+- 新小说路由：`src/app/dashboard/novel/**`
+- Work/Novel API：`src/app/api/works/**`、`src/app/api/novels/**`
+- Workbench UI：`src/components/workbench/`
+- 作品页行为：`src/lib/workbench/use-work-dashboard.ts`
+- 写作页主状态：`src/lib/workbench/use-work-chapter-editor.ts`
+- AI 行为：`src/lib/workbench/use-chapter-editor-ai.ts`
+- 章节元数据：`src/lib/workbench/use-chapter-editor-meta.ts`
+- 导航命令：`src/lib/workbench/use-chapter-editor-navigation.ts`
+- Workbench 类型：`src/lib/workbench/`
 
-- Dashboard route: `src/app/dashboard/page.tsx`
-- Dashboard client wrapper: `src/components/dashboard/dashboard-client.tsx`
-- Dashboard layout and work list UI: `src/components/dashboard/dashboard-shell.tsx`, `src/components/dashboard/dashboard-works-section.tsx`
-- Dashboard behavior hook: `src/lib/dashboard/use-dashboard-client.ts`
+作品页标题修改应使用弹窗编辑。写作页正文必须保持明显可编辑，且选中输入框时文字不能横向跳动。
 
-### Create Flow
+### 管理员后台
 
-- Create route container: `src/app/dashboard/create/page.tsx`
-- Create UI: `src/components/create/`
-- Create state and helpers: `src/lib/create/use-dashboard-create.ts`, `src/lib/create/dashboard-create-types.ts`, `src/lib/create/dashboard-create-utils.ts`
-- Outline flow route and logic: `src/app/dashboard/create/outline/page.tsx`, `src/lib/create/outline-flow.ts`
+- 管理员首页：`src/app/dashboard/admin/page.tsx`
+- 用户管理：`src/app/dashboard/admin/users/page.tsx`
+- AI 模型配置：`src/app/dashboard/admin/ai-model/page.tsx`
+- 规划配置 API：`src/app/api/admin/planning-config/route.ts`
+- 管理员 UI：`src/components/admin/`
+- 规划配置 UI：`src/components/admin/admin-planning-section.tsx`
+- 管理员 hook 和类型：`src/lib/admin/`
+- 配置读取：`src/lib/config/`
+- 规划配置：`src/lib/config/planning.ts`
 
-### Workbench And Chapter Editor
+管理员页面默认自动保存，但也要有清晰状态栏。大表单改成模块导航、摘要列表、右侧抽屉编辑。
 
-- Work page route container: `src/app/dashboard/work/[id]/page.tsx`
-- Chapter editor route container: `src/app/dashboard/work/[id]/chapter/[index]/page.tsx`
-- Workbench UI components: `src/components/workbench/`
-- Work dashboard behavior: `src/lib/workbench/use-work-dashboard.ts`
-- Chapter editor bootstrap and state: `src/lib/workbench/use-work-chapter-editor.ts`
-- AI generation behavior: `src/lib/workbench/use-chapter-editor-ai.ts`
-- Chapter metadata behavior: `src/lib/workbench/use-chapter-editor-meta.ts`
-- Chapter navigation and command behavior: `src/lib/workbench/use-chapter-editor-navigation.ts`
-- Workbench types and formatting helpers: `src/lib/workbench/`
+### AI 与提示词
 
-### Admin
+- AI API：`src/app/api/ai/**`
+- AI 服务：`src/lib/ai/**`
+- 客户端章节生成：`src/lib/client/chapter-generation.ts`
+- 模型路由配置页：`src/app/dashboard/admin/ai-model/page.tsx`
 
-- Admin dashboard route: `src/app/dashboard/admin/page.tsx`
-- User management route: `src/app/dashboard/admin/users/page.tsx`
-- AI model route: `src/app/dashboard/admin/ai-model/page.tsx`
-- Admin UI components: `src/components/admin/`
-- Admin hooks, types, and helpers: `src/lib/admin/`
+所有 AI 功能都应能归类配置路由，模型候选名从 `.env.local` 或配置读取。当前用户已多次要求：二次生成、重新生成、摘要、大纲、细节、章节、学习模板等都要纳入统一配置视野。
 
-### API And Data
+### 样式与主题
 
-- Work and chapter APIs: `src/app/api/works/**`
-- Admin APIs: `src/app/api/admin/**`
-- AI APIs and adapters: `src/app/api/ai/**`, `src/lib/ai/`
-- Prisma schema and migrations: `prisma/schema.prisma`, `prisma/migrations/`
-- Shared client utilities: `src/lib/client/`
+- 主题切换：`src/components/theme/theme-toggle.tsx`
+- 主题配置：`src/components/theme/theme-config.ts`
+- 全局样式：`src/app/globals.css`
 
-### Theme
+视觉优先级：浅色、清爽、紧凑、稳定。避免黑色大块、过亮蓝色边框、卡片套卡片、页面滚动被无效装饰撑大。
 
-- Theme controls: `src/components/theme/theme-toggle.tsx`, `src/components/theme/theme-config.ts`
-- Global tokens and page-wide styling: `src/app/globals.css`
+## 常见诊断捷径
 
-## Analysis Shortcuts
+- 自动保存、章节保存、字数、复制、正文编辑：先看 `src/lib/workbench/use-*.ts`，再看 `src/components/workbench/`。
+- 作品页大纲、规划下一段、章节可写范围：先看 `src/lib/workbench/use-work-dashboard.ts`、`src/components/workbench/work-dashboard-*`、`src/lib/create/progressive-planning.ts`。
+- 书名、简介、标签无法修改：先看作品页组件和 `src/app/api/works/[id]/route.ts` 或 `src/app/api/novels/[id]/route.ts`。
+- 登录循环或验证闪烁：先看 `src/app/api/auth/session/route.ts`、`src/lib/auth/session.ts`、`src/proxy.ts`。
+- 管理员保存和自动保存：先看 `src/lib/admin/use-dashboard-admin.ts`、`src/components/admin/`、`src/app/api/admin/**`。
+- Prisma drift 或迁移问题：先看 `prisma/schema.prisma`、`prisma/migrations/**`，不要直接重置数据库，除非用户明确允许。
+- Next.js 框架行为不确定：先看 `node_modules/next/dist/docs/` 对应文档。
 
-- Save, auto-save, generation state, chapter metadata, and command palette bugs: start in `src/lib/workbench/use-*.ts`, then inspect the matching `src/components/workbench/` surface, then the `src/app/api/works/**` route.
-- Visual or layout bugs: start in the relevant `src/components/<domain>/` file, then check `src/app/globals.css` only if the issue is token, theme, spacing, or responsive behavior.
-- Database shape or persistence bugs: start with `prisma/schema.prisma`, then inspect the smallest matching API route under `src/app/api/**`.
-- Admin bugs: start in `src/lib/admin/`, then `src/components/admin/`, then `src/app/api/admin/**`.
-- Create-flow bugs: start in `src/lib/create/`, then `src/components/create/`, then the route container.
+## 云端与部署
 
-## Verification
+常见云端目标：
 
-- For code changes: run `npm run lint`.
-- For route, Prisma, build, or framework-sensitive changes: run `npm run build`.
-- For visible UI changes: start or reuse a dev server with `npm run dev -- --port 3000` and check the actual page, especially desktop density and mobile fit.
-- Useful smoke targets: `http://localhost:3000/dashboard`, `/dashboard/work/[id]`, and `/dashboard/work/[id]/chapter/[index]`.
-- If `npm run build` fails on Windows with process-spawn sandbox errors such as `EPERM`, retry the same command with elevated sandbox permission before changing code.
+- 主机：`111.231.144.61`
+- 项目路径：`/www/wwwroot/wenyuo/web`
+- 健康检查：`http://111.231.144.61:3000/api/health`
 
-## Ignore During Reading
+部署原则：
 
-Do not spend analysis budget on generated or runtime output unless the task is specifically about those artifacts:
+- 同步前先确认本地改动和远端路径，不要覆盖 `.env`、数据库文件和用户上传内容。
+- 用户明确说“数据库可以抛弃”时，才允许远端重建或丢弃数据库。
+- 用户明确说“为我关闭，我会在宝塔启动”时，只停止你启动的进程，不要额外创建守护进程。
+- 最终回复不要复述密码、token、密钥。
+
+## 验证梯度
+
+- 文档或 AGENTS-only：检查 diff 即可，不需要 build。
+- 普通 TS/TSX 改动：`npm run lint`。
+- 路由、Next、Prisma、依赖、构建相关：`npm run build`。
+- Prisma 类型变化：`npx prisma generate`，必要时 `npx prisma migrate status`。
+- 可见 UI：启动或复用 `npm run dev -- --port 3000`，打开实际页面检查桌面和移动宽度。
+- 写作页重点检查：正文区域高度、右侧工具栏高度、输入框可编辑感、复制提示、滚动同步和顶部栏遮挡。
+
+## PowerShell 注意事项
+
+- bracket 路由路径使用 `-LiteralPath`，例如 `src/app/dashboard/work/[id]`。
+- 优先 `rg` 搜索；没有时再用 PowerShell 原生命令。
+- 不要用 `git reset --hard`、`git checkout --`、`git clean` 回滚用户改动。
+- 手动编辑使用 `apply_patch`，不要用 shell 重写业务文件。
+
+## 忽略目录
+
+除非任务专门要求，不要花时间读取：
 
 - `.next/`
 - `node_modules/`

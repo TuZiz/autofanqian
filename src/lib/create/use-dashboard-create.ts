@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import {
   CREATE_OUTLINE_DRAFT_STORAGE_KEY,
   CREATE_OUTLINE_RESULT_CACHE_KEY,
@@ -19,6 +20,8 @@ import type {
   SessionUser,
 } from "./dashboard-create-types";
 import { AI_THINKING_COPY, CUSTOM_GENRE_ID, parseTagInput } from "./dashboard-create-utils";
+
+type CreateFormErrorTarget = "genre" | "idea" | "ai" | "storage";
 
 export function useDashboardCreate() {
   const [selectedGenre, setSelectedGenre] = useState<GenreId | "">("");
@@ -41,6 +44,8 @@ export function useDashboardCreate() {
   const [ideaAnalysis, setIdeaAnalysis] = useState<IdeaAnalysis | null>(null);
   const [analysisBusy, setAnalysisBusy] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [formErrorTarget, setFormErrorTarget] = useState<CreateFormErrorTarget | null>(null);
 
   const router = useRouter();
   const aiProgressIntervalRef = useRef<number | null>(null);
@@ -78,6 +83,41 @@ export function useDashboardCreate() {
   const aiProgressPercent = Math.round(aiProgressValue);
   const aiProgressLabelLeft = Math.min(97, Math.max(3, aiProgressValue));
   const analyzeBlockedByAiThinking = showAiProgress;
+
+  function clearFormError() {
+    setFormError("");
+    setFormErrorTarget(null);
+  }
+
+  function showFormError(message: string, target: CreateFormErrorTarget) {
+    setFormError(message);
+    setFormErrorTarget(target);
+
+    window.requestAnimationFrame(() => {
+      const targetId =
+        target === "genre"
+          ? "create-genre-section"
+          : target === "idea"
+            ? "create-idea-input"
+            : "create-form-error";
+      const element = document.getElementById(targetId);
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      if (target === "idea") {
+        (element as HTMLTextAreaElement | null)?.focus({ preventScroll: true });
+        return;
+      }
+
+      if (target === "genre") {
+        document
+          .querySelector<HTMLButtonElement>("#create-genre-section button")
+          ?.focus({ preventScroll: true });
+        return;
+      }
+
+      (element as HTMLElement | null)?.focus({ preventScroll: true });
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -155,11 +195,17 @@ export function useDashboardCreate() {
     const nextValue = value.slice(0, 2000);
     setIdea(nextValue);
     setWordCount(nextValue.length);
+    if ((formErrorTarget === "idea" || formErrorTarget === "ai") && nextValue.trim().length >= 10) {
+      clearFormError();
+    }
   }
 
   function handleSelectGenre(genreId: GenreId) {
     setSelectedGenre(genreId);
     setIdeaAnalysis(null);
+    if (formErrorTarget === "genre") {
+      clearFormError();
+    }
   }
 
   async function handleAnalyzeIdea(nextIdea: string) {
@@ -260,12 +306,12 @@ export function useDashboardCreate() {
 
   async function handleGenerateAi() {
     if (!selectedGenre) {
-      window.alert("请先在左侧选择小说类型。");
+      showFormError("请先选择小说类型，再让 AI 优化创意。", "genre");
       return;
     }
 
     if (trimmedIdea.length < 10) {
-      window.alert("请先填写创意描述（至少 10 个字），再让 AI 优化创意。");
+      showFormError("请先填写至少 10 个字的创意描述，再让 AI 优化创意。", "idea");
       return;
     }
 
@@ -300,12 +346,13 @@ export function useDashboardCreate() {
         updateIdea(json.data.idea);
         setIdeaAnalysis(null);
         setAnalysisOpen(true);
+        clearFormError();
         return;
       }
 
-      window.alert(json?.message ?? "AI 生成失败，请稍后重试。");
+      showFormError(json?.message ?? aiZhCN.idea.generateFailed, "ai");
     } catch {
-      window.alert("网络请求异常，请稍后重试。");
+      showFormError(aiZhCN.common.networkFailed, "ai");
     } finally {
       setAiBusy(false);
       finishAiProgress();
@@ -318,13 +365,13 @@ export function useDashboardCreate() {
     if (submitBusy) return;
 
     if (!selectedGenre) {
-      window.alert("必须选择一个小说类型！");
+      showFormError("必须选择一个小说类型。", "genre");
       return;
     }
 
     const trimmed = idea.trim();
     if (trimmed.length < 10) {
-      window.alert("请先填写创意描述（至少 10 个字），再生成大纲。");
+      showFormError("请先填写至少 10 个字的创意描述，再生成大纲。", "idea");
       return;
     }
 
@@ -349,7 +396,7 @@ export function useDashboardCreate() {
       sessionStorage.removeItem(CREATE_OUTLINE_RESULT_CACHE_KEY);
     } catch {
       setSubmitBusy(false);
-      window.alert("浏览器存储不可用，无法进入生成页。请检查隐私模式/存储权限后重试。");
+      showFormError("浏览器存储不可用，无法进入生成页。请检查隐私模式或存储权限后重试。", "storage");
       return;
     }
 
@@ -391,6 +438,8 @@ export function useDashboardCreate() {
     customTagsInput,
     dnaBookTitle,
     dnaStyles,
+    formError,
+    formErrorTarget,
     handleAnalyzeIdea,
     handleGenerateAi,
     handleSelectGenre,

@@ -22,7 +22,7 @@ export function PasswordVisibilityToggle({
       title={label}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onToggle}
-      className="theme-field-action flex w-12 items-center justify-center"
+      className="theme-field-action flex min-h-[44px] w-12 items-center justify-center"
     >
       <Icon className="h-5 w-5" aria-hidden="true" />
     </button>

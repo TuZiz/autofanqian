@@ -7,6 +7,7 @@ type ActiveChapterGeneration = {
 };
 
 const ACTIVE_GENERATIONS = new Map<string, ActiveChapterGeneration>();
+const GENERATION_ABORT_HANDLERS = new Map<string, () => void>();
 const LOCK_TTL_MS = 30 * 60 * 1000;
 
 export function getChapterGenerationLockKey(params: {
@@ -21,6 +22,7 @@ function pruneExpiredGenerations(now = Date.now()) {
   for (const [key, generation] of ACTIVE_GENERATIONS.entries()) {
     if (now - generation.startedAt > LOCK_TTL_MS) {
       ACTIVE_GENERATIONS.delete(key);
+      GENERATION_ABORT_HANDLERS.delete(key);
     }
   }
 }
@@ -49,4 +51,21 @@ export function beginChapterGenerationLock(params: {
 
 export function endChapterGenerationLock(key: string) {
   ACTIVE_GENERATIONS.delete(key);
+  GENERATION_ABORT_HANDLERS.delete(key);
+}
+
+export function registerChapterGenerationAbortHandler(key: string, handler: () => void) {
+  GENERATION_ABORT_HANDLERS.set(key, handler);
+}
+
+export function clearChapterGenerationAbortHandler(key: string) {
+  GENERATION_ABORT_HANDLERS.delete(key);
+}
+
+export function requestChapterGenerationAbort(key: string) {
+  const handler = GENERATION_ABORT_HANDLERS.get(key);
+  if (!handler) return false;
+
+  handler();
+  return true;
 }

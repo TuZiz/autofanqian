@@ -1,7 +1,8 @@
-export type SessionUser = {
+import type { SessionAccessFields } from "@/lib/auth/session-user-types";
+
+export type SessionUser = SessionAccessFields & {
   id: string;
   email: string;
-  isAdmin?: boolean;
 };
 
 export type GenreConfig = {
@@ -28,6 +29,23 @@ export type CreateUiConfig = {
   platforms: OptionConfig[];
   dnaStyles: OptionConfig[];
   wordOptions: OptionConfig[];
+};
+
+export type PlanningPresetConfig = {
+  label: string;
+  min: number;
+  max: number;
+};
+
+export type PlanningWindowConfig = {
+  version: 1;
+  unlockThreshold: number;
+  hardMaxChapters: number;
+  presets: {
+    short: PlanningPresetConfig;
+    smart: PlanningPresetConfig;
+    long: PlanningPresetConfig;
+  };
 };
 
 export type OptionSectionKey = "platforms" | "dnaStyles" | "wordOptions";
@@ -90,4 +108,18 @@ export type AiStats = {
     avgDurationMs: number | null;
     tokens: { input: number; output: number; total: number };
   }>;
+};
+
+export type AdminAuditLogItem = {
+  id: string;
+  adminUserId: string;
+  adminEmail: string;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  before: unknown;
+  after: unknown;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: string;
 };

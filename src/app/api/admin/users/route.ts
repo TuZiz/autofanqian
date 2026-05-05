@@ -4,9 +4,17 @@ import { z } from "zod";
 
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
-import { isAdminEmail, requireAdminUser } from "@/lib/auth/admin";
+import {
+  getUserAccessSnapshot,
+  isRootAdminEmail,
+  isRootAdminUser,
+  normalizeStoredRole,
+  requireAdminUser,
+} from "@/lib/auth/admin";
+import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { hashPassword } from "@/lib/auth/password";
 import { getUniqueConstraintTargets } from "@/lib/auth/user-code";
+import { membershipTierValues } from "@/lib/auth/user-groups";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -23,6 +31,8 @@ const createUserSchema = z.object({
   // Optional: if omitted, we'll generate a temporary password.
   password: z.string().min(6).max(72).optional(),
   emailVerified: z.boolean().optional(),
+  role: z.enum(["user", "admin"]).optional(),
+  membershipTier: z.enum(membershipTierValues).optional(),
 });
 
 function generateTempPassword() {
@@ -82,6 +92,8 @@ export async function GET(request: Request) {
           email: true,
           name: true,
           emailVerified: true,
+          role: true,
+          membershipTier: true,
           lastLoginAt: true,
           createdAt: true,
           passwordHash: true,
@@ -89,17 +101,25 @@ export async function GET(request: Request) {
       }),
     ]);
 
-    const users = rows.map((row) => ({
-      id: row.id,
-      code: row.code,
-      email: row.email,
-      name: row.name,
-      emailVerified: row.emailVerified,
-      lastLoginAt: row.lastLoginAt,
-      createdAt: row.createdAt,
-      isAdmin: isAdminEmail(row.email),
-      hasPassword: Boolean(row.passwordHash),
-    }));
+    const users = rows.map((row) => {
+      const access = getUserAccessSnapshot(row);
+
+      return {
+        id: row.id,
+        code: row.code,
+        email: row.email,
+        name: row.name,
+        emailVerified: row.emailVerified,
+        role: access.role,
+        membershipTier: row.membershipTier,
+        lastLoginAt: row.lastLoginAt,
+        createdAt: row.createdAt,
+        displayGroup: access.displayGroup,
+        isAdmin: access.isAdmin,
+        isRootAdmin: access.isRootAdmin,
+        hasPassword: Boolean(row.passwordHash),
+      };
+    });
 
     return successResponse(
       {
@@ -117,19 +137,39 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await requireAdminUser();
+    const adminUser = await requireAdminUser();
 
     const body = await parseJsonBody(request, createUserSchema);
+    const role = body.role ?? "user";
+    const email = body.email.trim();
+    const adminIsRoot = isRootAdminUser(adminUser);
+
+    if (isRootAdminEmail(email) && !adminIsRoot) {
+      throw new AuthApiError(403, "只有根管理员可以在后台创建根管理员邮箱账号。");
+    }
+
+    if (role !== "user" && !adminIsRoot) {
+      throw new AuthApiError(403, "只有根管理员可以创建管理员账号。");
+    }
+
+    if (body.membershipTier && body.membershipTier !== "default" && !adminIsRoot) {
+      throw new AuthApiError(403, "只有根管理员可以设置用户组。");
+    }
 
     const effectivePassword = body.password?.trim() || generateTempPassword();
     const passwordHash = await hashPassword(effectivePassword);
 
     const user = await prisma.user.create({
       data: {
-        email: body.email.trim(),
+        email,
         name: body.name?.trim() || null,
         passwordHash,
         emailVerified: body.emailVerified ?? true,
+        role: normalizeStoredRole({
+          email,
+          requestedRole: role,
+        }),
+        membershipTier: body.membershipTier ?? "default",
       },
       select: {
         id: true,
@@ -137,16 +177,26 @@ export async function POST(request: Request) {
         email: true,
         name: true,
         emailVerified: true,
+        role: true,
+        membershipTier: true,
         lastLoginAt: true,
         createdAt: true,
       },
+    });
+    await recordAdminAuditLog({
+      request,
+      adminUser,
+      action: "user.create",
+      targetType: "User",
+      targetId: user.id,
+      after: { ...user, tempPassword: "[已隐藏]" },
     });
 
     return successResponse(
       {
         user: {
           ...user,
-          isAdmin: isAdminEmail(user.email),
+          ...getUserAccessSnapshot(user),
           hasPassword: true,
         },
         tempPassword: effectivePassword,

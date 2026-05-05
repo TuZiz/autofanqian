@@ -6,6 +6,11 @@ export const sessionUserSelect = {
   email: true,
   name: true,
   emailVerified: true,
+  status: true,
+  role: true,
+  membershipTier: true,
+  bannedReason: true,
+  bannedAt: true,
   lastLoginAt: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;

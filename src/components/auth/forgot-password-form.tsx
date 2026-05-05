@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { KeyRound, Lock, Mail } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PasswordVisibilityToggle } from "@/components/auth/password-visibility-toggle";
@@ -84,109 +85,79 @@ export function ForgotPasswordForm() {
       setFieldErrors(firstFieldErrors(response.fieldErrors));
       showToast(response.message, false);
     }
-
     setIsSendingCode(false);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (isSubmitting) return;
     event.preventDefault();
-
-    const formData = new FormData(event.currentTarget);
-    const submittedEmail = String(formData.get("email") ?? "").trim() || email.trim();
-    const submittedCode =
-      String(formData.get("verificationCode") ?? "").trim() || code.trim();
-    const submittedNewPassword =
-      String(formData.get("newPassword") ?? "") || newPassword;
-    const submittedConfirmPassword =
-      String(formData.get("confirmNewPassword") ?? "") || confirmPassword;
-
-    if (submittedEmail && submittedEmail !== email) {
-      setEmail(submittedEmail);
-    }
-    if (submittedCode && submittedCode !== code) {
-      setCode(submittedCode);
-    }
-    if (submittedNewPassword && submittedNewPassword !== newPassword) {
-      setNewPassword(submittedNewPassword);
-    }
-    if (submittedConfirmPassword && submittedConfirmPassword !== confirmPassword) {
-      setConfirmPassword(submittedConfirmPassword);
-    }
-
-    if (submittedNewPassword !== submittedConfirmPassword) {
-      setFieldErrors({ confirmPassword: "两次输入的密码不一致。" });
-      return;
-    }
-
     setIsSubmitting(true);
     setFieldErrors({});
 
-    const response = await apiRequest<{ redirectTo: string }>(
-      "/api/auth/password/reset",
-      {
-        email: submittedEmail,
-        code: submittedCode,
-        newPassword: submittedNewPassword,
-      },
-    );
+    const response = await apiRequest("/api/auth/forgot-password/reset", {
+      email,
+      verificationCode: code,
+      newPassword,
+      confirmNewPassword: confirmPassword,
+    });
 
-    if (response.success && response.data?.redirectTo) {
+    if (response.success) {
       showToast(response.message, true);
-      const redirectTo = response.data.redirectTo;
+      setIsSubmitting(false);
       window.setTimeout(() => {
-        router.replace(redirectTo);
-      }, 500);
+        router.replace("/login");
+      }, 1500);
       return;
     }
 
     setFieldErrors(firstFieldErrors(response.fieldErrors));
-    showToast(response.message || "重置失败，请稍后重试。", false);
+    showToast(response.message || "重置失败，请检查输入后重试", false);
     setIsSubmitting(false);
   }
 
   return (
-    <AuthShell title="重置密码" subtitle="通过邮箱验证找回您的账号" toast={toast}>
-      <form
-        ref={formRef}
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-5"
-        autoComplete="off"
-      >
+    <AuthShell title="找回密码" subtitle="安全验证并重置访问密码" toast={toast}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6" autoComplete="off">
+        
         <div>
-          <label className="theme-field-label mb-1 block pl-1 text-sm font-bold">
-            注册邮箱
+          <label htmlFor="forgot-email" className="mb-2 block pl-1 text-sm font-bold text-zinc-700 dark:text-zinc-300">
+            邮箱地址
           </label>
-          <div className="theme-field-shell group flex w-full overflow-hidden rounded-lg backdrop-blur-md">
-            <div className="theme-field-prefix flex w-12 items-center justify-center">
+          <div className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-300 backdrop-blur-md">
+            <div className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-blue-500 transition-colors">
               <Mail className="h-5 w-5" aria-hidden="true" />
             </div>
             <input
+              id="forgot-email"
               type="email"
               name="email"
               autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="theme-field-input min-w-0 flex-1 px-4 py-3 text-sm focus:outline-none"
-              placeholder="请输入你的邮箱"
+              aria-invalid={!!fieldErrors.email}
+              aria-describedby={fieldErrors.email ? "forgot-email-error" : undefined}
+              className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
+              placeholder="hello@example.com"
             />
           </div>
           {fieldErrors.email ? (
-            <p className="mt-2 pl-1 text-xs font-medium text-rose-500">
+            <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="forgot-email-error" className="mt-2 pl-1 text-sm font-semibold text-red-500" role="alert">
               {fieldErrors.email}
-            </p>
+            </motion.p>
           ) : null}
         </div>
 
         <div>
-          <label className="theme-field-label mb-1 block pl-1 text-sm font-bold">
+          <label htmlFor="forgot-code" className="mb-2 block pl-1 text-sm font-bold text-zinc-700 dark:text-zinc-300">
             验证码
           </label>
-          <div className="theme-field-shell group flex w-full overflow-hidden rounded-lg backdrop-blur-md">
-            <div className="theme-field-prefix flex w-12 items-center justify-center">
+          <div className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-300 backdrop-blur-md">
+            <div className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-blue-500 transition-colors">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
             </div>
             <input
+              id="forgot-code"
               type="text"
               name="verificationCode"
               autoComplete="off"
@@ -196,96 +167,117 @@ export function ForgotPasswordForm() {
               value={code}
               onChange={(event) => setCode(event.target.value)}
               required
-              className="theme-field-input min-w-0 flex-1 px-4 py-3 text-sm focus:outline-none"
-              placeholder="6 位数字"
+              aria-invalid={!!fieldErrors.code}
+              aria-describedby={fieldErrors.code ? "forgot-code-error" : undefined}
+              className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
+              placeholder="6位数字"
             />
-            <button
-              type="button"
-              disabled={isSendingCode || countdown > 0}
-              onClick={handleSendCode}
-              className="theme-field-code-action whitespace-nowrap px-4 text-sm font-bold"
-            >
-              {isSendingCode ? "发送中..." : countdown > 0 ? `${countdown}s 后重发` : "发送验证码"}
-            </button>
+            <div className="flex items-center pr-2">
+              <button
+                type="button"
+                disabled={isSendingCode || countdown > 0}
+                onClick={handleSendCode}
+                className="h-10 rounded-xl px-4 text-sm font-bold text-zinc-600 transition-colors hover:bg-zinc-200/50 disabled:pointer-events-none disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                {isSendingCode ? "发送中..." : countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
+              </button>
+            </div>
           </div>
           {fieldErrors.code ? (
-            <p className="mt-2 pl-1 text-xs font-medium text-rose-500">
+            <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="forgot-code-error" className="mt-2 pl-1 text-sm font-semibold text-red-500" role="alert">
               {fieldErrors.code}
-            </p>
+            </motion.p>
           ) : null}
         </div>
 
         <div>
-          <label className="theme-field-label mb-1 block pl-1 text-sm font-bold">
+          <label htmlFor="forgot-new-password" className="mb-2 block pl-1 text-sm font-bold text-zinc-700 dark:text-zinc-300">
             新密码
           </label>
-          <div className="theme-field-shell group flex w-full overflow-hidden rounded-lg backdrop-blur-md">
-            <div className="theme-field-prefix flex w-12 items-center justify-center">
+          <div className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-300 backdrop-blur-md">
+            <div className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-blue-500 transition-colors">
               <Lock className="h-5 w-5" aria-hidden="true" />
             </div>
             <input
+              id="forgot-new-password"
               type={newPasswordVisible ? "text" : "password"}
               name="newPassword"
               autoComplete="new-password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               required
-              className="theme-field-input min-w-0 flex-1 px-4 py-3 text-sm focus:outline-none"
-              placeholder="输入新密码"
+              aria-invalid={!!fieldErrors.newPassword}
+              aria-describedby={fieldErrors.newPassword ? "forgot-new-password-error" : undefined}
+              className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white pr-12"
+              placeholder="至少6位密码"
             />
-            <PasswordVisibilityToggle
-              visible={newPasswordVisible}
-              onToggle={() => setNewPasswordVisible((current) => !current)}
-            />
+            <div className="absolute right-2 top-0 h-full flex items-center">
+              <PasswordVisibilityToggle
+                visible={newPasswordVisible}
+                onToggle={() => setNewPasswordVisible((current) => !current)}
+              />
+            </div>
           </div>
           {fieldErrors.newPassword ? (
-            <p className="mt-2 pl-1 text-xs font-medium text-rose-500">
+            <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="forgot-new-password-error" className="mt-2 pl-1 text-sm font-semibold text-red-500" role="alert">
               {fieldErrors.newPassword}
-            </p>
+            </motion.p>
           ) : null}
         </div>
 
         <div>
-          <label className="theme-field-label mb-1 block pl-1 text-sm font-bold">
+          <label htmlFor="forgot-confirm-password" className="mb-2 block pl-1 text-sm font-bold text-zinc-700 dark:text-zinc-300">
             确认新密码
           </label>
-          <div className="theme-field-shell group flex w-full overflow-hidden rounded-lg backdrop-blur-md">
-            <div className="theme-field-prefix flex w-12 items-center justify-center">
+          <div className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-300 backdrop-blur-md">
+            <div className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-blue-500 transition-colors">
               <Lock className="h-5 w-5" aria-hidden="true" />
             </div>
             <input
+              id="forgot-confirm-password"
               type={confirmPasswordVisible ? "text" : "password"}
               name="confirmNewPassword"
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
               required
-              className="theme-field-input min-w-0 flex-1 px-4 py-3 text-sm focus:outline-none"
+              aria-invalid={!!fieldErrors.confirmPassword}
+              aria-describedby={fieldErrors.confirmPassword ? "forgot-confirm-password-error" : undefined}
+              className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white pr-12"
               placeholder="再次输入密码"
             />
-            <PasswordVisibilityToggle
-              visible={confirmPasswordVisible}
-              onToggle={() => setConfirmPasswordVisible((current) => !current)}
-            />
+            <div className="absolute right-2 top-0 h-full flex items-center">
+              <PasswordVisibilityToggle
+                visible={confirmPasswordVisible}
+                onToggle={() => setConfirmPasswordVisible((current) => !current)}
+              />
+            </div>
           </div>
           {fieldErrors.confirmPassword ? (
-            <p className="mt-2 pl-1 text-xs font-medium text-rose-500">
+            <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="forgot-confirm-password-error" className="mt-2 pl-1 text-sm font-semibold text-red-500" role="alert">
               {fieldErrors.confirmPassword}
-            </p>
+            </motion.p>
           ) : null}
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="theme-button-primary w-full rounded-lg py-3 text-sm font-bold tracking-wide active:scale-95"
+          className="mt-4 relative w-full overflow-hidden rounded-2xl bg-zinc-900 px-4 py-4 text-base font-bold text-white shadow-xl shadow-zinc-900/20 transition-all hover:scale-[1.02] hover:shadow-zinc-900/30 active:scale-95 disabled:pointer-events-none disabled:opacity-70 dark:bg-white dark:text-zinc-950 dark:shadow-white/10 dark:hover:shadow-white/20"
         >
-          {isSubmitting ? "处理中..." : "重置密码"}
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-zinc-950/30 dark:border-t-zinc-950" />
+              处理中...
+            </span>
+          ) : (
+            "重 置 密 码"
+          )}
         </button>
 
-        <div className="theme-muted -mt-1 text-center text-sm font-medium">
+        <div className="mt-2 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
           记起密码了？{" "}
-          <Link href="/login" className="theme-link font-bold">
+          <Link href="/login" className="font-bold text-zinc-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400 transition-colors">
             返回登录
           </Link>
         </div>

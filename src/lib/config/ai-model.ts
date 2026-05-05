@@ -32,6 +32,7 @@ const aiModelConfigSchema = z.object({
   ideaAnalyze: targetSchema.optional(),
   outlineGenerate: targetSchema.optional(),
   chapterGenerate: targetSchema.optional(),
+  chapterRewrite: targetSchema.optional(),
   chapterSummary: targetSchema.optional(),
   chapterOutline: targetSchema.optional(),
   chapterDetails: targetSchema.optional(),
@@ -54,6 +55,11 @@ function normalizeParsedConfig(
 
   for (const key of AI_MODEL_CONFIG_KEYS) {
     normalized[key] = normalizeTarget(targets[key], defaults[key]);
+  }
+
+  const regenerateAll = targets.regenerateAll;
+  if (!regenerateAll) {
+    normalized.regenerateAll = defaults.regenerateAll;
   }
 
   return normalized;

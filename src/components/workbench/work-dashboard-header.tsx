@@ -1,59 +1,75 @@
 import Link from "next/link";
 import { ArrowLeft, LogOut, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LogoutConfirmDialog } from "@/components/ui/logout-confirm-dialog";
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
 
 export function WorkDashboardHeader({ dashboard }: { dashboard: WorkDashboardController }) {
   const { handleLogout, isAdmin, logoutBusy, userEmail } = dashboard;
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-[#fafbf7]/95 backdrop-blur-sm dark:border-slate-800 dark:bg-[#0d1117]/95">
-      <div className="mx-auto flex h-14 max-w-[1480px] items-center justify-between px-4 sm:px-5 lg:px-6">
-        <div className="flex min-w-0 items-center gap-3">
+    <header className="sticky top-0 z-40 border-b border-zinc-200/50 bg-white/60 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/60">
+      <div className="mx-auto flex h-16 max-w-[1540px] items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-4">
           <Link
             href="/dashboard"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-white"
+            className="group flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-zinc-200/50 transition-all hover:bg-zinc-50 hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800/50 dark:hover:bg-zinc-800 dark:hover:ring-zinc-700"
             title="返回上层"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 text-zinc-500 transition-colors group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100" />
           </Link>
-          <div className="hidden h-6 w-px bg-slate-200 sm:block dark:bg-slate-800" />
+          <div className="hidden h-8 w-px bg-zinc-200/60 sm:block dark:bg-zinc-800/60" />
           <div className="min-w-0">
-            <p className="hidden text-xs font-semibold text-slate-500 sm:block dark:text-slate-500">
+            <p className="hidden text-xs font-bold uppercase tracking-wider text-zinc-500 sm:block dark:text-zinc-400">
               创作驾驶舱
             </p>
-            <h1 className="truncate text-sm font-black text-slate-950 dark:text-slate-50 sm:text-base">
+            <h1 className="truncate text-base font-black text-zinc-900 dark:text-zinc-100 sm:text-lg">
               作品详情
             </h1>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 text-sm">
-          <span className="hidden max-w-[240px] truncate text-xs font-semibold text-slate-500 md:block dark:text-slate-400">
+        <div className="flex shrink-0 items-center gap-3 text-sm">
+          <span className="hidden max-w-[240px] truncate text-xs font-bold text-zinc-500 md:block dark:text-zinc-400">
             {userEmail}
           </span>
           {isAdmin ? (
             <Link
               href="/dashboard/admin"
-              className="hidden h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 text-xs font-bold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100 sm:inline-flex dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/15"
+              className="hidden h-10 items-center gap-2 rounded-xl bg-blue-50 px-3 text-sm font-bold text-blue-700 ring-1 ring-blue-200/50 transition-all hover:bg-blue-100 hover:ring-blue-300 sm:inline-flex dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/20 dark:hover:bg-blue-500/20 dark:hover:ring-blue-500/30"
             >
-              <ShieldCheck className="h-3.5 w-3.5" />
+              <ShieldCheck className="h-4 w-4" />
               管理员
             </Link>
           ) : null}
-          <ThemeToggle className="h-8 w-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-white" />
+          <ThemeToggle className="h-10 w-10 rounded-xl bg-white shadow-sm ring-1 ring-zinc-200/50 transition-all hover:bg-zinc-50 hover:shadow-md hover:ring-zinc-300 dark:bg-zinc-900 dark:ring-zinc-800/50 dark:hover:bg-zinc-800 dark:hover:ring-zinc-700" />
           <button
             type="button"
-            onClick={() => void handleLogout()}
+            onClick={() => setLogoutConfirmOpen(true)}
             disabled={logoutBusy}
-            className="hidden h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-600 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-60 sm:inline-flex dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
+            className="hidden h-10 items-center gap-2 rounded-xl bg-white px-3 text-sm font-bold text-zinc-600 shadow-sm ring-1 ring-zinc-200/50 transition-all hover:bg-red-50 hover:text-red-600 hover:shadow-md hover:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60 sm:inline-flex dark:bg-zinc-900 dark:text-zinc-400 dark:ring-zinc-800/50 dark:hover:bg-red-500/10 dark:hover:text-red-300 dark:hover:ring-red-500/30"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogOut className="h-4 w-4" />
             {logoutBusy ? "退出中..." : "退出登录"}
           </button>
         </div>
       </div>
+
+      <LogoutConfirmDialog
+        open={logoutConfirmOpen}
+        busy={logoutBusy}
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={async () => {
+          try {
+            await handleLogout();
+          } finally {
+            setLogoutConfirmOpen(false);
+          }
+        }}
+      />
     </header>
   );
 }

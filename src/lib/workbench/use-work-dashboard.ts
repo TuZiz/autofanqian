@@ -5,10 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   useActiveChapterGeneration,
-  useChapterGenerationThinkingCopy,
 } from "@/lib/client/chapter-generation";
 import { apiRequest } from "@/lib/client/auth-api";
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import {
+  canExtendPlanningWindow,
+  DEFAULT_PLANNING_CONFIG,
+  type PlanningPreset,
+} from "@/lib/create/progressive-planning";
 
 import type {
   ChapterListItem,
@@ -31,13 +35,15 @@ export function useWorkDashboard(workId: string) {
   const [maxChapterIndex, setMaxChapterIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [workTitleSaving, setWorkTitleSaving] = useState(false);
+  const [workTitleError, setWorkTitleError] = useState("");
   const refreshAfterGenerationRef = useRef(false);
   const [openVolumeIndex, setOpenVolumeIndex] = useState<number | null>(0);
   const [outlineRefineBusy, setOutlineRefineBusy] = useState(false);
   const [outlineRefineError, setOutlineRefineError] = useState("");
   const [outlineRefineConfirmOpen, setOutlineRefineConfirmOpen] = useState(false);
   const [outlineRefineSupplement, setOutlineRefineSupplement] = useState("");
-  const [outlineExtensionSize, setOutlineExtensionSize] = useState<20 | 40 | 60>(20);
+  const [outlineExtensionSize, setOutlineExtensionSize] = useState<PlanningPreset>("smart");
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
 
@@ -48,11 +54,10 @@ export function useWorkDashboard(workId: string) {
     hasActiveGeneration && activeGeneration ? activeGeneration.index : nextChapterIndex;
   const generatingNextChapter =
     hasActiveGeneration && activeGeneration.index === orderedNextChapterIndex;
-  const generationThinking = useChapterGenerationThinkingCopy(Boolean(hasActiveGeneration));
 
   function goToChapter(index: number, options?: { autoAi?: boolean }) {
     if (!workId) return;
-    const base = `/dashboard/work/${workId}/chapter/${index}`;
+    const base = `/dashboard/novel/${workId}/chapter/${index}`;
     const href = options?.autoAi ? `${base}?ai=1` : base;
     router.push(href);
 
@@ -74,13 +79,19 @@ export function useWorkDashboard(workId: string) {
     setOutlineRefineBusy(true);
     setOutlineRefineError("");
 
-    const extensionInstruction = `本次希望向后延伸约${outlineExtensionSize}章，请优先补强未来${outlineExtensionSize}章的分卷结构、章节跨度、冲突推进和钩子密度。`;
+    const presetLabel = DEFAULT_PLANNING_CONFIG.presets[outlineExtensionSize].label;
+    const extensionInstruction = `本次只规划下一段：${presetLabel}。只追加未来窗口，不要重写已写章节，也不要一次性展开长期目标的全部章节。`;
     const finalSupplement = [extensionInstruction, supplement.trim()]
       .filter(Boolean)
       .join("\n");
 
-    const result = await apiRequest<{ outline: StoryOutline }>("/api/ai/outline/refine", {
+    const result = await apiRequest<{
+      outline: StoryOutline;
+      targetChapters?: number;
+      plannedUntilChapter?: number;
+    }>("/api/ai/outline/refine", {
       workId,
+      preset: outlineExtensionSize,
       supplement: finalSupplement,
     });
 
@@ -92,12 +103,24 @@ export function useWorkDashboard(workId: string) {
     const nextOutline = result.data?.outline;
 
     if (!result.success || !nextOutline) {
-      setOutlineRefineError(result.message || "优化大纲失败，请稍后重试。");
+      setOutlineRefineError(result.message || "规划下一段失败，请稍后重试。");
       setOutlineRefineBusy(false);
       return;
     }
 
-    setWork((current) => (current ? { ...current, outline: nextOutline } : current));
+    setWork((current) =>
+      current
+        ? {
+            ...current,
+            outline: nextOutline,
+            targetChapters: result.data?.targetChapters ?? current.targetChapters,
+            plannedUntilChapter:
+              result.data?.plannedUntilChapter ??
+              nextOutline.plannedUntilChapter ??
+              current.plannedUntilChapter,
+          }
+        : current,
+    );
     setOutlineRefineConfirmOpen(false);
     setOutlineRefineSupplement("");
     setOutlineRefineBusy(false);
@@ -107,14 +130,59 @@ export function useWorkDashboard(workId: string) {
     if (logoutBusy) return;
 
     setLogoutBusy(true);
-    const response = await apiRequest<{ redirectTo: string }>("/api/auth/logout", {});
+    try {
+      const response = await apiRequest<{ redirectTo: string }>("/api/auth/logout", {});
 
-    if (response.success && response.data?.redirectTo) {
-      window.location.href = response.data.redirectTo;
-      return;
+      if (response.success && response.data?.redirectTo) {
+        window.location.href = response.data.redirectTo;
+      }
+    } finally {
+      setLogoutBusy(false);
+    }
+  }
+
+  async function saveWorkTitle(nextTitle: string) {
+    const title = nextTitle.trim();
+    if (!workId || !work || workTitleSaving) return false;
+
+    if (!title) {
+      setWorkTitleError("书名不能为空。");
+      return false;
     }
 
-    setLogoutBusy(false);
+    if (title === work.title) {
+      setWorkTitleError("");
+      return true;
+    }
+
+    setWorkTitleSaving(true);
+    setWorkTitleError("");
+
+    const result = await apiRequest<{ work: WorkDetail }>(
+      `/api/works/${encodeURIComponent(workId)}`,
+      { title },
+      { method: "PATCH" },
+    );
+
+    setWorkTitleSaving(false);
+
+    if (result.status === 401) {
+      window.location.href = "/login";
+      return false;
+    }
+
+    if (!result.success || !result.data?.work) {
+      setWorkTitleError(result.message || "书名保存失败，请稍后重试。");
+      return false;
+    }
+
+    setWork(result.data.work);
+    setWorkTitleError("");
+    return true;
+  }
+
+  function clearWorkTitleError() {
+    setWorkTitleError("");
   }
 
   useEffect(() => {
@@ -235,8 +303,19 @@ export function useWorkDashboard(workId: string) {
   }, [hasActiveGeneration, workId]);
 
   const editedChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
-  const totalChapterTarget = outline?.totalChapters || maxChapterIndex || chapters.length || 0;
-  const plannedChapterCount = Math.max(totalChapterTarget, maxChapterIndex, chapters.length);
+  const targetChapterCount =
+    work?.targetChapters ||
+    outline?.targetChapters ||
+    outline?.totalChapters ||
+    maxChapterIndex ||
+    chapters.length ||
+    0;
+  const plannedChapterCount = Math.max(
+    work?.plannedUntilChapter || 0,
+    outline?.plannedUntilChapter || 0,
+    maxChapterIndex,
+    chapters.length,
+  );
   const progressPercent = plannedChapterCount
     ? Math.min(100, Math.round((editedChapterCount / plannedChapterCount) * 100))
     : 0;
@@ -249,6 +328,11 @@ export function useWorkDashboard(workId: string) {
     : Math.max(0, orderedNextChapterIndex - 1);
   const remainingBuffer = Math.max(0, plannedChapterCount - currentProgressChapter);
   const nextChapterExists = chapters.some((chapter) => chapter.index === orderedNextChapterIndex);
+  const outlineExtensionState = canExtendPlanningWindow({
+    targetChapters: targetChapterCount || plannedChapterCount,
+    plannedUntilChapter: plannedChapterCount,
+    writtenUntilChapter: currentProgressChapter,
+  });
 
   const commandChapters = useMemo(() => {
     const normalized = commandQuery.trim().toLowerCase();
@@ -272,12 +356,12 @@ export function useWorkDashboard(workId: string) {
   return {
     activeGeneration,
     bootstrapLoading,
+    chapters,
     commandChapters,
     commandOpen,
     commandQuery,
     currentProgressChapter,
     error,
-    generationThinking,
     generatingNextChapter,
     goToChapter,
     handleLogout,
@@ -293,6 +377,7 @@ export function useWorkDashboard(workId: string) {
     nextChapterIndex: orderedNextChapterIndex,
     openOutlineRefineConfirm,
     outlineExtensionSize,
+    outlineExtensionState,
     openVolumeIndex,
     outline,
     outlineRefineBusy,
@@ -308,8 +393,13 @@ export function useWorkDashboard(workId: string) {
     setOpenVolumeIndex,
     setOutlineRefineConfirmOpen,
     setOutlineRefineSupplement,
+    clearWorkTitleError,
+    saveWorkTitle,
+    targetChapterCount,
     userEmail,
     work,
+    workTitleError,
+    workTitleSaving,
   };
 }
 

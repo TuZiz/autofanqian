@@ -3,12 +3,20 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { logAiUsage } from "@/lib/ai/usage-log";
-import { callAiText, getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
-import { isAdminEmail } from "@/lib/auth/admin";
+import {
+  buildAiProviderChain,
+  callAiText,
+  getAiProvidersFromEnv,
+  getProviderApiKeyEnvName,
+  getReadableAiErrorMessage,
+} from "@/lib/ai/upstream-text";
+import { isAdminUser } from "@/lib/auth/admin";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
+import { getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import { prisma } from "@/lib/prisma";
+import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 
 export const runtime = "nodejs";
 
@@ -43,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   const body = parsedBody.data;
-  const isAdmin = isAdminEmail(user.email);
+  const isAdmin = isAdminUser(user);
   const extraPrompt = body.extraPrompt?.trim() ?? "";
 
   try {
@@ -54,10 +62,11 @@ export async function POST(request: Request) {
         userId: true,
         tag: true,
         title: true,
+        deletedAt: true,
       },
     });
 
-    if (!work) {
+    if (!work || work.deletedAt) {
       return NextResponse.json(
         { success: false, message: "作品不存在或已被删除。" },
         { status: 404 },
@@ -79,10 +88,11 @@ export async function POST(request: Request) {
         content: true,
         wordCount: true,
         summary: true,
+        deletedAt: true,
       },
     });
 
-    if (!chapter) {
+    if (!chapter || chapter.deletedAt) {
       return NextResponse.json(
         { success: false, message: "章节不存在，请先创建章节。" },
         { status: 404 },
@@ -103,32 +113,28 @@ export async function POST(request: Request) {
       ? aiModelConfig.regenerateAll
       : aiModelConfig.chapterSummary;
 
-    const selectedProvider = providersFromEnv.find(
-      (provider) => provider.id === target.providerId,
-    );
+    const providers = buildAiProviderChain({
+      providers: providersFromEnv,
+      preferredProviderId: target.providerId,
+      overrideModel: target.model,
+    });
 
-    if (!selectedProvider) {
-      const envKey = target.providerId === "primary" ? "AI_API_KEY" : "ARK_API_KEY";
+    if (!providers.length) {
+      const envKey = getProviderApiKeyEnvName(target.providerId);
       return NextResponse.json(
         {
           success: false,
-          message:
-            `AI 未配置：当前“生成摘要”使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 配置后重启，或到后台“AI 模型配置”切换线路。`,
+          message: `AI 未配置：当前“生成摘要”使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 配置后重启，或到后台“AI 模型配置”切换线路。`,
         },
         { status: 500 },
       );
     }
 
-    const providers = [
-      {
-        ...selectedProvider,
-        model: target.model ?? selectedProvider.model,
-      },
-    ];
+    const primaryProvider = providers[0];
 
     const result = await callAiText({
       providers,
-      preferredProviderId: selectedProvider.id,
+      preferredProviderId: primaryProvider.id,
       messages: [
         {
           role: "system",
@@ -168,7 +174,10 @@ export async function POST(request: Request) {
 
     if (!result.ok || !result.text) {
       return NextResponse.json(
-        { success: false, message: result.upstreamMessage || "AI 生成失败，请稍后重试。" },
+        {
+          success: false,
+          message: getReadableAiErrorMessage(result, getAiMetaCopy("summary").errorFallback),
+        },
         { status: 502 },
       );
     }
@@ -180,6 +189,13 @@ export async function POST(request: Request) {
         { status: 502 },
       );
     }
+
+    await createChapterRevisionSnapshot({
+      workId: work.id,
+      index: body.index,
+      source: "meta_update",
+      reason: "chapter_summary",
+    }).catch((error) => console.error("create chapter revision failed", error));
 
     const updated = await prisma.chapter.update({
       where: { id: chapter.id },

@@ -1,0 +1,411 @@
+import { z } from "zod";
+
+import { buildChapterSystemPrompt, buildChapterUserPrompt } from "@/lib/ai/chapter-prompt";
+import { extractChapterDraftFromText } from "@/lib/ai/chapter-draft";
+import {
+  buildAiProviderChain,
+  getProviderApiKeyEnvName,
+  type UpstreamProvider,
+} from "@/lib/ai/upstream-text";
+import { isAdminUser } from "@/lib/auth/admin";
+import { AuthApiError } from "@/lib/auth/errors";
+import type { SessionUser } from "@/lib/auth/user";
+import { getAiModelConfig } from "@/lib/config/ai-model";
+import type { StoryOutline } from "@/lib/create/outline-draft";
+import {
+  getEffectivePlannedUntil,
+  isChapterWithinPlanning,
+} from "@/lib/create/progressive-planning";
+import { prisma } from "@/lib/prisma";
+
+export const chapterGenerateBodySchema = z.object({
+  workId: z.string().min(1).max(64),
+  index: z.coerce.number().int().min(1).max(9999),
+  extraPrompt: z.string().trim().max(2000).optional().nullable(),
+});
+
+export type ChapterGenerateInput = {
+  workId: string;
+  index: number;
+  extraPrompt?: string | null;
+};
+
+export type PreparedChapterGeneration = {
+  user: SessionUser;
+  work: {
+    id: string;
+    userId: string;
+    genreId: string;
+    genreLabel: string | null;
+    idea: string;
+    tags: string[];
+    platformLabel: string | null;
+    words: string | null;
+    dnaBookTitle: string | null;
+    tag: string;
+    title: string;
+    synopsis: string;
+    outline: StoryOutline;
+    targetChapters: number | null;
+    plannedUntilChapter: number;
+  };
+  existingChapter: {
+    id: string;
+    title: string | null;
+    content: string;
+    wordCount: number;
+  } | null;
+  generationMode: "generate" | "regenerate";
+  providers: UpstreamProvider[];
+  preferredProvider: UpstreamProvider;
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  promptSnapshot: string;
+  maxTokens: number;
+  temperature: number;
+};
+
+const DEFAULT_CHAPTER_MAX_TOKENS = 5200;
+const DEFAULT_CHAPTER_TEMPERATURE = 0.85;
+
+export function countWords(text: string) {
+  return text.replace(/\s+/g, "").length;
+}
+
+export function getDefaultChapterTitle(index: number) {
+  if (index === 1) return "第一章";
+  return `第${index}章`;
+}
+
+function findBlockingPreviousChapter(
+  chapters: Array<{ index: number; content: string; wordCount: number }>,
+) {
+  return chapters
+    .filter((chapter) => chapter.index > 0)
+    .filter((chapter) => chapter.wordCount <= 0 || !chapter.content.trim())
+    .sort((left, right) => right.index - left.index)[0];
+}
+
+function clampText(value: string | null | undefined, maxChars: number) {
+  const text = (value ?? "").trim().replace(/\s+/g, " ");
+  if (!text) return "";
+  return text.length > maxChars ? text.slice(-maxChars) : text;
+}
+
+export function serializeGeneratedChapter(chapter: {
+  id: string;
+  index: number;
+  title: string | null;
+  content: string;
+  wordCount: number;
+  summary: string | null;
+  chapterOutline: string | null;
+  details: unknown;
+  updatedAt: Date;
+  createdAt: Date;
+}) {
+  return {
+    ...chapter,
+    createdAt: chapter.createdAt.toISOString(),
+    updatedAt: chapter.updatedAt.toISOString(),
+  };
+}
+
+export function finalizeGeneratedDraft(params: {
+  index: number;
+  rawText: string;
+}) {
+  const chapterTitleSchema = (value: string) => value.trim().slice(0, 120);
+  const chapterContentSchema = (value: string) => value.trim().slice(0, 200_000);
+
+  const extractedDraft = extractChapterDraftFromText(params.rawText);
+  const titleCandidate =
+    typeof extractedDraft?.title === "string" ? extractedDraft.title.trim() : "";
+  const contentCandidate =
+    typeof extractedDraft?.content === "string" ? extractedDraft.content.trim() : "";
+
+  const title = titleCandidate
+    ? chapterTitleSchema(titleCandidate)
+    : getDefaultChapterTitle(params.index);
+  const content = contentCandidate
+    ? chapterContentSchema(contentCandidate)
+    : chapterContentSchema(params.rawText);
+
+  return {
+    title: title || getDefaultChapterTitle(params.index),
+    content,
+  };
+}
+
+export async function prepareChapterGeneration(params: {
+  user: SessionUser;
+  input: ChapterGenerateInput;
+  providersFromEnv: UpstreamProvider[];
+}): Promise<PreparedChapterGeneration> {
+  const { user, input, providersFromEnv } = params;
+  const isAdmin = isAdminUser(user);
+
+  const work = await prisma.work.findUnique({
+    where: { id: input.workId },
+    select: {
+      id: true,
+      userId: true,
+      genreId: true,
+      genreLabel: true,
+      idea: true,
+      tags: true,
+      platformLabel: true,
+      words: true,
+      dnaBookTitle: true,
+      tag: true,
+      title: true,
+      synopsis: true,
+      outline: true,
+      targetChapters: true,
+      plannedUntilChapter: true,
+      deletedAt: true,
+    },
+  });
+
+  if (!work || work.deletedAt) {
+    throw new AuthApiError(404, "作品不存在或已被删除。");
+  }
+
+  if (!isAdmin && work.userId !== user.id) {
+    throw new AuthApiError(403, "无权限访问该作品。");
+  }
+
+  const outline = work.outline as unknown as StoryOutline;
+  const plannedUntilChapter = getEffectivePlannedUntil({
+    outline,
+    plannedUntilChapter: work.plannedUntilChapter,
+  });
+
+  if (
+    !isChapterWithinPlanning({
+      index: input.index,
+      outline,
+      plannedUntilChapter,
+    })
+  ) {
+    throw new AuthApiError(
+      423,
+      `第${input.index}章尚未规划，当前只开放到第${plannedUntilChapter}章。请先在作品页点击“规划下一段”。`,
+    );
+  }
+
+  let previousChapters: Array<{
+    index: number;
+    title: string | null;
+    content: string;
+    wordCount: number;
+    summary: string | null;
+  }> = [];
+
+  if (input.index > 1) {
+    previousChapters = await prisma.chapter.findMany({
+      where: {
+        workId: work.id,
+        index: { lt: input.index },
+        deletedAt: null,
+      },
+      orderBy: { index: "asc" },
+      select: {
+        index: true,
+        title: true,
+        content: true,
+        wordCount: true,
+        summary: true,
+      },
+    });
+
+    const blockingPreviousChapter = findBlockingPreviousChapter(previousChapters);
+    if (blockingPreviousChapter) {
+      throw new AuthApiError(
+        422,
+        `请先完成第${blockingPreviousChapter.index}章正文后，再生成第${input.index}章。`,
+      );
+    }
+  }
+
+  const existingChapter = await prisma.chapter.findUnique({
+    where: { workId_index: { workId: work.id, index: input.index } },
+    select: { id: true, title: true, content: true, wordCount: true, deletedAt: true },
+  });
+
+  if (existingChapter?.deletedAt) {
+    throw new AuthApiError(410, "章节已删除，请先恢复后再生成。");
+  }
+
+  const aiModelConfig = await getAiModelConfig();
+  const target = existingChapter?.content?.trim()
+    ? aiModelConfig.regenerateAll
+    : aiModelConfig.chapterGenerate;
+
+  const providers = buildAiProviderChain({
+    providers: providersFromEnv,
+    preferredProviderId: target.providerId,
+    overrideModel: target.model,
+  });
+
+  if (!providers.length) {
+    const envKey = getProviderApiKeyEnvName(target.providerId);
+    throw new AuthApiError(
+      500,
+      `AI 未配置：当前“生成第一章”使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
+    );
+  }
+
+  const previousChapter = previousChapters
+    .slice()
+    .sort((left, right) => right.index - left.index)[0];
+  const recentSummaries = previousChapters
+    .slice()
+    .filter((chapter) => chapter.summary?.trim() || chapter.content.trim())
+    .sort((left, right) => right.index - left.index)
+    .slice(0, 5)
+    .map((chapter) => ({
+      index: chapter.index,
+      title: chapter.title,
+      summary: clampText(chapter.summary || chapter.content, 600),
+    }))
+    .reverse();
+
+  const writingMemories = await prisma.writingMemory.findMany({
+    where: { novelId: work.id, isActive: true },
+    orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
+    take: 12,
+    select: { content: true },
+  });
+
+  const [characters, worldSettings, timelineEvents, foreshadowings] = await Promise.all([
+    prisma.character.findMany({
+      where: { novelId: work.id, deletedAt: null },
+      orderBy: [{ lastChapter: "desc" }, { updatedAt: "desc" }],
+      take: 12,
+      select: {
+        name: true,
+        role: true,
+        identity: true,
+        currentState: true,
+        goal: true,
+        desc: true,
+      },
+    }),
+    prisma.worldSetting.findMany({
+      where: { novelId: work.id, deletedAt: null },
+      orderBy: [{ lastUpdatedChapter: "desc" }, { updatedAt: "desc" }],
+      take: 12,
+      select: { kind: true, name: true, desc: true },
+    }),
+    prisma.timelineEvent.findMany({
+      where: {
+        novelId: work.id,
+        deletedAt: null,
+        chapterIndex: { lt: input.index },
+      },
+      orderBy: [{ chapterIndex: "desc" }, { order: "desc" }],
+      take: 8,
+      select: { title: true, summary: true, storyTime: true, chapterIndex: true },
+    }),
+    prisma.foreshadowing.findMany({
+      where: {
+        novelId: work.id,
+        deletedAt: null,
+        status: { in: ["open", "partial"] },
+      },
+      orderBy: [{ importance: "desc" }, { updatedAt: "desc" }],
+      take: 10,
+      select: {
+        title: true,
+        hint: true,
+        payoff: true,
+        status: true,
+        plantedChapter: true,
+        importance: true,
+      },
+    }),
+  ]);
+
+  const promptSnapshot = buildChapterUserPrompt({
+    chapterIndex: input.index,
+    work: {
+      genreId: work.genreId,
+      genreLabel: work.genreLabel,
+      tags: work.tags ?? [],
+      platformLabel: work.platformLabel,
+      words: work.words,
+      dnaBookTitle: work.dnaBookTitle,
+      idea: work.idea,
+      title: work.title,
+      synopsis: work.synopsis,
+    },
+    outline,
+    context: {
+      previousSummary: previousChapter?.summary ?? null,
+      previousEnding: clampText(previousChapter?.content, 900),
+      recentSummaries,
+      writingMemories: writingMemories.map((item) => item.content),
+      characters: characters.map((item) =>
+        clampText(
+          `${item.name}（${item.role || item.identity || "角色"}）：${item.currentState || item.goal || item.desc}`,
+          360,
+        ),
+      ),
+      worldSettings: worldSettings.map((item) =>
+        clampText(`${item.kind}/${item.name}：${item.desc}`, 360),
+      ),
+      timelineEvents: timelineEvents.map((item) =>
+        clampText(
+          `${item.chapterIndex ? `第${item.chapterIndex}章 ` : ""}${item.storyTime ? `${item.storyTime} ` : ""}${item.title || item.summary}：${item.summary}`,
+          360,
+        ),
+      ),
+      foreshadowings: foreshadowings.map((item) =>
+        clampText(
+          `${item.title || "伏笔"}（${item.status}，重要度${item.importance}）：${item.hint}${item.payoff ? `；兑现方向：${item.payoff}` : ""}`,
+          360,
+        ),
+      ),
+    },
+    extraPrompt: input.extraPrompt,
+  });
+
+  return {
+    user,
+    work: {
+      id: work.id,
+      userId: work.userId,
+      genreId: work.genreId,
+      genreLabel: work.genreLabel,
+      idea: work.idea,
+      tags: work.tags ?? [],
+      platformLabel: work.platformLabel,
+      words: work.words,
+      dnaBookTitle: work.dnaBookTitle,
+      tag: work.tag,
+      title: work.title,
+      synopsis: work.synopsis,
+      outline,
+      targetChapters: work.targetChapters,
+      plannedUntilChapter,
+    },
+    existingChapter: existingChapter
+      ? {
+          id: existingChapter.id,
+          title: existingChapter.title,
+          content: existingChapter.content,
+          wordCount: existingChapter.wordCount,
+        }
+      : null,
+    generationMode: existingChapter?.content?.trim() ? "regenerate" : "generate",
+    providers,
+    preferredProvider: providers[0],
+    messages: [
+      { role: "system", content: buildChapterSystemPrompt() },
+      { role: "user", content: promptSnapshot },
+    ],
+    promptSnapshot,
+    maxTokens: DEFAULT_CHAPTER_MAX_TOKENS,
+    temperature: DEFAULT_CHAPTER_TEMPERATURE,
+  };
+}

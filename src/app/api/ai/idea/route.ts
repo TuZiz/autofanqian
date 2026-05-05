@@ -7,11 +7,18 @@ import {
   buildIdeaUserPrompt,
 } from "@/lib/ai/idea-prompt";
 import { logAiUsage } from "@/lib/ai/usage-log";
-import { callAiText, getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
-import { isAdminEmail } from "@/lib/auth/admin";
+import {
+  buildAiProviderChain,
+  callAiText,
+  getAiProvidersFromEnv,
+  getProviderApiKeyEnvName,
+  getReadableAiErrorMessage,
+} from "@/lib/ai/upstream-text";
+import { isAdminUser } from "@/lib/auth/admin";
 import { getSessionUserId } from "@/lib/auth/session";
 import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
 import { prisma } from "@/lib/prisma";
 
@@ -64,28 +71,22 @@ export async function POST(request: Request) {
   const existingIdeaDraft = parsed.data.existingIdea?.trim();
   const target = existingIdeaDraft ? aiModelConfig.regenerateAll : aiModelConfig.ideaGenerate;
 
-  const selectedProvider = providersFromEnv.find(
-    (provider) => provider.id === target.providerId,
-  );
+  const providers = buildAiProviderChain({
+    providers: providersFromEnv,
+    preferredProviderId: target.providerId,
+    overrideModel: target.model,
+  });
 
-  if (!selectedProvider) {
-    const envKey = target.providerId === "primary" ? "AI_API_KEY" : "ARK_API_KEY";
+  if (!providers.length) {
+    const envKey = getProviderApiKeyEnvName(target.providerId);
     return NextResponse.json(
       {
         success: false,
-        message:
-          `AI 未配置：当前“生成创意”配置使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
+        message: `AI 未配置：当前“生成创意”配置使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
       },
       { status: 500 },
     );
   }
-
-  const providers = [
-    {
-      ...selectedProvider,
-      model: target.model ?? selectedProvider.model,
-    },
-  ];
 
   const user = await getCurrentUser();
   if (!user) {
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const isAdmin = isAdminEmail(user.email);
+  const isAdmin = isAdminUser(user);
   const uiConfig = await getCreateUiConfig();
   const genreMeta = uiConfig.genres.find((item) => item.id === parsed.data.genre);
 
@@ -177,21 +178,10 @@ export async function POST(request: Request) {
   await logAiUsage({ userId: user.id, action: "idea_generate", result: first });
 
   if (!first.ok || !first.text) {
-    const upstreamMessage = first.upstreamMessage;
-
     return NextResponse.json(
       {
         success: false,
-        message:
-          first.status === 401
-            ? "AI 服务鉴权失败，请检查 AI_API_KEY / ARK_API_KEY。"
-            : first.status === 429
-              ? "AI 服务请求过于频繁（上游限流），请稍后重试。"
-              : first.status === 503
-                ? "AI 服务暂时不可用（上游拥堵或维护），请稍后重试。"
-                : typeof upstreamMessage === "string"
-                  ? `AI 服务调用失败：${upstreamMessage}${first.status ? `（HTTP ${first.status}）` : ""}`
-                  : "AI 服务调用失败，请稍后重试。",
+        message: getReadableAiErrorMessage(first, aiZhCN.idea.generateFailed),
       },
       { status: 502 },
     );
@@ -199,7 +189,6 @@ export async function POST(request: Request) {
 
   let content = first.text;
 
-  // Enforce minimum length; retry once with an explicit expansion request.
   if (nonWhitespaceLength(content) < minIdeaChars) {
     const second = await callAiText({
       providers,
@@ -209,8 +198,7 @@ export async function POST(request: Request) {
         { role: "assistant", content },
         {
           role: "user",
-          content:
-            `请在保持逻辑一致的前提下扩写并润色，使内容不少于 ${minIdeaChars} 字，仍然不超过 ${maxIdeaChars} 字。尤其要把类型、标签、人物困境、世界规则、核心冲突、开篇钩子和前 10 章推进写完整。`,
+          content: `请在保持逻辑一致的前提下扩写并润色，使内容不少于 ${minIdeaChars} 字，仍然不超过 ${maxIdeaChars} 字。尤其要把类型、标签、人物困境、世界规则、核心冲突、开篇钩子和前 10 章推进写完整。`,
         },
       ],
       temperature: 0.75,
@@ -249,7 +237,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     success: true,
-    message: "创意生成成功。",
+    message: aiZhCN.idea.success,
     data: { idea: content },
   });
 }

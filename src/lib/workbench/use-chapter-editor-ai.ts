@@ -8,7 +8,7 @@ import {
   useChapterGeneration,
   useChapterGenerationThinkingCopy,
 } from "@/lib/client/chapter-generation";
-import { apiRequest } from "@/lib/client/auth-api";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 
 import type {
   ChapterBootstrap,
@@ -64,8 +64,6 @@ export function useChapterEditorAi({
   workId,
 }: UseChapterEditorAiParams) {
   const router = useRouter();
-  const [aiBusy, setAiBusy] = useState(false);
-  const [aiProgress, setAiProgress] = useState(0);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [regeneratePrompt, setRegeneratePrompt] = useState("");
   const autoAiTriggeredRef = useRef(false);
@@ -73,12 +71,9 @@ export function useChapterEditorAi({
 
   const chapterGeneration = useChapterGeneration(workId, chapterIndex);
   const sharedAiBusy = chapterGeneration?.status === "running";
-  const effectiveAiBusy = aiBusy || sharedAiBusy;
-  const effectiveAiProgress = Math.max(
-    aiProgress,
-    sharedAiBusy ? chapterGeneration?.progress ?? 0 : 0,
-  );
-  const aiThinking = useChapterGenerationThinkingCopy(effectiveAiBusy);
+  const effectiveAiBusy = sharedAiBusy;
+  const effectiveAiProgress = Math.max(0, chapterGeneration?.progress ?? 0);
+  const aiThinking = useChapterGenerationThinkingCopy(chapterGeneration);
   const hasExistingDraft = useMemo(() => Boolean((content ?? "").trim()), [content]);
   const blockingPreviousChapterIndex = useMemo(
     () => getBlockingPreviousChapterIndex(chapterIndex, chapterList),
@@ -102,38 +97,22 @@ export function useChapterEditorAi({
         return;
       }
 
-      setAiBusy(true);
-      setAiProgress(8);
-      try {
-        const res = await startChapterGeneration({ workId, index: chapterIndex, extraPrompt });
-        if (!res.success || !res.data?.chapter) {
-          const message =
-            res.status === 409
-              ? "该章节正在生成中，请等待生成结束后再操作。"
-              : res.message || "AI 生成失败，请稍后重试。";
-          if (res.status !== 409) window.alert(message);
-          setError(message);
-          return;
-        }
-
-        applyBootstrap(res.data);
-        applyMetaFromChapter(res.data.chapter);
-        mergeChapterListItem(res.data.chapter);
-        setRegenerateOpen(false);
-        setRegeneratePrompt("");
-        setError("");
-      } finally {
-        setAiBusy(false);
-        setAiProgress(0);
+      const res = await startChapterGeneration({ workId, index: chapterIndex, extraPrompt });
+      if (!res.success) {
+        const message = res.message || aiZhCN.chapterGenerate.failed;
+        window.alert(message);
+        setError(message);
+        return;
       }
+
+      setRegenerateOpen(false);
+      setRegeneratePrompt("");
+      setError("");
     },
     [
-      applyBootstrap,
-      applyMetaFromChapter,
       blockedGenerationMessage,
       chapterIndex,
       effectiveAiBusy,
-      mergeChapterListItem,
       saving,
       setError,
       workId,
@@ -142,9 +121,13 @@ export function useChapterEditorAi({
 
   const aiButtonLabel = useMemo(() => {
     if (effectiveAiBusy) return aiThinking.copy;
-    if (blockingPreviousChapterIndex) return `先补第${blockingPreviousChapterIndex}章`;
-    if (hasExistingDraft) return chapterIndex === 1 ? "重新生成第1章" : "重新生成本章";
-    return chapterIndex === 1 ? "AI 生成第1章" : "AI 生成本章";
+    if (blockingPreviousChapterIndex) {
+      return aiZhCN.chapterGenerate.blockedPrevious(blockingPreviousChapterIndex);
+    }
+    if (hasExistingDraft) {
+      return aiZhCN.chapterGenerate.regenerateButton(chapterIndex);
+    }
+    return aiZhCN.chapterGenerate.generateButton(chapterIndex);
   }, [
     aiThinking.copy,
     blockingPreviousChapterIndex,
@@ -185,7 +168,7 @@ export function useChapterEditorAi({
 
   useEffect(() => {
     if (!autoAi || bootstrapLoading || !workId || autoAiTriggeredRef.current) return;
-    if (dirty || saving || effectiveAiBusy || content.trim()) return;
+    if (dirty || saving || effectiveAiBusy || (content ?? "").trim()) return;
     autoAiTriggeredRef.current = true;
     const timer = window.setTimeout(() => {
       if (blockedGenerationMessage) {
@@ -194,7 +177,7 @@ export function useChapterEditorAi({
       } else {
         void handleGenerateWithAi("");
       }
-      router.replace(`/dashboard/work/${workId}/chapter/${chapterIndex}`);
+      router.replace(`/dashboard/novel/${workId}/chapter/${chapterIndex}`);
     }, 300);
     return () => window.clearTimeout(timer);
   }, [
@@ -213,40 +196,42 @@ export function useChapterEditorAi({
   ]);
 
   useEffect(() => {
-    if (chapterGeneration?.status !== "done") return;
-    const appliedKey = `${chapterGeneration.key}:${chapterGeneration.updatedAt}`;
+    if (chapterGeneration?.status !== "done" || !chapterGeneration.result) return;
+    const result = chapterGeneration.result;
+    const appliedKey = `${chapterGeneration.key}:${result.chapter.updatedAt}`;
     if (appliedGenerationRef.current === appliedKey) return;
     appliedGenerationRef.current = appliedKey;
 
-    let cancelled = false;
-    async function refreshGeneratedChapter() {
-      const res = await apiRequest<ChapterBootstrap>(
-        `/api/works/${encodeURIComponent(workId)}/chapters/${chapterIndex}`,
-        undefined,
-        { method: "GET" },
-      );
-      if (!cancelled && res.success && res.data?.chapter) {
-        applyBootstrap(res.data);
-        applyMetaFromChapter(res.data.chapter);
-        mergeChapterListItem(res.data.chapter);
-      }
-    }
-    void refreshGeneratedChapter();
-    return () => {
-      cancelled = true;
+    const bootstrapPayload: ChapterBootstrap = {
+      work: result.work,
+      chapter: {
+        ...result.chapter,
+        details: Array.isArray(result.chapter.details) ? result.chapter.details : [],
+      },
     };
+    applyBootstrap(bootstrapPayload);
+    applyMetaFromChapter(bootstrapPayload.chapter);
+    mergeChapterListItem(bootstrapPayload.chapter);
+    setError("");
   }, [
     applyBootstrap,
     applyMetaFromChapter,
     chapterGeneration,
-    chapterIndex,
     mergeChapterListItem,
-    workId,
+    setError,
   ]);
+
+  useEffect(() => {
+    if (chapterGeneration?.status !== "error") return;
+    if (chapterGeneration.error) {
+      setError(chapterGeneration.error);
+    }
+  }, [chapterGeneration, setError]);
 
   return {
     aiButtonLabel,
     aiThinking,
+    aiStageMessage: chapterGeneration?.message || aiThinking.copy,
     effectiveAiBusy,
     effectiveAiProgress,
     handleAiActionClick,

@@ -8,7 +8,8 @@ import {
 import { AuthApiError } from "@/lib/auth/errors";
 import { zhCN } from "@/lib/copy/zh-cn";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { getSessionUserId } from "@/lib/auth/session";
+import type { RequestMeta } from "@/lib/auth/request";
+import { getCurrentSession, revokeUserSessions } from "@/lib/auth/session";
 import { sessionUserSelect } from "@/lib/auth/user";
 import { getUniqueConstraintTargets } from "@/lib/auth/user-code";
 import {
@@ -19,7 +20,11 @@ import {
 import { sendVerificationCodeEmail } from "@/lib/mail/auth-mail";
 import { prisma } from "@/lib/prisma";
 
-export async function sendRegisterCode(email: string) {
+function isUserLoginBlocked(status: string) {
+  return status === "banned" || status === "deleted";
+}
+
+export async function sendRegisterCode(email: string, meta: RequestMeta = {}) {
   const existingUser = await prisma.user.findUnique({
     where: { email },
     select: { id: true },
@@ -34,6 +39,7 @@ export async function sendRegisterCode(email: string) {
   const verificationCode = await createVerificationCode({
     email,
     purpose: EmailVerificationPurpose.register,
+    ...meta,
   });
 
   try {
@@ -119,27 +125,55 @@ export async function loginWithPassword(email: string, password: string) {
     select: {
       id: true,
       passwordHash: true,
+      status: true,
     },
   });
 
   if (!user) {
-    throw new AuthApiError(404, zhCN.auth.error.emailNotRegistered, {
-      email: [zhCN.auth.error.emailNotRegistered],
-    });
+    throw new AuthApiError(
+      401,
+      zhCN.auth.error.invalidCredentials,
+      {
+        email: [zhCN.auth.error.invalidCredentials],
+        password: [zhCN.auth.error.invalidCredentials],
+      },
+      "email_not_registered"
+    );
+  }
+
+  if (isUserLoginBlocked(user.status)) {
+    throw new AuthApiError(
+      403,
+      zhCN.auth.error.accountUnavailable,
+      undefined,
+      `user_${user.status}`
+    );
   }
 
   if (!user.passwordHash) {
-    throw new AuthApiError(400, zhCN.auth.error.passwordMissing, {
-      password: [zhCN.auth.error.passwordMissing],
-    });
+    throw new AuthApiError(
+      401,
+      zhCN.auth.error.invalidCredentials,
+      {
+        email: [zhCN.auth.error.invalidCredentials],
+        password: [zhCN.auth.error.invalidCredentials],
+      },
+      "password_missing"
+    );
   }
 
   const isPasswordValid = await verifyPassword(password, user.passwordHash);
 
   if (!isPasswordValid) {
-    throw new AuthApiError(401, zhCN.auth.error.passwordIncorrect, {
-      password: [zhCN.auth.error.passwordIncorrect],
-    });
+    throw new AuthApiError(
+      401,
+      zhCN.auth.error.invalidCredentials,
+      {
+        email: [zhCN.auth.error.invalidCredentials],
+        password: [zhCN.auth.error.invalidCredentials],
+      },
+      "password_incorrect"
+    );
   }
 
   return prisma.user.update({
@@ -151,7 +185,10 @@ export async function loginWithPassword(email: string, password: string) {
   });
 }
 
-export async function sendPasswordResetCode(email: string) {
+export async function sendPasswordResetCode(
+  email: string,
+  meta: RequestMeta = {}
+) {
   const existingUser = await prisma.user.findUnique({
     where: { email },
     select: { id: true },
@@ -166,6 +203,7 @@ export async function sendPasswordResetCode(email: string) {
   const verificationCode = await createVerificationCode({
     email,
     purpose: EmailVerificationPurpose.reset_password,
+    ...meta,
   });
 
   try {
@@ -197,7 +235,7 @@ export async function resetPasswordWithCode(
   return prisma.$transaction(async (tx) => {
     const existingUser = await tx.user.findUnique({
       where: { email },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (!existingUser) {
@@ -206,10 +244,19 @@ export async function resetPasswordWithCode(
       });
     }
 
+    if (isUserLoginBlocked(existingUser.status)) {
+      throw new AuthApiError(403, zhCN.auth.error.accountUnavailable);
+    }
+
     await consumeVerificationCode(tx, {
       email,
       purpose: EmailVerificationPurpose.reset_password,
       code,
+    });
+
+    await tx.userSession.updateMany({
+      where: { userId: existingUser.id, revokedAt: null },
+      data: { revokedAt: new Date() },
     });
 
     return tx.user.update({
@@ -224,14 +271,8 @@ export async function resetPasswordWithCode(
 }
 
 export async function getCurrentUser() {
-  const userId = await getSessionUserId();
-
-  if (!userId) {
-    return null;
-  }
-
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: sessionUserSelect,
-  });
+  const session = await getCurrentSession();
+  return session?.user ?? null;
 }
+
+export { revokeUserSessions };

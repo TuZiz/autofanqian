@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { requireAdminUser } from "@/lib/auth/admin";
+import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -22,12 +23,13 @@ export async function PUT(
   context: { params: Promise<{ id?: string }> },
 ) {
   try {
-    await requireAdminUser();
+    const adminUser = await requireAdminUser();
 
     const rawParams = await context.params;
     const params = paramsSchema.parse({ id: rawParams.id ?? "" });
 
     const body = await parseJsonBody(request, updateSchema);
+    const before = await prisma.createTemplate.findUnique({ where: { id: params.id } });
     const template = await prisma.createTemplate.update({
       where: { id: params.id },
       data: {
@@ -48,6 +50,15 @@ export async function PUT(
         updatedAt: true,
       },
     });
+    await recordAdminAuditLog({
+      request,
+      adminUser,
+      action: "template.update",
+      targetType: "CreateTemplate",
+      targetId: params.id,
+      before,
+      after: template,
+    });
 
     return successResponse({ template }, { message: "模板已更新。" });
   } catch (error) {
@@ -60,12 +71,21 @@ export async function DELETE(
   context: { params: Promise<{ id?: string }> },
 ) {
   try {
-    await requireAdminUser();
+    const adminUser = await requireAdminUser();
 
     const rawParams = await context.params;
     const params = paramsSchema.parse({ id: rawParams.id ?? "" });
 
+    const before = await prisma.createTemplate.findUnique({ where: { id: params.id } });
     await prisma.createTemplate.delete({ where: { id: params.id } });
+    await recordAdminAuditLog({
+      request: _request,
+      adminUser,
+      action: "template.delete",
+      targetType: "CreateTemplate",
+      targetId: params.id,
+      before,
+    });
     return successResponse({ id: params.id }, { message: "模板已删除。" });
   } catch (error) {
     return errorResponse(error);

@@ -12,9 +12,10 @@ const passwordSchema = z
   .string()
   .min(6, zhCN.auth.validation.passwordMin);
 
-const loginPasswordSchema = z
-  .string()
-  .min(1, zhCN.auth.validation.passwordRequired);
+const loginPasswordSchema = z.preprocess(
+  (value) => (typeof value === "string" ? value : ""),
+  z.string()
+);
 
 const codeSchema = z
   .string()

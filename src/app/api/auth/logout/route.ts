@@ -1,10 +1,15 @@
 import { successResponse } from "@/lib/auth/api";
 import { zhCN } from "@/lib/copy/zh-cn";
-import { createClearedSessionCookie } from "@/lib/auth/session";
+import {
+  createClearedSessionCookie,
+  revokeCurrentSession,
+} from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
 export async function POST() {
+  await revokeCurrentSession();
+
   const clearedSessionCookie = createClearedSessionCookie();
   const response = successResponse(
     {

@@ -10,6 +10,7 @@ export const storyOutlineSegmentSchema = z
     startChapter: chapterNumberSchema,
     endChapter: chapterNumberSchema,
     desc: z.string().min(8).max(420),
+    status: z.enum(["locked", "planned", "drafting", "written"]).optional(),
   })
   .superRefine((segment, ctx) => {
     if (segment.endChapter < segment.startChapter) {
@@ -27,6 +28,8 @@ export const storyOutlineVolumeSchema = z
     desc: z.string().min(20).max(2200),
     startChapter: chapterNumberSchema.optional(),
     endChapter: chapterNumberSchema.optional(),
+    detailLevel: z.enum(["macro", "detailed"]).optional(),
+    status: z.enum(["locked", "planned", "active", "completed"]).optional(),
     segments: z.array(storyOutlineSegmentSchema).min(1).max(30).optional(),
   })
   .superRefine((volume, ctx) => {
@@ -70,6 +73,9 @@ export const storyOutlineSchema = z.object({
   title: z.string().min(1).max(80),
   synopsis: z.string().min(60).max(2400),
   totalChapters: chapterNumberSchema.optional(),
+  targetChapters: chapterNumberSchema.optional(),
+  plannedUntilChapter: chapterNumberSchema.optional(),
+  planningMode: z.literal("progressive").optional(),
   volumes: z.array(storyOutlineVolumeSchema).min(2).max(10),
   characters: z
     .array(

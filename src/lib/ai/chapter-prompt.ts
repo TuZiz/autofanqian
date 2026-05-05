@@ -78,6 +78,16 @@ export function buildChapterUserPrompt(params: {
     synopsis: string;
   };
   outline: StoryOutline;
+  context?: {
+    previousSummary?: string | null;
+    previousEnding?: string | null;
+    recentSummaries?: Array<{ index: number; title?: string | null; summary: string }>;
+    writingMemories?: string[];
+    characters?: string[];
+    worldSettings?: string[];
+    timelineEvents?: string[];
+    foreshadowings?: string[];
+  };
   extraPrompt?: string | null;
 }) {
   const tags = (params.work.tags ?? []).filter(Boolean).slice(0, 8);
@@ -99,6 +109,37 @@ export function buildChapterUserPrompt(params: {
     .join("\n");
 
   const chapterIndex = params.chapterIndex;
+  const previousContext = [
+    params.context?.previousSummary
+      ? `上一章摘要：${params.context.previousSummary}`
+      : "",
+    params.context?.previousEnding
+      ? `上一章结尾片段：${params.context.previousEnding}`
+      : "",
+  ].filter(Boolean);
+  const recentSummaries = (params.context?.recentSummaries ?? [])
+    .slice(0, 5)
+    .map((item) => `第${item.index}章${item.title ? `《${item.title}》` : ""}：${item.summary}`)
+    .join("\n");
+  const writingMemories = (params.context?.writingMemories ?? [])
+    .filter(Boolean)
+    .slice(0, 12)
+    .map((item) => `- ${item}`)
+    .join("\n");
+  const libraryContext = [
+    (params.context?.characters ?? []).length
+      ? `角色库重点：\n${(params.context?.characters ?? []).slice(0, 12).map((item) => `- ${item}`).join("\n")}`
+      : "",
+    (params.context?.worldSettings ?? []).length
+      ? `关键设定：\n${(params.context?.worldSettings ?? []).slice(0, 12).map((item) => `- ${item}`).join("\n")}`
+      : "",
+    (params.context?.timelineEvents ?? []).length
+      ? `最近时间线：\n${(params.context?.timelineEvents ?? []).slice(0, 8).map((item) => `- ${item}`).join("\n")}`
+      : "",
+    (params.context?.foreshadowings ?? []).length
+      ? `未回收伏笔：\n${(params.context?.foreshadowings ?? []).slice(0, 10).map((item) => `- ${item}`).join("\n")}`
+      : "",
+  ].filter(Boolean).join("\n\n");
 
   return [
     `作品标题：${params.work.title || params.outline.title}`,
@@ -112,9 +153,21 @@ export function buildChapterUserPrompt(params: {
     "",
     `主要角色：\n${characters}`,
     "",
+    previousContext.length
+      ? [
+          "连续性上下文（必须承接，不要重置人物状态或重复上一章动作）：",
+          ...previousContext,
+        ].join("\n")
+      : "",
+    recentSummaries ? `最近章节摘要：\n${recentSummaries}` : "",
+    writingMemories ? `长期写作记忆与约束：\n${writingMemories}` : "",
+    libraryContext,
+    previousContext.length || recentSummaries || writingMemories || libraryContext ? "" : "",
     `现在请你生成第 ${chapterIndex} 章正文草稿。`,
     "长度建议：约 2800-4500 字（中文字符）。",
-    "第 1 章重点：快速开场 + 主角登场 + 明确外部压力/危机 + 埋下主线悬念。",
+    chapterIndex === 1
+      ? "第 1 章重点：快速开场 + 主角登场 + 明确外部压力/危机 + 埋下主线悬念。"
+      : "非第 1 章必须自然承接上一章结尾，保持人物情绪、地点、冲突和未解决问题连续。",
     ...(extraPrompt ? ["", `补充要求（优先遵循）：${extraPrompt}`] : []),
     "注意：只输出严格合法 JSON（换行用 \\n，需要的双引号要转义）。",
   ].join("\n");

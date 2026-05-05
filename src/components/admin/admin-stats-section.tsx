@@ -15,17 +15,17 @@ export function AdminStatsSection({ admin }: AdminStatsSectionProps) {
   const allSuccessRate = getRate(aiStats?.allTime.successCalls ?? 0, aiStats?.allTime.totalCalls ?? 0);
 
   return (
-    <section className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
-      <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 dark:border-white/10 lg:flex-row lg:items-center lg:justify-between">
+    <section className="mb-4 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm dark:border-white/10 dark:bg-stone-950">
+      <div className="flex flex-col gap-3 border-b border-stone-100 px-4 py-3 dark:border-white/10 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white">
             <Activity className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-slate-950 dark:text-slate-50">
+            <h2 className="text-lg font-black text-stone-950 dark:text-stone-50">
               实时 AI 数据监控
             </h2>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <p className="text-xs font-semibold text-stone-500 dark:text-stone-400">
               今日数据、累计消耗、服务商和模型排行一屏扫清。
             </p>
           </div>
@@ -41,7 +41,7 @@ export function AdminStatsSection({ admin }: AdminStatsSectionProps) {
         </button>
       </div>
 
-      <div className="grid gap-0 divide-y divide-slate-100 dark:divide-white/10 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.85fr)] xl:divide-x xl:divide-y-0">
+      <div className="grid gap-0 divide-y divide-stone-100 dark:divide-white/10 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.85fr)] xl:divide-x xl:divide-y-0">
         <div className="grid gap-3 p-4 sm:grid-cols-2 2xl:grid-cols-4">
           <MetricTile
             icon={Zap}
@@ -124,15 +124,15 @@ function MetricTile({ detail, icon: Icon, label, meta, tone, value }: MetricTile
       "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-200 dark:border-emerald-300/20",
     sky: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-400/10 dark:text-sky-200 dark:border-sky-300/20",
     slate:
-      "bg-slate-50 text-slate-700 border-slate-200 dark:bg-white/[0.04] dark:text-slate-200 dark:border-white/10",
+      "bg-stone-50 text-stone-700 border-stone-200 dark:bg-white/[0.04] dark:text-stone-200 dark:border-white/10",
   }[tone];
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+    <article className="rounded-lg border border-stone-200 bg-stone-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-black text-slate-500 dark:text-slate-400">{label}</div>
-          <div className="mt-1 text-3xl font-black tracking-tight text-slate-950 dark:text-slate-50">
+          <div className="text-xs font-black text-stone-500 dark:text-stone-400">{label}</div>
+          <div className="mt-1 text-3xl font-black tracking-tight text-stone-950 dark:text-stone-50">
             {value}
           </div>
         </div>
@@ -140,8 +140,8 @@ function MetricTile({ detail, icon: Icon, label, meta, tone, value }: MetricTile
           <Icon className="h-5 w-5" />
         </div>
       </div>
-      <div className="mt-3 truncate text-xs font-bold text-slate-600 dark:text-slate-300">{detail}</div>
-      <div className="mt-2 inline-flex rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-black text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
+      <div className="mt-3 truncate text-xs font-bold text-stone-600 dark:text-stone-300">{detail}</div>
+      <div className="mt-2 inline-flex rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] font-black text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
         {meta}
       </div>
     </article>
@@ -157,36 +157,36 @@ type RankPanelProps = {
 
 function RankPanel({ empty, icon: Icon, rows, title }: RankPanelProps) {
   return (
-    <article className="rounded-lg border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+    <article className="rounded-lg border border-stone-200 bg-stone-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
       <div className="mb-3 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-        <h3 className="text-sm font-black text-slate-950 dark:text-slate-50">{title}</h3>
+        <Icon className="h-4 w-4 text-stone-500 dark:text-stone-400" />
+        <h3 className="text-sm font-black text-stone-950 dark:text-stone-50">{title}</h3>
       </div>
       <div className="space-y-2">
         {rows.map((row, index) => (
           <div
             key={row.id}
-            className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 dark:border-white/10 dark:bg-white/[0.04]"
+            className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-stone-200 bg-white px-2.5 py-2 dark:border-white/10 dark:bg-white/[0.04]"
           >
-            <span className="text-xs font-black text-slate-400">#{index + 1}</span>
-            <span className="truncate text-sm font-black text-slate-800 dark:text-slate-100">
+            <span className="text-xs font-black text-stone-500">#{index + 1}</span>
+            <span className="truncate text-sm font-black text-stone-800 dark:text-stone-100">
               {row.label}
             </span>
             <div className="flex flex-wrap justify-end gap-1.5">
-              <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600 dark:bg-white/[0.08] dark:text-slate-300">
+              <span className="rounded-md bg-stone-100 px-2 py-1 text-[11px] font-black text-stone-600 dark:bg-white/[0.08] dark:text-stone-300">
                 {formatNumber(row.calls)} 次
               </span>
-              <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600 dark:bg-white/[0.08] dark:text-slate-300">
+              <span className="rounded-md bg-stone-100 px-2 py-1 text-[11px] font-black text-stone-600 dark:bg-white/[0.08] dark:text-stone-300">
                 {formatNumber(row.tokens)} Token
               </span>
-              <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600 dark:bg-white/[0.08] dark:text-slate-300">
+              <span className="rounded-md bg-stone-100 px-2 py-1 text-[11px] font-black text-stone-600 dark:bg-white/[0.08] dark:text-stone-300">
                 均 {formatDurationMs(row.duration)}
               </span>
             </div>
           </div>
         ))}
         {!rows.length ? (
-          <div className="rounded-lg border border-dashed border-slate-200 py-5 text-center text-sm font-bold text-slate-400 dark:border-white/10">
+          <div className="rounded-lg border border-dashed border-stone-200 py-5 text-center text-sm font-bold text-stone-500 dark:border-white/10">
             {empty}
           </div>
         ) : null}

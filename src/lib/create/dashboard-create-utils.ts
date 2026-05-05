@@ -1,5 +1,7 @@
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
+
 export const CUSTOM_GENRE_ID = "custom";
-export const AI_THINKING_COPY = ["AI 思考中...", "文本较长...", "请等待..."] as const;
+export const AI_THINKING_COPY = aiZhCN.idea.thinking;
 
 export function extractBookName(label: string) {
   const trimmed = (label ?? "").trim();

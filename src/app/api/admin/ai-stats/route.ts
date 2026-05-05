@@ -42,6 +42,7 @@ export async function GET() {
       byProvider,
       byAction,
       byModel,
+      failureReasons,
       allTimeAgg,
       allTimeSuccessCount,
       allTimeByModel,
@@ -83,6 +84,12 @@ export async function GET() {
         _sum: { inputTokens: true, outputTokens: true, totalTokens: true },
         orderBy: { _sum: { totalTokens: "desc" } },
       }),
+      prisma.aiUsageEvent.groupBy({
+        by: ["status"],
+        where: { createdAt: { gte: range.start, lt: range.end }, success: false },
+        _count: { _all: true },
+        orderBy: { _count: { id: "desc" } },
+      }),
       prisma.aiUsageEvent.aggregate({
         _count: { _all: true },
         _avg: { durationMs: true },
@@ -118,11 +125,15 @@ export async function GET() {
         totalCalls,
         successCalls: todaySuccessCount,
         failedCalls,
+        successRate: totalCalls ? Math.round((todaySuccessCount / totalCalls) * 10000) / 100 : 0,
         avgDurationMs: todayAgg._avg.durationMs ?? null,
         allTime: {
           totalCalls: allTimeTotalCalls,
           successCalls: allTimeSuccessCount,
           failedCalls: allTimeFailedCalls,
+          successRate: allTimeTotalCalls
+            ? Math.round((allTimeSuccessCount / allTimeTotalCalls) * 10000) / 100
+            : 0,
           avgDurationMs: allTimeAgg._avg.durationMs ?? null,
           tokens: {
             input: allTimeAgg._sum.inputTokens ?? 0,
@@ -178,6 +189,10 @@ export async function GET() {
             output: row._sum.outputTokens ?? 0,
             total: row._sum.totalTokens ?? 0,
           },
+        })),
+        failureReasons: failureReasons.map((row) => ({
+          reason: `HTTP ${row.status}`,
+          calls: row._count._all ?? 0,
         })),
       },
     });

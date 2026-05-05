@@ -17,6 +17,7 @@ export function useAdminUsers() {
   const [bootstrapLoading, setBootstrapLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isRootAdmin, setIsRootAdmin] = useState(false);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -82,6 +83,7 @@ export function useAdminUsers() {
 
       setUserEmail(session.data.user.email);
       setIsAdmin(Boolean(session.data.user.isAdmin));
+      setIsRootAdmin(Boolean(session.data.user.isRootAdmin));
       setBootstrapLoading(false);
       void loadUsers(1, "");
     }
@@ -103,12 +105,18 @@ export function useAdminUsers() {
       email: target.email,
       name: target.name ?? "",
       emailVerified: target.emailVerified,
+      membershipTier: target.membershipTier,
+      role: target.role === "admin" ? "admin" : "user",
       focus,
     });
   }
 
   async function handleSaveUserEditor() {
     if (!userEditor || userEditorBusy) return;
+    if (userEditor.user.isRootAdmin && !isRootAdmin) {
+      window.alert("根管理员账号受保护，普通管理员不能修改。");
+      return;
+    }
 
     const nextEmail = userEditor.email.trim();
     if (!nextEmail) {
@@ -127,6 +135,12 @@ export function useAdminUsers() {
         email: nextEmail,
         name: userEditor.name.trim() ? userEditor.name.trim() : null,
         emailVerified: userEditor.emailVerified,
+        ...(isRootAdmin
+          ? {
+              membershipTier: userEditor.membershipTier,
+              role: userEditor.role,
+            }
+          : {}),
       },
       { method: "PUT" },
     );
@@ -143,6 +157,10 @@ export function useAdminUsers() {
 
   async function handleApplyPassword() {
     if (!passwordEditor || passwordEditorBusy) return;
+    if (passwordEditor.user.isRootAdmin && !isRootAdmin) {
+      window.alert("根管理员账号受保护，普通管理员不能重置密码。");
+      return;
+    }
 
     const targetUser = passwordEditor.user;
     const nextPassword = passwordEditor.value.trim();
@@ -184,6 +202,11 @@ export function useAdminUsers() {
   }
 
   async function handleDeleteUser(user: AdminUserRow) {
+    if (user.isRootAdmin) {
+      window.alert("根管理员账号不能删除");
+      return;
+    }
+
     if (!window.confirm(`确定要删除用户 ${user.email} 吗？此操作不可恢复。`)) return;
 
     const res = await apiRequest<{ id: string }>(
@@ -258,6 +281,7 @@ export function useAdminUsers() {
     handleSaveUserEditor,
     handleSearch,
     isAdmin,
+    isRootAdmin,
     loadUsers,
     loading,
     openUserEditor,

@@ -15,17 +15,21 @@ import {
   resolveBatchChapterCount,
   type BatchChapterCountRequest,
 } from "@/lib/workbench/use-chapter-editor-navigation";
+import { aiZhCN, getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 import { cn } from "@/lib/utils";
 
 const secondaryButtonClass =
-  "theme-button-secondary inline-flex min-h-10 items-center justify-center rounded-xl px-4 text-sm font-black active:scale-[0.98] disabled:cursor-not-allowed";
+  "inline-flex min-h-12 items-center justify-center rounded-xl border border-zinc-200/80 bg-white px-5 text-sm font-bold text-zinc-600 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white";
+
 const primaryButtonClass =
-  "theme-button-primary inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black active:scale-[0.98] disabled:cursor-not-allowed";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-500 dark:hover:bg-blue-400";
+
 const textareaClass =
-  "theme-textarea w-full resize-none rounded-2xl px-4 py-3 text-sm font-medium leading-[1.75] outline-none";
+  "w-full resize-none rounded-2xl border border-zinc-200/80 bg-white/80 px-4 py-3 text-sm font-bold leading-relaxed text-zinc-700 outline-none shadow-sm transition-all placeholder:text-zinc-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 disabled:cursor-wait disabled:opacity-70 dark:border-zinc-700/80 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20";
+
 const compactTextareaClass =
-  "theme-textarea w-full resize-none rounded-xl px-3 py-2.5 text-sm font-medium leading-7 outline-none";
+  "w-full resize-none rounded-xl border border-zinc-200/80 bg-white/80 px-3 py-2.5 text-sm font-bold leading-relaxed text-zinc-700 outline-none shadow-sm transition-all placeholder:text-zinc-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 disabled:cursor-wait disabled:opacity-70 dark:border-zinc-700/80 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-blue-500 dark:focus:ring-blue-500/20";
 
 function chapterLabel(index: number) {
   return `第${index}章`;
@@ -50,12 +54,12 @@ function DialogFrame({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center px-4 py-5">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center px-4 py-6">
       <button
         type="button"
         aria-label="关闭弹窗"
         disabled={closeDisabled}
-        className="absolute inset-0 cursor-pointer bg-slate-950/35 backdrop-blur-md transition-opacity disabled:cursor-wait"
+        className="absolute inset-0 cursor-pointer bg-zinc-950/40 backdrop-blur-md transition-opacity disabled:cursor-wait"
         onClick={(event) => stopIfDisabled(event, closeDisabled, onCancel)}
       />
       <div
@@ -63,7 +67,7 @@ function DialogFrame({
         aria-modal="true"
         aria-labelledby={ariaLabelledBy}
         className={cn(
-          "glass-panel relative z-10 flex max-h-[84vh] w-full animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-2xl",
+          "relative z-10 flex max-h-[88vh] w-full animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-[32px] border border-white/60 bg-white/90 shadow-2xl shadow-zinc-900/20 ring-1 ring-zinc-900/10 backdrop-blur-2xl dark:border-zinc-800/50 dark:bg-zinc-950/90 dark:shadow-black/30",
           maxWidth,
         )}
       >
@@ -91,22 +95,22 @@ function DialogHeader({
   titleId: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-[var(--theme-divider)] px-5 py-4 sm:px-6">
-      <div className="flex min-w-0 gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-600)] shadow-lg shadow-indigo-500/10 ring-1 ring-[var(--theme-brand-border)]">
+    <div className="flex items-start justify-between gap-4 border-b border-zinc-200/50 bg-white/50 px-6 py-5 dark:border-zinc-800/50 dark:bg-zinc-900/50">
+      <div className="flex min-w-0 gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 shadow-inner ring-1 ring-blue-500/20 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-300/20">
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--theme-text-weak)]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             {kicker}
           </p>
           <h3
             id={titleId}
-            className="mt-1 truncate text-lg font-black tracking-tight text-[var(--theme-text-strong)] sm:text-xl"
+            className="mt-1 truncate text-xl font-black tracking-tight text-zinc-950 dark:text-white"
           >
             {title}
           </h3>
-          <p className="mt-1 line-clamp-2 text-sm font-medium leading-[1.65] text-[var(--theme-text-muted)]">
+          <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-zinc-500 dark:text-zinc-400">
             {description}
           </p>
         </div>
@@ -116,7 +120,7 @@ function DialogHeader({
         aria-label="关闭"
         disabled={closeDisabled}
         onClick={onCancel}
-        className="theme-icon-button flex h-9 w-9 shrink-0 items-center justify-center rounded-xl disabled:cursor-not-allowed"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200/80 bg-white text-zinc-500 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-zinc-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
       >
         <X className="h-4 w-4" />
       </button>
@@ -126,7 +130,7 @@ function DialogHeader({
 
 function DisabledHint({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] px-4 py-3 text-sm font-semibold leading-relaxed text-[var(--theme-warning-text)]">
+    <div className="rounded-2xl border border-amber-200/60 bg-amber-50/80 px-5 py-4 text-sm font-bold leading-relaxed text-amber-700 shadow-inner dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300">
       {children}
     </div>
   );
@@ -157,7 +161,7 @@ export function RegenerateDialog({ editor }: { editor: WorkChapterEditorControll
     setRegeneratePrompt("");
   };
   const disabledReason = effectiveAiBusy
-    ? "AI 正在生成当前内容，请等待任务结束。"
+    ? aiZhCN.common.chapterRunning
     : saving
       ? "正文正在保存，保存完成后才能生成。"
       : "";
@@ -172,31 +176,31 @@ export function RegenerateDialog({ editor }: { editor: WorkChapterEditorControll
         closeDisabled={effectiveAiBusy}
         description={
           hasDraft
-            ? "可补充提示词；确认后会覆盖当前正文，请先确认当前内容不需要保留。"
-            : "可补充提示词；确认后开始生成本章正文。"
+            ? aiZhCN.chapterGenerate.modalDescription(true)
+            : aiZhCN.chapterGenerate.modalDescription(false)
         }
         icon={<Sparkles className="h-5 w-5" />}
-        kicker={hasDraft ? "AI 重写正文" : "AI 生成正文"}
+        kicker={aiZhCN.chapterGenerate.modalKicker(hasDraft)}
         onCancel={closeDialog}
-        title={`${hasDraft ? "重新生成" : "生成"}${chapterLabel(chapterIndex)}`}
+        title={aiZhCN.chapterGenerate.modalTitle(chapterIndex, hasDraft)}
         titleId="regenerate-title"
       />
 
-      <div className="space-y-3 px-5 py-4 sm:px-6">
+      <div className="space-y-4 px-6 py-6">
         <textarea
           value={regeneratePrompt}
           onChange={(event) => setRegeneratePrompt(event.target.value.slice(0, 2000))}
           rows={4}
-          placeholder="补充提示词（可选）：例如强化悬念、减少旁白、让冲突更直接。"
-          className={cn(textareaClass, "min-h-[144px]")}
+          placeholder={aiZhCN.chapterGenerate.promptPlaceholder}
+          className={cn(textareaClass, "min-h-[160px]")}
         />
         {disabledReason ? <DisabledHint>{disabledReason}</DisabledHint> : null}
-        <div className="text-right text-xs font-medium text-[var(--theme-text-weak)]">
+        <div className="text-right text-xs font-bold text-zinc-500 dark:text-zinc-400 tabular-nums">
           {regeneratePrompt.length}/2000
         </div>
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-divider)] bg-[var(--theme-surface-overlay)] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+      <div className="flex flex-col-reverse gap-3 border-t border-zinc-200/50 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800/50 dark:bg-zinc-900/50 sm:flex-row sm:justify-end">
         <button
           type="button"
           className={secondaryButtonClass}
@@ -211,10 +215,10 @@ export function RegenerateDialog({ editor }: { editor: WorkChapterEditorControll
           className={primaryButtonClass}
           onClick={handleConfirmRegenerate}
           disabled={Boolean(disabledReason)}
-          title={disabledReason || "开始生成"}
+          title={disabledReason || aiZhCN.common.startGenerate}
         >
           {effectiveAiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          开始生成
+          {aiZhCN.common.startGenerate}
         </button>
       </div>
     </DialogFrame>
@@ -238,12 +242,13 @@ export function MetaGenerateDialog({ editor }: { editor: WorkChapterEditorContro
   if (!metaGenerateKind) return null;
 
   const isSummary = metaGenerateKind === "summary";
+  const metaCopy = getAiMetaCopy(metaGenerateKind);
   const busy = isSummary ? summaryBusy : outlineBusy;
   const existingText = isSummary ? chapterSummary.trim() : chapterOutlineText.trim();
-  const targetLabel = isSummary ? "章节摘要" : "章节大纲";
-  const title = `${existingText ? "重新生成" : "生成"}${targetLabel}`;
+  const targetLabel = metaCopy.noun;
+  const title = existingText ? metaCopy.regenerate : metaCopy.generate;
   const disabledReason = busy
-    ? `${targetLabel}正在生成，请等待当前任务完成。`
+    ? metaCopy.busyReason
     : saving
         ? "正文正在保存，保存完成后才能生成。"
         : "";
@@ -258,25 +263,25 @@ export function MetaGenerateDialog({ editor }: { editor: WorkChapterEditorContro
     <DialogFrame
       ariaLabelledBy="meta-generate-title"
       closeDisabled={busy}
-      maxWidth="max-w-[460px]"
+      maxWidth="max-w-md"
       onCancel={closeDialog}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--theme-divider)] px-4 py-3.5">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-600)] ring-1 ring-[var(--theme-brand-border)]">
-            <Sparkles className="h-4 w-4" />
+      <div className="flex items-start justify-between gap-4 border-b border-zinc-200/50 bg-white/50 px-6 py-5 dark:border-zinc-800/50 dark:bg-zinc-900/50">
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 shadow-inner ring-1 ring-blue-500/20 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-300/20">
+            <Sparkles className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--theme-text-weak)]">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
               {targetLabel}
             </p>
             <h3
               id="meta-generate-title"
-              className="mt-0.5 truncate text-lg font-black tracking-tight text-[var(--theme-text-strong)]"
+              className="mt-1 truncate text-xl font-black tracking-tight text-zinc-950 dark:text-white"
             >
               {title}
             </h3>
-            <p className="mt-1 text-xs font-medium leading-5 text-[var(--theme-text-muted)]">
+            <p className="mt-2 text-sm font-medium leading-relaxed text-zinc-500 dark:text-zinc-400">
               补充一句要求即可，不填则按当前上下文生成。
             </p>
           </div>
@@ -286,48 +291,44 @@ export function MetaGenerateDialog({ editor }: { editor: WorkChapterEditorContro
           aria-label="关闭"
           disabled={busy}
           onClick={closeDialog}
-          className="theme-icon-button flex h-8 w-8 shrink-0 items-center justify-center rounded-xl disabled:cursor-not-allowed"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200/80 bg-white text-zinc-500 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-zinc-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="space-y-2.5 px-4 py-3.5">
+      <div className="space-y-3 px-6 py-6">
         <textarea
           autoFocus
           value={metaGeneratePrompt}
           onChange={(event) => setMetaGeneratePrompt(event.target.value.slice(0, 2000))}
-          rows={3}
-          placeholder={
-            isSummary
-              ? "例如：突出商业冲突，保留关键人名，摘要更短。"
-              : "例如：强化爽点，列出反转节点，结尾钩子更强。"
-          }
-          className={cn(compactTextareaClass, "min-h-[108px]")}
+          rows={4}
+          placeholder={metaCopy.promptPlaceholder}
+          className={cn(compactTextareaClass, "min-h-[140px]")}
         />
-        <div className="flex items-start justify-between gap-3 text-xs">
-          <div className="min-w-0 space-y-1">
+        <div className="flex items-start justify-between gap-4 text-xs font-bold">
+          <div className="min-w-0 space-y-2">
             {existingText ? (
-              <p className="font-semibold leading-5 text-amber-700 dark:text-amber-300">
+              <p className="text-amber-700 dark:text-amber-400">
                 当前已有内容，生成后会覆盖。
               </p>
             ) : null}
             {disabledReason ? (
-              <p className="font-semibold leading-5 text-amber-700 dark:text-amber-300">
+              <p className="text-amber-700 dark:text-amber-400">
                 {disabledReason}
               </p>
             ) : null}
           </div>
-          <span className="shrink-0 font-mono font-semibold tabular-nums text-[var(--theme-text-weak)]">
+          <span className="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-400">
             {metaGeneratePrompt.length}/2000
           </span>
         </div>
       </div>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-[var(--theme-divider)] bg-[var(--theme-surface-overlay)] px-4 py-3 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 border-t border-zinc-200/50 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800/50 dark:bg-zinc-900/50 sm:flex-row sm:justify-end">
         <button
           type="button"
-          className="theme-button-secondary inline-flex min-h-9 items-center justify-center rounded-xl px-4 text-sm font-black active:scale-[0.98] disabled:cursor-not-allowed"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-zinc-200/80 bg-white px-5 text-sm font-bold text-zinc-600 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white"
           onClick={closeDialog}
           disabled={busy}
           title={disabledReason || "取消"}
@@ -336,13 +337,13 @@ export function MetaGenerateDialog({ editor }: { editor: WorkChapterEditorContro
         </button>
         <button
           type="button"
-          className="theme-button-primary inline-flex min-h-9 items-center justify-center gap-2 rounded-xl px-4 text-sm font-black active:scale-[0.98] disabled:cursor-not-allowed"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-500 dark:hover:bg-blue-400"
           onClick={handleConfirmMetaGenerate}
           disabled={Boolean(disabledReason)}
-          title={disabledReason || "开始生成"}
+          title={disabledReason || title}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          开始生成
+          {title}
         </button>
       </div>
     </DialogFrame>
@@ -413,27 +414,27 @@ export function MetaEditorDialog({ editor }: { editor: WorkChapterEditorControll
         titleId="meta-editor-title"
       />
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 sm:px-6">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-6">
         <textarea
           autoFocus
           value={metaEditorValue}
           onChange={(event) => setMetaEditorValue(event.target.value.slice(0, limit))}
           rows={metaEditorConfig.rows}
           placeholder={metaEditorConfig.placeholder}
-          className={cn(textareaClass, "h-[min(34vh,320px)] min-h-[190px] resize-y")}
+          className={cn(textareaClass, "h-[min(34vh,320px)] min-h-[200px] resize-y")}
         />
-        <div className="flex flex-col gap-3 rounded-2xl bg-[var(--theme-surface-overlay)] px-4 py-3 text-xs font-medium text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl bg-zinc-50/80 px-5 py-4 text-xs font-bold text-zinc-500 shadow-inner ring-1 ring-zinc-200/50 dark:bg-zinc-900/80 dark:text-zinc-400 dark:ring-zinc-800/50 sm:flex-row sm:items-center sm:justify-between">
           <span className="min-w-0 truncate">
             {metaEditorConfig.saveHint}
           </span>
-          <span className="shrink-0 font-mono font-black tabular-nums text-[var(--theme-text-weak)]">
+          <span className="shrink-0 tabular-nums">
             {metaEditorValue.length}/{limit}
           </span>
         </div>
         {disabledReason ? <DisabledHint>{disabledReason}</DisabledHint> : null}
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-divider)] bg-[var(--theme-surface-overlay)] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+      <div className="flex flex-col-reverse gap-3 border-t border-zinc-200/50 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800/50 dark:bg-zinc-900/50 sm:flex-row sm:justify-end">
         <button
           type="button"
           className={secondaryButtonClass}
@@ -562,9 +563,9 @@ function BatchAddChaptersDialog() {
         titleId="batch-add-title"
       />
 
-      <div className="space-y-3 px-5 py-4 sm:px-6">
+      <div className="space-y-4 px-6 py-6">
         <label className="block">
-          <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-[var(--theme-text-weak)]">
+          <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
             添加数量
           </span>
           <input
@@ -585,16 +586,16 @@ function BatchAddChaptersDialog() {
                   : current,
               )
             }
-            className="theme-input h-14 w-full rounded-2xl px-4 text-lg font-black tabular-nums outline-none"
+            className="h-14 w-full rounded-2xl border border-zinc-200/80 bg-white/80 px-5 text-xl font-black tabular-nums text-zinc-950 outline-none shadow-sm transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 dark:border-zinc-700/80 dark:bg-zinc-950/80 dark:text-white dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
           />
         </label>
-        <div className="rounded-2xl bg-[var(--theme-surface-overlay)] px-4 py-3 text-sm font-semibold leading-relaxed text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]">
+        <div className="rounded-2xl border border-zinc-200/50 bg-zinc-50/80 px-5 py-4 text-sm font-bold leading-relaxed text-zinc-600 shadow-inner dark:border-zinc-800/50 dark:bg-zinc-900/80 dark:text-zinc-300">
           {preview || `请输入 ${request.min}-${request.max} 之间的整数。`}
         </div>
         {request.error ? <DisabledHint>{request.error}</DisabledHint> : null}
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-divider)] bg-[var(--theme-surface-overlay)] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+      <div className="flex flex-col-reverse gap-3 border-t border-zinc-200/50 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800/50 dark:bg-zinc-900/50 sm:flex-row sm:justify-end">
         <button type="button" className={secondaryButtonClass} onClick={closeBatchDialog}>
           取消
         </button>

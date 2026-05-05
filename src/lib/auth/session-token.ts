@@ -1,48 +1,37 @@
-import { SignJWT, jwtVerify } from "jose";
+const SESSION_TOKEN_SECRET_BYTES = 32;
 
-import { SESSION_DURATION_SECONDS } from "@/lib/auth/constants";
-import { zhCN } from "@/lib/copy/zh-cn";
-
-const sessionSecret = process.env.SESSION_SECRET;
-
-if (!sessionSecret) {
-  throw new Error(zhCN.auth.error.envMissing("SESSION_SECRET"));
+function toHex(bytes: Uint8Array) {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-const encodedSecret = new TextEncoder().encode(sessionSecret);
-
-export type SessionTokenPayload = {
-  userId: string;
-};
-
-export async function signSessionToken(payload: SessionTokenPayload) {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
-    .sign(encodedSecret);
+function randomHex(byteLength: number) {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return toHex(bytes);
 }
 
-export async function verifySessionToken(token?: string) {
-  if (!token) {
+export function createRawSessionToken(sessionId: string) {
+  return `${sessionId}.${randomHex(SESSION_TOKEN_SECRET_BYTES)}`;
+}
+
+export function parseSessionToken(token?: string) {
+  if (!token) return null;
+
+  const [sessionId, secret, ...extra] = token.split(".");
+  if (extra.length || !sessionId || !secret) return null;
+  if (sessionId.length > 128 || secret.length !== SESSION_TOKEN_SECRET_BYTES * 2) {
     return null;
   }
 
-  try {
-    const { payload } = await jwtVerify(token, encodedSecret, {
-      algorithms: ["HS256"],
-    });
+  return { sessionId, secret };
+}
 
-    if (typeof payload.userId !== "string") {
-      return null;
-    }
-
-    return {
-      userId: payload.userId,
-      iat: payload.iat,
-      exp: payload.exp,
-    };
-  } catch {
-    return null;
-  }
+export async function hashSessionToken(token: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(token)
+  );
+  return toHex(new Uint8Array(digest));
 }

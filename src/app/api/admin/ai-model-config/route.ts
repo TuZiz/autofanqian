@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { requireAdminUser } from "@/lib/auth/admin";
+import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { getAiModelConfig, updateAiModelConfig } from "@/lib/config/ai-model";
 
 export const runtime = "nodejs";
@@ -30,8 +31,13 @@ function parseModelOptions(raw: string | undefined, fallbackModel: string) {
 function getProviderOptionsFromEnv() {
   const primaryKey = process.env.AI_API_KEY?.trim();
   const arkKey = process.env.ARK_API_KEY?.trim();
-  const primaryModel = (process.env.AI_MODEL || "gpt-5.2").trim();
+  const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
+  const primaryModel = (process.env.AI_MODEL || "gpt-5.4").trim();
   const arkModel = (process.env.ARK_MODEL || "doubao-seed-2-0-pro-260215").trim();
+  const anthropicModel = (
+    process.env.ANTHROPIC_MODEL ||
+    "claude-sonnet-4-20250514"
+  ).trim();
 
   return [
     {
@@ -59,6 +65,26 @@ function getProviderOptionsFromEnv() {
       ).trim(),
       prefer: "responses" as const,
     },
+    {
+      id: "anthropic" as const,
+      label: readEnv(
+        ["ANTHROPIC_PROVIDER_LABEL", "ANTHROPIC_PROVIDER_NAME"],
+        "Anthropic",
+      ),
+      configured: Boolean(anthropicKey),
+      apiKeyEnvKey: "ANTHROPIC_API_KEY",
+      envModelKey: "ANTHROPIC_MODEL",
+      model: anthropicModel,
+      modelOptions: parseModelOptions(
+        process.env.ANTHROPIC_MODEL_OPTIONS,
+        anthropicModel,
+      ),
+      baseUrl: (
+        process.env.ANTHROPIC_BASE_URL ||
+        "https://api.anthropic.com"
+      ).trim(),
+      prefer: "anthropic" as const,
+    },
   ];
 }
 
@@ -78,9 +104,19 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    await requireAdminUser();
+    const adminUser = await requireAdminUser();
+    const before = await getAiModelConfig();
     const body = await parseJsonBody(request, bodySchema);
     const config = await updateAiModelConfig(body.config);
+    await recordAdminAuditLog({
+      request,
+      adminUser,
+      action: "ai_model_config.update",
+      targetType: "AppConfig",
+      targetId: "ai_model_config",
+      before,
+      after: config,
+    });
     return successResponse({ config }, { message: "AI 模型配置已保存。" });
   } catch (error) {
     return errorResponse(error);

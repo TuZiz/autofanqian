@@ -9,19 +9,31 @@ import {
   endChapterGenerationLock,
 } from "@/lib/ai/chapter-generation-lock";
 import { logAiUsage } from "@/lib/ai/usage-log";
-import { callAiText, getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
-import { isAdminEmail } from "@/lib/auth/admin";
+import {
+  buildAiProviderChain,
+  callAiText,
+  getAiProvidersFromEnv,
+  getProviderApiKeyEnvName,
+  getReadableAiErrorMessage,
+} from "@/lib/ai/upstream-text";
+import { isAdminUser } from "@/lib/auth/admin";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { prisma } from "@/lib/prisma";
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import {
+  getEffectivePlannedUntil,
+  isChapterWithinPlanning,
+} from "@/lib/create/progressive-planning";
+import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 
 export const runtime = "nodejs";
 
 const bodySchema = z.object({
   workId: z.string().min(1).max(64),
-  index: z.coerce.number().int().min(1).max(999),
+  index: z.coerce.number().int().min(1).max(9999),
   extraPrompt: z.string().trim().max(2000).optional().nullable(),
 });
 
@@ -46,6 +58,12 @@ function findBlockingPreviousChapter(
     .sort((left, right) => right.index - left.index)[0];
 }
 
+function clampText(value: string | null | undefined, maxChars: number) {
+  const text = (value ?? "").trim().replace(/\s+/g, " ");
+  if (!text) return "";
+  return text.length > maxChars ? text.slice(-maxChars) : text;
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -66,7 +84,7 @@ export async function POST(request: Request) {
 
   const body = parsedBody.data;
 
-  const isAdmin = isAdminEmail(user.email);
+  const isAdmin = isAdminUser(user);
 
   try {
     const work = await prisma.work.findUnique({
@@ -85,10 +103,13 @@ export async function POST(request: Request) {
         title: true,
         synopsis: true,
         outline: true,
+        targetChapters: true,
+        plannedUntilChapter: true,
+        deletedAt: true,
       },
     });
 
-    if (!work) {
+    if (!work || work.deletedAt) {
       return NextResponse.json(
         { success: false, message: "作品不存在或已被删除。" },
         { status: 404 },
@@ -102,16 +123,49 @@ export async function POST(request: Request) {
       );
     }
 
+    const outline = work.outline as unknown as StoryOutline;
+    const plannedUntilChapter = getEffectivePlannedUntil({
+      outline,
+      plannedUntilChapter: work.plannedUntilChapter,
+    });
+
+    if (
+      !isChapterWithinPlanning({
+        index: body.index,
+        outline,
+        plannedUntilChapter,
+      })
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `第${body.index}章尚未规划，当前只开放到第${plannedUntilChapter}章。请先在作品页点击“规划下一段”。`,
+        },
+        { status: 423 },
+      );
+    }
+
+    let previousChapters: Array<{
+      index: number;
+      title: string | null;
+      content: string;
+      wordCount: number;
+      summary: string | null;
+    }> = [];
     if (body.index > 1) {
-      const previousChapters = await prisma.chapter.findMany({
+      previousChapters = await prisma.chapter.findMany({
         where: {
           workId: work.id,
           index: { lt: body.index },
+          deletedAt: null,
         },
+        orderBy: { index: "asc" },
         select: {
           index: true,
+          title: true,
           content: true,
           wordCount: true,
+          summary: true,
         },
       });
       const blockingPreviousChapter = findBlockingPreviousChapter(previousChapters);
@@ -129,8 +183,15 @@ export async function POST(request: Request) {
 
     const existingChapter = await prisma.chapter.findUnique({
       where: { workId_index: { workId: work.id, index: body.index } },
-      select: { content: true },
+      select: { id: true, title: true, content: true, wordCount: true, deletedAt: true },
     });
+
+    if (existingChapter?.deletedAt) {
+      return NextResponse.json(
+        { success: false, message: "章节已删除，请先恢复后再生成。" },
+        { status: 410 },
+      );
+    }
 
     const providersFromEnv = getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();
@@ -138,12 +199,14 @@ export async function POST(request: Request) {
       ? aiModelConfig.regenerateAll
       : aiModelConfig.chapterGenerate;
 
-    const selectedProvider = providersFromEnv.find(
-      (provider) => provider.id === target.providerId,
-    );
+    const providers = buildAiProviderChain({
+      providers: providersFromEnv,
+      preferredProviderId: target.providerId,
+      overrideModel: target.model,
+    });
 
-    if (!selectedProvider) {
-      const envKey = target.providerId === "primary" ? "AI_API_KEY" : "ARK_API_KEY";
+    if (!providers.length) {
+      const envKey = getProviderApiKeyEnvName(target.providerId);
       return NextResponse.json(
         {
           success: false,
@@ -154,14 +217,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const providers = [
-      {
-        ...selectedProvider,
-        model: target.model ?? selectedProvider.model,
-      },
-    ];
+    const primaryProvider = providers[0];
 
-    const outline = work.outline as unknown as StoryOutline;
     const generationLock = beginChapterGenerationLock({
       userId: user.id,
       workId: work.id,
@@ -176,29 +233,141 @@ export async function POST(request: Request) {
     }
 
     try {
+      const previousChapter = previousChapters
+        .slice()
+        .sort((left, right) => right.index - left.index)[0];
+      const recentSummaries = previousChapters
+        .slice()
+        .filter((chapter) => chapter.summary?.trim() || chapter.content.trim())
+        .sort((left, right) => right.index - left.index)
+        .slice(0, 5)
+        .map((chapter) => ({
+          index: chapter.index,
+          title: chapter.title,
+          summary: clampText(chapter.summary || chapter.content, 600),
+        }))
+        .reverse();
+      const writingMemories = await prisma.writingMemory.findMany({
+        where: { novelId: work.id, isActive: true },
+        orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
+        take: 12,
+        select: { content: true },
+      });
+      const [characters, worldSettings, timelineEvents, foreshadowings] =
+        await Promise.all([
+          prisma.character.findMany({
+            where: { novelId: work.id, deletedAt: null },
+            orderBy: [{ lastChapter: "desc" }, { updatedAt: "desc" }],
+            take: 12,
+            select: {
+              name: true,
+              role: true,
+              identity: true,
+              currentState: true,
+              goal: true,
+              desc: true,
+            },
+          }),
+          prisma.worldSetting.findMany({
+            where: { novelId: work.id, deletedAt: null },
+            orderBy: [{ lastUpdatedChapter: "desc" }, { updatedAt: "desc" }],
+            take: 12,
+            select: { kind: true, name: true, desc: true },
+          }),
+          prisma.timelineEvent.findMany({
+            where: {
+              novelId: work.id,
+              deletedAt: null,
+              chapterIndex: { lt: body.index },
+            },
+            orderBy: [{ chapterIndex: "desc" }, { order: "desc" }],
+            take: 8,
+            select: { title: true, summary: true, storyTime: true, chapterIndex: true },
+          }),
+          prisma.foreshadowing.findMany({
+            where: {
+              novelId: work.id,
+              deletedAt: null,
+              status: { in: ["open", "partial"] },
+            },
+            orderBy: [{ importance: "desc" }, { updatedAt: "desc" }],
+            take: 10,
+            select: {
+              title: true,
+              hint: true,
+              payoff: true,
+              status: true,
+              plantedChapter: true,
+              importance: true,
+            },
+          }),
+        ]);
+      const userPrompt = buildChapterUserPrompt({
+        chapterIndex: body.index,
+        work: {
+          genreId: work.genreId,
+          genreLabel: work.genreLabel,
+          tags: work.tags ?? [],
+          platformLabel: work.platformLabel,
+          words: work.words,
+          dnaBookTitle: work.dnaBookTitle,
+          idea: work.idea,
+          title: work.title,
+          synopsis: work.synopsis,
+        },
+        outline,
+        context: {
+          previousSummary: previousChapter?.summary ?? null,
+          previousEnding: clampText(previousChapter?.content, 900),
+          recentSummaries,
+          writingMemories: writingMemories.map((item) => item.content),
+          characters: characters.map((item) =>
+            clampText(
+              `${item.name}（${item.role || item.identity || "角色"}）：${item.currentState || item.goal || item.desc}`,
+              360,
+            ),
+          ),
+          worldSettings: worldSettings.map((item) =>
+            clampText(`${item.kind}/${item.name}：${item.desc}`, 360),
+          ),
+          timelineEvents: timelineEvents.map((item) =>
+            clampText(
+              `${item.chapterIndex ? `第${item.chapterIndex}章 ` : ""}${item.storyTime ? `${item.storyTime} ` : ""}${item.title || item.summary}：${item.summary}`,
+              360,
+            ),
+          ),
+          foreshadowings: foreshadowings.map((item) =>
+            clampText(
+              `${item.title || "伏笔"}（${item.status}，重要度${item.importance}）：${item.hint}${item.payoff ? `；兑现方向：${item.payoff}` : ""}`,
+              360,
+            ),
+          ),
+        },
+        extraPrompt: body.extraPrompt,
+      });
+      const generationJob = await prisma.generationJob.create({
+        data: {
+          novelId: work.id,
+          chapterId: existingChapter?.id ?? null,
+          action: existingChapter?.content?.trim() ? "regenerate.all" : "chapter.generate",
+          status: "running",
+          providerId: primaryProvider.id,
+          modelUsed: providers[0]?.model ?? null,
+          promptTemplateKey: existingChapter?.content?.trim()
+            ? "regenerate.all"
+            : "chapter.generate",
+          promptSnapshot: userPrompt.slice(0, 20000),
+        },
+      });
+
       const result = await callAiText({
         providers,
-        preferredProviderId: selectedProvider.id,
+        preferredProviderId: primaryProvider.id,
         messages: [
           { role: "system", content: buildChapterSystemPrompt() },
           {
             role: "user",
-            content: buildChapterUserPrompt({
-              chapterIndex: body.index,
-              work: {
-                genreId: work.genreId,
-                genreLabel: work.genreLabel,
-                tags: work.tags ?? [],
-                platformLabel: work.platformLabel,
-                words: work.words,
-                dnaBookTitle: work.dnaBookTitle,
-                idea: work.idea,
-                title: work.title,
-                synopsis: work.synopsis,
-              },
-              outline,
-              extraPrompt: body.extraPrompt,
-            }),
+            content: userPrompt,
           },
         ],
         temperature: 0.85,
@@ -212,8 +381,22 @@ export async function POST(request: Request) {
       });
 
       if (!result.ok || !result.text) {
+        await prisma.generationJob.update({
+          where: { id: generationJob.id },
+          data: {
+            status: "failed",
+            error: result.upstreamMessage || "AI 生成失败",
+            providerId: result.providerId ?? primaryProvider.id,
+            modelUsed: result.modelUsed ?? providers[0]?.model ?? null,
+            inputTokens: result.usage?.inputTokens ?? null,
+            outputTokens: result.usage?.outputTokens ?? null,
+            totalTokens: result.usage?.totalTokens ?? null,
+            durationMs: result.durationMs ?? null,
+            completedAt: new Date(),
+          },
+        });
         return NextResponse.json(
-          { success: false, message: result.upstreamMessage || "AI 生成失败，请稍后重试。" },
+          { success: false, message: getReadableAiErrorMessage(result, aiZhCN.chapterGenerate.failed) },
           { status: 502 },
         );
       }
@@ -240,6 +423,18 @@ export async function POST(request: Request) {
       const contentParsed = chapterContentSchema.safeParse(contentInput);
       const content = contentParsed.success ? contentParsed.data : result.text.trim();
 
+      if (existingChapter?.content?.trim()) {
+        try {
+          await createChapterRevisionSnapshot({
+            workId: work.id,
+            index: body.index,
+            source: "ai_regenerate",
+          });
+        } catch (revisionError) {
+          console.error("create chapter revision failed", revisionError);
+        }
+      }
+
       const chapter = await prisma.chapter.upsert({
         where: { workId_index: { workId: work.id, index: body.index } },
         create: {
@@ -248,12 +443,14 @@ export async function POST(request: Request) {
           title,
           content,
           wordCount: countWords(content),
+          status: "written",
           details: [],
         },
         update: {
           title,
           content,
           wordCount: countWords(content),
+          status: "written",
         },
         select: {
           id: true,
@@ -266,6 +463,32 @@ export async function POST(request: Request) {
           details: true,
           updatedAt: true,
           createdAt: true,
+        },
+      });
+
+      await prisma.generationJob.update({
+        where: { id: generationJob.id },
+        data: {
+          chapterId: chapter.id,
+          status: "success",
+          providerId: result.providerId ?? primaryProvider.id,
+          modelUsed: result.modelUsed ?? providers[0]?.model ?? null,
+          resultSummary: `已生成第${body.index}章，${countWords(content)}字。`,
+          inputTokens: result.usage?.inputTokens ?? null,
+          outputTokens: result.usage?.outputTokens ?? null,
+          totalTokens: result.usage?.totalTokens ?? null,
+          durationMs: result.durationMs ?? null,
+          completedAt: new Date(),
+        },
+      });
+
+      await prisma.generationJob.create({
+        data: {
+          novelId: work.id,
+          chapterId: chapter.id,
+          action: "context.extract",
+          status: "queued",
+          resultSummary: "章节生成后等待后台提取上下文记忆。",
         },
       });
 

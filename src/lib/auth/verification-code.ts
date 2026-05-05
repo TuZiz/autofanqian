@@ -9,7 +9,10 @@ import {
 } from "@prisma/client";
 
 import {
+  VERIFICATION_CODE_EMAIL_HOURLY_LIMIT,
+  VERIFICATION_CODE_IP_HOURLY_LIMIT,
   VERIFICATION_CODE_LENGTH,
+  VERIFICATION_CODE_MAX_FAILED_ATTEMPTS,
   VERIFICATION_CODE_RESEND_SECONDS,
   VERIFICATION_CODE_TTL_SECONDS,
 } from "@/lib/auth/constants";
@@ -22,6 +25,8 @@ type PrismaLikeClient = PrismaClient | Prisma.TransactionClient;
 type CreateCodeInput = {
   email: string;
   purpose: EmailVerificationPurpose;
+  ip?: string;
+  userAgent?: string;
 };
 
 type ConsumeCodeInput = {
@@ -42,9 +47,11 @@ export function hashVerificationCode(code: string) {
 export async function createVerificationCode({
   email,
   purpose,
+  ip,
+  userAgent,
 }: CreateCodeInput) {
   const latestCode = await prisma.emailVerificationCode.findFirst({
-    where: { email, purpose },
+    where: { email },
     orderBy: { createdAt: "desc" },
   });
 
@@ -70,6 +77,33 @@ export async function createVerificationCode({
     }
   }
 
+  const hourStart = new Date(Date.now() - 60 * 60 * 1000);
+  const emailHourlyCount = await prisma.emailVerificationCode.count({
+    where: {
+      email,
+      createdAt: { gte: hourStart },
+    },
+  });
+
+  if (emailHourlyCount >= VERIFICATION_CODE_EMAIL_HOURLY_LIMIT) {
+    throw new AuthApiError(429, zhCN.auth.error.codeSendTooFrequent, {
+      email: [zhCN.auth.error.codeSendTooFrequent],
+    });
+  }
+
+  if (ip) {
+    const ipHourlyCount = await prisma.emailVerificationCode.count({
+      where: {
+        requestIp: ip,
+        createdAt: { gte: hourStart },
+      },
+    });
+
+    if (ipHourlyCount >= VERIFICATION_CODE_IP_HOURLY_LIMIT) {
+      throw new AuthApiError(429, zhCN.auth.error.codeSendTooFrequent);
+    }
+  }
+
   const code = generateVerificationCode();
   const expiresAt = new Date(
     Date.now() + VERIFICATION_CODE_TTL_SECONDS * 1000
@@ -80,6 +114,8 @@ export async function createVerificationCode({
       email,
       purpose,
       codeHash: hashVerificationCode(code),
+      requestIp: ip,
+      userAgent,
       expiresAt,
     },
   });
@@ -115,8 +151,17 @@ export async function consumeVerificationCode(
   }
 
   if (record.usedAt) {
-    throw new AuthApiError(400, zhCN.auth.error.codeUnavailable, {
-      code: [zhCN.auth.error.codeUnavailable],
+    throw new AuthApiError(400, zhCN.auth.error.codeUsed, {
+      code: [zhCN.auth.error.codeUsed],
+    });
+  }
+
+  if (
+    record.lockedAt ||
+    record.failedAttempts >= VERIFICATION_CODE_MAX_FAILED_ATTEMPTS
+  ) {
+    throw new AuthApiError(400, zhCN.auth.error.codeTooManyFailures, {
+      code: [zhCN.auth.error.codeTooManyFailures],
     });
   }
 
@@ -127,6 +172,25 @@ export async function consumeVerificationCode(
   }
 
   if (record.codeHash !== hashVerificationCode(code)) {
+    const nextFailedAttempts = record.failedAttempts + 1;
+    await db.emailVerificationCode.update({
+      where: { id: record.id },
+      data: {
+        failedAttempts: { increment: 1 },
+        lockedAt:
+          nextFailedAttempts >= VERIFICATION_CODE_MAX_FAILED_ATTEMPTS
+            ? new Date()
+            : undefined,
+      },
+      select: { id: true },
+    });
+
+    if (nextFailedAttempts >= VERIFICATION_CODE_MAX_FAILED_ATTEMPTS) {
+      throw new AuthApiError(400, zhCN.auth.error.codeTooManyFailures, {
+        code: [zhCN.auth.error.codeTooManyFailures],
+      });
+    }
+
     throw new AuthApiError(400, zhCN.auth.error.codeIncorrect, {
       code: [zhCN.auth.error.codeIncorrect],
     });

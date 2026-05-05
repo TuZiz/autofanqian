@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { callAiText, getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
+import {
+  buildAiProviderChain,
+  callAiText,
+  getAiProvidersFromEnv,
+  getProviderApiKeyEnvName,
+  getReadableAiErrorMessage,
+} from "@/lib/ai/upstream-text";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getAiModelConfig } from "@/lib/config/ai-model";
@@ -141,12 +147,14 @@ export async function POST(request: Request) {
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.templatesLearn;
 
-  const selectedProvider = providersFromEnv.find(
-    (provider) => provider.id === target.providerId,
-  );
+  const providers = buildAiProviderChain({
+    providers: providersFromEnv,
+    preferredProviderId: target.providerId,
+    overrideModel: target.model,
+  });
 
-  if (!selectedProvider) {
-    const envKey = target.providerId === "primary" ? "AI_API_KEY" : "ARK_API_KEY";
+  if (!providers.length) {
+    const envKey = getProviderApiKeyEnvName(target.providerId);
     return NextResponse.json(
       {
         success: false,
@@ -156,13 +164,6 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-
-  const providers = [
-    {
-      ...selectedProvider,
-      model: target.model ?? selectedProvider.model,
-    },
-  ];
 
   let body: z.infer<typeof bodySchema>;
   try {
@@ -250,7 +251,7 @@ export async function POST(request: Request) {
       temperature: 0.7,
       maxTokens: 800,
       attempts: 3,
-      preferredProviderId: target.providerId,
+      preferredProviderId: providers[0]?.id ?? target.providerId,
     });
 
     await logAiUsage({
@@ -260,25 +261,10 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok || !response.text) {
-      const upstreamMessage = response.upstreamMessage;
-
       return NextResponse.json(
         {
           success: false,
-          message:
-            response.status === 401
-              ? "AI 学习失败：鉴权失败，请检查 AI_API_KEY / ARK_API_KEY。"
-              : response.status === 429
-                ? "AI 学习失败：上游限流（429），请稍后重试。"
-                : response.status === 503
-                  ? "AI 学习失败：上游服务暂不可用（503），请稍后重试。"
-                  : response.status === 502
-                    ? "AI 学习失败：上游网关异常（502），请稍后重试。"
-                    : typeof upstreamMessage === "string"
-                      ? `AI 学习失败：${upstreamMessage}${
-                          response.status ? `（HTTP ${response.status}）` : ""
-                        }`
-                      : `AI 学习失败（HTTP ${response.status || 0}）。`,
+          message: getReadableAiErrorMessage(response, "AI 学习失败，请稍后重试。"),
         },
         { status: 502 },
       );

@@ -1,6 +1,6 @@
 "use client";
 
-import { Key, PencilLine, Search, Shield, Trash2 } from "lucide-react";
+import { Key, Lock, PencilLine, Search, Shield, Trash2 } from "lucide-react";
 
 import { formatDateTime } from "@/lib/admin/users-format";
 import type { AdminUsersController } from "@/lib/admin/use-admin-users";
@@ -20,7 +20,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="group relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-emerald-600" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500 transition-colors group-focus-within:text-emerald-600" />
             <input
               value={users.query}
               onChange={(event) => users.setQuery(event.target.value)}
@@ -50,7 +50,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
               <th className="px-6 py-4 font-semibold">编号</th>
               <th className="px-6 py-4 font-semibold">邮箱</th>
               <th className="px-6 py-4 font-semibold">昵称</th>
-              <th className="px-6 py-4 font-semibold">角色</th>
+              <th className="px-6 py-4 font-semibold">用户组</th>
               <th className="px-6 py-4 font-semibold">状态</th>
               <th className="px-6 py-4 font-semibold">注册时间</th>
               <th className="px-6 py-4 font-semibold">最后登录</th>
@@ -62,15 +62,13 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
               <EmptyRow text="正在加载..." />
             ) : users.users.length ? (
               users.users.map((user) => (
-                <tr
-                  key={user.id}
-                  className="group transition-colors hover:bg-white/30 dark:hover:bg-white/5"
-                >
+                <tr key={user.id} className="group transition-colors hover:bg-white/30 dark:hover:bg-white/5">
                   <td className="theme-muted px-6 py-4 font-mono text-xs">{user.code}</td>
                   <td className="px-6 py-4">
                     <EditableValue
                       title="编辑邮箱"
                       value={user.email}
+                      disabled={user.isRootAdmin && !users.isRootAdmin}
                       onClick={() => users.openUserEditor(user, "email")}
                     />
                   </td>
@@ -78,6 +76,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                     <EditableValue
                       title="编辑昵称"
                       value={user.name?.trim() || "-"}
+                      disabled={user.isRootAdmin && !users.isRootAdmin}
                       onClick={() => users.openUserEditor(user, "name")}
                     />
                   </td>
@@ -87,12 +86,18 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                         "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
                         user.isAdmin
                           ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
-                          : "border-white/20 bg-white/30 text-slate-700 dark:text-slate-200",
+                          : "border-white/20 bg-white/30 text-stone-700 dark:text-stone-200",
                       ].join(" ")}
                     >
                       {user.isAdmin ? <Shield className="h-3 w-3" /> : null}
-                      {user.isAdmin ? "管理员" : "普通用户"}
+                      {user.displayGroup}
                     </span>
+                    {user.isRootAdmin ? (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-200">
+                        <Lock className="h-3 w-3" />
+                        根管理员
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-start justify-between gap-3">
@@ -117,7 +122,8 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                       <button
                         type="button"
                         onClick={() => users.openUserEditor(user)}
-                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600"
+                        disabled={user.isRootAdmin && !users.isRootAdmin}
+                        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
                         title="编辑状态"
                       >
                         <PencilLine className="h-4 w-4" />
@@ -131,11 +137,12 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                     {formatDateTime(user.lastLoginAt)}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                       <button
                         type="button"
                         onClick={() => users.setPasswordEditor({ user, value: "" })}
-                        className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-amber-500/10 hover:text-amber-600"
+                        disabled={user.isRootAdmin && !users.isRootAdmin}
+                        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-amber-500/10 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
                         title="修改密码"
                       >
                         <Key className="h-4 w-4" />
@@ -143,8 +150,9 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                       <button
                         type="button"
                         onClick={() => void users.handleDeleteUser(user)}
-                        className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-rose-500/10 hover:text-rose-600"
-                        title="删除用户"
+                        disabled={user.isRootAdmin}
+                        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-red-500/10 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                        title={user.isRootAdmin ? "根管理员账号不能删除" : "删除用户"}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -198,10 +206,12 @@ function EmptyRow({ text }: { text: string }) {
 }
 
 function EditableValue({
+  disabled,
   onClick,
   title,
   value,
 }: {
+  disabled?: boolean;
   onClick: () => void;
   title: string;
   value: string;
@@ -212,7 +222,8 @@ function EditableValue({
       <button
         type="button"
         onClick={onClick}
-        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600"
+        disabled={disabled}
+        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
         title={title}
       >
         <PencilLine className="h-4 w-4" />

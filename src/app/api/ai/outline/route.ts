@@ -6,15 +6,24 @@ import {
   buildOutlineUserPrompt,
 } from "@/lib/ai/outline-prompt";
 import { logAiUsage } from "@/lib/ai/usage-log";
-import { callAiText, getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
-import { isAdminEmail } from "@/lib/auth/admin";
+import {
+  buildAiProviderChain,
+  callAiText,
+  getAiProvidersFromEnv,
+  getProviderApiKeyEnvName,
+  getReadableAiErrorMessage,
+} from "@/lib/ai/upstream-text";
+import { isAdminUser } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
+import { getPlanningConfig } from "@/lib/config/planning";
 import {
   normalizeStoryOutline,
   storyOutlineSchema,
 } from "@/lib/create/outline-schema";
+import { normalizeProgressiveOutline } from "@/lib/create/progressive-planning";
 
 export const runtime = "nodejs";
 
@@ -109,7 +118,6 @@ async function researchBookFromWeb(title: string) {
   const sources: Array<{ url: string; snippet: string }> = [];
 
   for (const url of links.slice(0, 2)) {
-    // Jina AI reader proxy: returns a readable text view of the page.
     const readerUrl = `https://r.jina.ai/${url}`;
     const page = await fetchTextWithTimeout(readerUrl, {
       headers: { Accept: "text/plain" },
@@ -164,30 +172,24 @@ export async function POST(request: Request) {
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.outlineGenerate;
 
-  const selectedProvider = providersFromEnv.find(
-    (provider) => provider.id === target.providerId,
-  );
+  const providers = buildAiProviderChain({
+    providers: providersFromEnv,
+    preferredProviderId: target.providerId,
+    overrideModel: target.model,
+  });
 
-  if (!selectedProvider) {
-    const envKey = target.providerId === "primary" ? "AI_API_KEY" : "ARK_API_KEY";
+  if (!providers.length) {
+    const envKey = getProviderApiKeyEnvName(target.providerId);
     return NextResponse.json(
       {
         success: false,
-        message:
-          `AI 未配置：当前“生成大纲”配置使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
+        message: `AI 未配置：当前“生成大纲”配置使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
       },
       { status: 500 },
     );
   }
 
-  const providers = [
-    {
-      ...selectedProvider,
-      model: target.model ?? selectedProvider.model,
-    },
-  ];
-
-  const isAdmin = isAdminEmail(user.email);
+  const isAdmin = isAdminUser(user);
   const uiConfig = await getCreateUiConfig();
   const genreMeta = uiConfig.genres.find((item) => item.id === parsed.data.genre);
   if (!genreMeta) {
@@ -239,7 +241,12 @@ export async function POST(request: Request) {
 
   const webSources = dnaBookTitle && isAdmin ? await researchBookFromWeb(dnaBookTitle) : [];
 
-  const systemPrompt = buildOutlineSystemPrompt();
+  const systemPrompt = [
+    buildOutlineSystemPrompt(),
+    "",
+    "重要约束：只生成全书宏观卷纲和首个可写窗口，不要一次性展开长期目标的全部章节。",
+    "首个详细窗口默认控制在 20-40 章内，单次详细规划绝对不能超过 60 章；后续章节只保留宏观卷方向。",
+  ].join("\n");
   const userPrompt = buildOutlineUserPrompt({
     genreLabel,
     tags: effectiveTags.length ? effectiveTags : undefined,
@@ -268,23 +275,10 @@ export async function POST(request: Request) {
   await logAiUsage({ userId: user.id, action: "outline_generate", result: first });
 
   if (!first.ok || !first.text) {
-    const upstreamMessage = first.upstreamMessage;
-
     return NextResponse.json(
       {
         success: false,
-        message:
-          first.status === 401
-            ? "AI 服务鉴权失败，请检查 AI_API_KEY / ARK_API_KEY。"
-            : first.status === 429
-              ? "AI 服务请求过于频繁（上游限流），请稍后重试。"
-              : first.status === 503
-                ? "AI 服务暂时不可用（上游拥堵或维护），请稍后重试。"
-                : first.status === 502
-                  ? "AI 服务暂时不可用（上游网关异常 502），请稍后重试。"
-                  : typeof upstreamMessage === "string"
-                    ? `AI 服务调用失败：${upstreamMessage}${first.status ? `（HTTP ${first.status}）` : ""}`
-                    : "AI 服务调用失败，请稍后重试。",
+        message: getReadableAiErrorMessage(first, aiZhCN.outline.generateFailed),
       },
       { status: 502 },
     );
@@ -331,9 +325,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const planningConfig = await getPlanningConfig();
+  const progressive = normalizeProgressiveOutline(normalizeStoryOutline(validated.data), {
+    config: planningConfig,
+    preset: "smart",
+  });
+
   return NextResponse.json({
     success: true,
-    message: "大纲生成成功。",
-    data: { story: normalizeStoryOutline(validated.data) },
+    message: aiZhCN.outline.success,
+    data: { story: progressive.outline },
   });
 }

@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,7 @@ function getDisabledReason({
   if (!work) return "作品数据还没有加载完成，暂时不能切换章节。";
   if (dirty) return "当前章节还有未保存内容，保存完成后才能切换。";
   if (saving) return "正文正在保存，保存完成后才能切换章节。";
-  if (effectiveAiBusy) return "AI 正在处理当前章节，请等待任务完成。";
+  if (effectiveAiBusy) return aiZhCN.common.chapterBusy;
   if (metaSaving) return "章节设定正在保存，请稍后再切换。";
   return "";
 }
@@ -66,7 +67,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
       <button
         type="button"
         aria-label="关闭章节命令面板"
-        className="absolute inset-0 cursor-pointer bg-slate-950/30 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 cursor-pointer bg-stone-950/30 backdrop-blur-md transition-opacity"
         onClick={closeDialog}
       />
 

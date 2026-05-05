@@ -27,7 +27,7 @@ export function useAuthToast() {
     setToast({ message, success });
     timerRef.current = window.setTimeout(() => {
       setToast(null);
-    }, 3000);
+    }, success ? 3000 : 6000);
   }
 
   return {

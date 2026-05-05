@@ -4,8 +4,14 @@ import { z } from "zod";
 
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
-import { isAdminEmail, requireAdminUser } from "@/lib/auth/admin";
+import {
+  getUserAccessSnapshot,
+  isRootAdminUser,
+  requireAdminUser,
+} from "@/lib/auth/admin";
+import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { hashPassword } from "@/lib/auth/password";
+import { revokeUserSessions } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -28,7 +34,7 @@ export async function POST(
   context: { params: Promise<{ id?: string }> },
 ) {
   try {
-    await requireAdminUser();
+    const adminUser = await requireAdminUser();
 
     const rawParams = await context.params;
     const params = paramsSchema.parse({ id: rawParams.id ?? "" });
@@ -36,6 +42,22 @@ export async function POST(
 
     const effectivePassword = body.password?.trim() || generateTempPassword();
     const passwordHash = await hashPassword(effectivePassword);
+
+    const before = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        membershipTier: true,
+      },
+    });
+    if (!before) {
+      throw new AuthApiError(404, "用户不存在");
+    }
+    if (isRootAdminUser(before) && !isRootAdminUser(adminUser)) {
+      throw new AuthApiError(403, "根管理员账号受保护，普通管理员不能重置密码。");
+    }
 
     const user = await prisma.user.update({
       where: { id: params.id },
@@ -46,16 +68,27 @@ export async function POST(
         email: true,
         name: true,
         emailVerified: true,
+        role: true,
+        membershipTier: true,
         lastLoginAt: true,
         createdAt: true,
       },
+    });
+    await revokeUserSessions(params.id);
+    await recordAdminAuditLog({
+      request,
+      adminUser,
+      action: "user.reset_password",
+      targetType: "User",
+      targetId: user.id,
+      after: { userId: user.id, tempPassword: "[已隐藏]" },
     });
 
     return successResponse(
       {
         user: {
           ...user,
-          isAdmin: isAdminEmail(user.email),
+          ...getUserAccessSnapshot(user),
           hasPassword: true,
         },
         tempPassword: effectivePassword,

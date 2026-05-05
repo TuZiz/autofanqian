@@ -1,13 +1,16 @@
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
-import { isAdminEmail } from "@/lib/auth/admin";
+import { isAdminUser } from "@/lib/auth/admin";
 import { errorResponse, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
+import type { StoryOutline } from "@/lib/create/outline-draft";
+import { getEffectivePlannedUntil, inferTargetChapters } from "@/lib/create/progressive-planning";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const paramsSchema = z.object({
   id: z.string().min(1).max(64),
@@ -30,10 +33,14 @@ async function requireWorkAccess(params: {
       userId: true,
       title: true,
       tag: true,
+      outline: true,
+      targetChapters: true,
+      plannedUntilChapter: true,
+      deletedAt: true,
     },
   });
 
-  if (!work) {
+  if (!work || work.deletedAt) {
     throw new AuthApiError(404, "作品不存在或已被删除。");
   }
 
@@ -77,11 +84,11 @@ export async function GET(
     const rawParams = await context.params;
     const params = paramsSchema.parse({ id: rawParams.id ?? "" });
 
-    const isAdmin = isAdminEmail(user.email);
+    const isAdmin = isAdminUser(user);
     const work = await requireWorkAccess({ workId: params.id, userId: user.id, isAdmin });
 
     const chapters = await prisma.chapter.findMany({
-      where: { workId: work.id },
+      where: { workId: work.id, deletedAt: null },
       orderBy: { index: "asc" },
       select: {
         id: true,
@@ -98,6 +105,12 @@ export async function GET(
 
     const maxIndex = chapters.reduce((max, chapter) => Math.max(max, chapter.index), 0);
     const { lastEditedIndex, nextIndex } = getSequentialChapterProgress(chapters);
+    const plannedUntilChapter = getEffectivePlannedUntil({
+      outline: work.outline as unknown as StoryOutline,
+      plannedUntilChapter: work.plannedUntilChapter,
+      maxWrittenChapter: maxIndex,
+    });
+    const safeNextIndex = Math.min(nextIndex, Math.max(1, plannedUntilChapter));
 
     return successResponse(
       {
@@ -105,8 +118,10 @@ export async function GET(
           id: work.id,
           title: work.title,
           tag: work.tag,
+          targetChapters: work.targetChapters ?? inferTargetChapters(work.outline as unknown as StoryOutline),
+          plannedUntilChapter,
         },
-        nextIndex,
+        nextIndex: safeNextIndex,
         maxIndex,
         lastEditedIndex,
         chapters: chapters.map((chapter) => ({

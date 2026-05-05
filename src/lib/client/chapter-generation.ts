@@ -1,27 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 
-import { apiRequest, type AuthApiResponse } from "@/lib/client/auth-api";
+import { apiRequest } from "@/lib/client/auth-api";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 
-export const CHAPTER_AI_THINKING_COPY = [
-  "AI 生成中...",
-  "文本较长...",
-  "请等待...",
-] as const;
+export const CHAPTER_AI_THINKING_COPY = aiZhCN.chapterGenerate.thinking;
 
 export type ChapterGenerationStatus = "running" | "done" | "error";
-
-export type ChapterGenerationSnapshot = {
-  key: string;
-  workId: string;
-  index: number;
-  status: ChapterGenerationStatus;
-  progress: number;
-  startedAt: number;
-  updatedAt: number;
-  error?: string;
-};
+export type ChapterGenerationStage =
+  | "prepare"
+  | "context"
+  | "draft"
+  | "polish"
+  | "finalize";
 
 export type ChapterGenerationResult = {
   work: {
@@ -43,16 +35,44 @@ export type ChapterGenerationResult = {
   };
 };
 
+export type ChapterGenerationSnapshot = {
+  key: string;
+  workId: string;
+  index: number;
+  status: ChapterGenerationStatus;
+  stage?: ChapterGenerationStage;
+  progress: number;
+  startedAt: number;
+  updatedAt: number;
+  message?: string;
+  error?: string;
+  result?: ChapterGenerationResult;
+};
+
 type ChapterGenerationStore = Record<string, ChapterGenerationSnapshot>;
 
 const STORAGE_KEY = "iwriter.chapterGeneration.v1";
 const CHANGE_EVENT = "iwriter:chapter-generation-change";
 const RUNNING_TTL_MS = 30 * 60 * 1000;
-const FINISHED_TTL_MS = 2_000;
+const FINISHED_TTL_MS = 2_500;
 
-const inFlight = new Map<string, Promise<AuthApiResponse<ChapterGenerationResult>>>();
+const inFlight = new Map<string, Promise<
+  | { success: true; status: number; data: ChapterGenerationResult }
+  | { success: false; status?: number; message: string }
+>>();
 const progressTimers = new Map<string, number>();
 const cleanupTimers = new Map<string, number>();
+
+const CHAPTER_GENERATION_STAGE_META: Record<
+  ChapterGenerationStage,
+  { index: number; label: string }
+> = {
+  prepare: { index: 0, label: aiZhCN.chapterGenerate.stages.prepare },
+  context: { index: 1, label: aiZhCN.chapterGenerate.stages.context },
+  draft: { index: 2, label: aiZhCN.chapterGenerate.stages.draft },
+  polish: { index: 3, label: aiZhCN.chapterGenerate.stages.polish },
+  finalize: { index: 4, label: aiZhCN.chapterGenerate.stages.finalize },
+};
 
 export function getChapterGenerationKey(workId: string, index: number) {
   return `${workId}:${index}`;
@@ -109,7 +129,7 @@ function writeStore(store: ChapterGenerationStore) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   } catch {
-    // Storage can be unavailable in private modes; in-memory events still keep the UI synced.
+    // ignore localStorage failures
   }
 }
 
@@ -140,24 +160,47 @@ function removeSnapshot(key: string) {
 
 function clearProgressTimer(key: string) {
   const timer = progressTimers.get(key);
-  if (timer) {
-    window.clearInterval(timer);
-    progressTimers.delete(key);
-  }
+  if (!timer) return;
+  window.clearInterval(timer);
+  progressTimers.delete(key);
+}
+
+function clearCleanupTimer(key: string) {
+  const timer = cleanupTimers.get(key);
+  if (!timer) return;
+  window.clearTimeout(timer);
+  cleanupTimers.delete(key);
 }
 
 function scheduleSnapshotCleanup(key: string) {
-  const existing = cleanupTimers.get(key);
-  if (existing) {
-    window.clearTimeout(existing);
-  }
+  if (typeof window === "undefined") return;
 
+  clearCleanupTimer(key);
   const timer = window.setTimeout(() => {
     cleanupTimers.delete(key);
     removeSnapshot(key);
   }, FINISHED_TTL_MS);
-
   cleanupTimers.set(key, timer);
+}
+
+function getRunningGenerationStage(
+  elapsed: number,
+  progress: number,
+): ChapterGenerationStage {
+  if (progress >= 90 || elapsed >= 22_000) return "finalize";
+  if (progress >= 72 || elapsed >= 14_000) return "polish";
+  if (progress >= 38 || elapsed >= 6_000) return "draft";
+  if (progress >= 18 || elapsed >= 2_000) return "context";
+  return "prepare";
+}
+
+function getGenerationStageLabel(stage: ChapterGenerationStage) {
+  return CHAPTER_GENERATION_STAGE_META[stage].label;
+}
+
+function getGenerationStageIndex(stage?: ChapterGenerationStage) {
+  if (!stage) return 0;
+  return CHAPTER_GENERATION_STAGE_META[stage]?.index ?? 0;
 }
 
 function ensureProgressTimer(snapshot: ChapterGenerationSnapshot) {
@@ -175,12 +218,15 @@ function ensureProgressTimer(snapshot: ChapterGenerationSnapshot) {
       }
 
       const elapsed = Date.now() - current.startedAt;
-      const eased = 1 - Math.exp(-elapsed / 28_000);
-      const nextProgress = Math.min(96, Math.max(current.progress, 8 + eased * 88));
+      const eased = 1 - Math.exp(-elapsed / 22_000);
+      const nextProgress = Math.min(96, Math.max(current.progress, 10 + eased * 86));
+      const nextStage = getRunningGenerationStage(elapsed, nextProgress);
 
       setSnapshot({
         ...current,
+        stage: nextStage,
         progress: nextProgress,
+        message: getGenerationStageLabel(nextStage),
       });
     }, 320),
   );
@@ -188,7 +234,6 @@ function ensureProgressTimer(snapshot: ChapterGenerationSnapshot) {
 
 export function getChapterGenerationSnapshot(workId: string, index: number) {
   if (!workId || !Number.isFinite(index) || index <= 0) return null;
-
   return readStore()[getChapterGenerationKey(workId, index)] ?? null;
 }
 
@@ -196,7 +241,7 @@ export function getActiveChapterGeneration(workId?: string) {
   const snapshots = Object.values(readStore())
     .filter((item) => item.status === "running")
     .filter((item) => !workId || item.workId === workId)
-    .sort((a, b) => b.startedAt - a.startedAt);
+    .sort((left, right) => right.startedAt - left.startedAt);
 
   return snapshots[0] ?? null;
 }
@@ -261,27 +306,17 @@ export function useActiveChapterGeneration(workId?: string) {
   return snapshot;
 }
 
-export function useChapterGenerationThinkingCopy(active: boolean) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (!active) return;
-
-    const timer = window.setInterval(() => {
-      setIndex((current) => (current + 1) % CHAPTER_AI_THINKING_COPY.length);
-    }, 1400);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [active]);
-
+export function useChapterGenerationThinkingCopy(
+  snapshot?: Pick<ChapterGenerationSnapshot, "status" | "stage" | "message"> | null,
+) {
   return useMemo(
     () => ({
-      copy: CHAPTER_AI_THINKING_COPY[active ? index : 0] ?? CHAPTER_AI_THINKING_COPY[0],
-      index: active ? index : 0,
+      copy:
+        snapshot?.message?.trim() ||
+        CHAPTER_AI_THINKING_COPY[0],
+      index: getGenerationStageIndex(snapshot?.stage),
     }),
-    [active, index],
+    [snapshot?.message, snapshot?.stage],
   );
 }
 
@@ -289,7 +324,10 @@ export function startChapterGeneration(params: {
   workId: string;
   index: number;
   extraPrompt?: string;
-}): Promise<AuthApiResponse<ChapterGenerationResult>> {
+}): Promise<
+  | { success: true; status: number; data: ChapterGenerationResult }
+  | { success: false; status?: number; message: string }
+> {
   const { workId, index, extraPrompt } = params;
   const key = getChapterGenerationKey(workId, index);
   const current = getChapterGenerationSnapshot(workId, index);
@@ -302,9 +340,11 @@ export function startChapterGeneration(params: {
     return Promise.resolve({
       success: false,
       status: 409,
-      message: "该章节正在生成中，请等待生成结束后再操作。",
+      message: aiZhCN.common.chapterRunning,
     });
   }
+
+  clearCleanupTimer(key);
 
   const now = Date.now();
   const snapshot: ChapterGenerationSnapshot = {
@@ -312,9 +352,11 @@ export function startChapterGeneration(params: {
     workId,
     index,
     status: "running",
+    stage: "prepare",
     progress: 8,
     startedAt: now,
     updatedAt: now,
+    message: getGenerationStageLabel("prepare"),
   };
 
   setSnapshot(snapshot);
@@ -324,45 +366,45 @@ export function startChapterGeneration(params: {
     workId,
     index,
     extraPrompt: extraPrompt?.trim() || undefined,
-  }).then((response) => {
-    if (response.success) {
+  })
+    .then((response) => {
+      if (response.success && response.data) {
+        clearProgressTimer(key);
+        setSnapshot({
+          ...snapshot,
+          status: "done",
+          stage: "finalize",
+          progress: 100,
+          message: aiZhCN.chapterGenerate.doneApplied,
+          result: response.data,
+        });
+        scheduleSnapshotCleanup(key);
+        return {
+          success: true as const,
+          status: response.status ?? 200,
+          data: response.data,
+        };
+      }
+
       clearProgressTimer(key);
+      const message = response.message || aiZhCN.chapterGenerate.failed;
       setSnapshot({
         ...snapshot,
-        status: "done",
-        progress: 100,
+        status: "error",
+        progress: 0,
+        error: message,
+        message,
       });
       scheduleSnapshotCleanup(key);
-      return response;
-    }
-
-    if (response.status === 409) {
-      const running = getChapterGenerationSnapshot(workId, index);
-      if (running?.status === "running") return response;
-
-      const retrySnapshot: ChapterGenerationSnapshot = {
-        ...snapshot,
-        status: "running",
-        progress: Math.max(12, snapshot.progress),
-        updatedAt: Date.now(),
+      return {
+        success: false as const,
+        status: response.status,
+        message,
       };
-      setSnapshot(retrySnapshot);
-      ensureProgressTimer(retrySnapshot);
-      return response;
-    }
-
-    clearProgressTimer(key);
-    setSnapshot({
-      ...snapshot,
-      status: "error",
-      progress: 0,
-      error: response.message,
+    })
+    .finally(() => {
+      inFlight.delete(key);
     });
-    scheduleSnapshotCleanup(key);
-    return response;
-  }).finally(() => {
-    inFlight.delete(key);
-  });
 
   inFlight.set(key, request);
   return request;

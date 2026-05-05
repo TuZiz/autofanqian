@@ -132,7 +132,7 @@ export function useChapterEditorNavigation({
   const goToChapter = useCallback(
     async (targetIndex: number, options?: { autoAi?: boolean }) => {
       if (!workId || !Number.isFinite(targetIndex) || targetIndex <= 0) return;
-      const href = `/dashboard/work/${workId}/chapter/${targetIndex}${options?.autoAi ? "?ai=1" : ""}`;
+      const href = `/dashboard/novel/${workId}/chapter/${targetIndex}${options?.autoAi ? "?ai=1" : ""}`;
       router.push(href);
       window.setTimeout(() => {
         const current = `${window.location.pathname}${window.location.search}`;

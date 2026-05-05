@@ -19,6 +19,7 @@ export type StoryOutlineSegment = {
   startChapter: number;
   endChapter: number;
   desc: string;
+  status?: "locked" | "planned" | "drafting" | "written";
 };
 
 export type StoryOutlineVolume = {
@@ -26,6 +27,8 @@ export type StoryOutlineVolume = {
   desc: string;
   startChapter?: number;
   endChapter?: number;
+  detailLevel?: "macro" | "detailed";
+  status?: "locked" | "planned" | "active" | "completed";
   segments?: StoryOutlineSegment[];
 };
 
@@ -34,6 +37,9 @@ export type StoryOutline = {
   title: string;
   synopsis: string;
   totalChapters?: number;
+  targetChapters?: number;
+  plannedUntilChapter?: number;
+  planningMode?: "progressive";
   volumes: StoryOutlineVolume[];
   characters: Array<{ name: string; role: StoryOutlineRole; desc: string }>;
 };

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
+import { getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 
 import {
   clampProgress,
@@ -75,7 +76,7 @@ export function useChapterEditorMeta({
   const metaActionErrorTimerRef = useRef<number | null>(null);
   const progressTimersRef = useRef<number[]>([]);
   const pendingMetaPatchRef = useRef<MetaPatch | null>(null);
-  const hasChapterContent = Boolean(content.trim());
+  const hasChapterContent = Boolean((content ?? "").trim());
 
   useEffect(() => {
     return () => {
@@ -90,9 +91,11 @@ export function useChapterEditorMeta({
     };
   }, []);
 
-  const showMetaActionError = useCallback((kind: MetaActionKind, message = "先写正文") => {
+  const showMetaActionError = useCallback((kind: MetaActionKind, message?: string) => {
+    const resolvedMessage =
+      message || (kind === "details" ? getAiMetaCopy("details").emptyBody : getAiMetaCopy(kind).emptyBody);
     clearTimer(metaActionErrorTimerRef);
-    setMetaActionError({ kind, message });
+    setMetaActionError({ kind, message: resolvedMessage });
     metaActionErrorTimerRef.current = window.setTimeout(() => {
       setMetaActionError((current) => (current?.kind === kind ? null : current));
       metaActionErrorTimerRef.current = null;
@@ -235,7 +238,12 @@ export function useChapterEditorMeta({
           showMetaActionError(kind);
           return;
         }
-        setError(res.message || "AI 生成失败，请稍后重试。");
+        setError(
+          res.message ||
+            (kind === "details"
+              ? getAiMetaCopy("details").errorFallback
+              : getAiMetaCopy(kind).errorFallback),
+        );
         return;
       }
 
@@ -399,16 +407,16 @@ export function useChapterEditorMeta({
     metaSaving,
     openMetaEditor,
     outlineActionLabel: outlineBusy
-      ? `生成中 ${Math.round(clampProgress(outlineProgress))}%`
+      ? `${getAiMetaCopy("outline").generating} ${Math.round(clampProgress(outlineProgress))}%`
       : chapterOutlineText.trim()
-        ? "重新生成"
-        : "AI 生成",
+        ? getAiMetaCopy("outline").regenerate
+        : getAiMetaCopy("outline").generate,
     outlineActionError:
       metaActionError?.kind === "outline" ? metaActionError.message : "",
     outlineBusy,
     outlineGridActionLabel: outlineBusy
-      ? `大纲生成中 ${Math.round(clampProgress(outlineProgress))}%`
-      : "生成大纲",
+      ? `${getAiMetaCopy("outline").generating} ${Math.round(clampProgress(outlineProgress))}%`
+      : getAiMetaCopy("outline").generate,
     outlinePreviewLines: splitPreviewLines(chapterOutlineText, 4),
     outlineProgressPercent: Math.round(clampProgress(outlineProgress)),
     setMetaGenerateKind,

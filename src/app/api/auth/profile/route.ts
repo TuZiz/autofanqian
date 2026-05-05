@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
-import { isAdminEmail } from "@/lib/auth/admin";
+import { getUserAccessSnapshot } from "@/lib/auth/admin";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import { sessionUserSelect } from "@/lib/auth/user";
@@ -39,7 +39,7 @@ export async function PATCH(request: Request) {
       {
         user: {
           ...user,
-          isAdmin: isAdminEmail(user.email),
+          ...getUserAccessSnapshot(user),
         },
       },
       { message: "个人信息已保存。" },

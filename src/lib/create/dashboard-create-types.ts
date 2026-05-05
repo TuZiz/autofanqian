@@ -1,3 +1,5 @@
+import type { SessionAccessFields } from "@/lib/auth/session-user-types";
+
 export type GenreId = string;
 
 export type Genre = {
@@ -8,9 +10,8 @@ export type Genre = {
   icon: string;
 };
 
-export type SessionUser = {
+export type SessionUser = SessionAccessFields & {
   email: string;
-  isAdmin?: boolean;
 };
 
 export type CreateSelectOption = {

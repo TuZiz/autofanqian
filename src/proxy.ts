@@ -2,15 +2,14 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-import { verifySessionToken } from "@/lib/auth/session-token";
+import { parseSessionToken } from "@/lib/auth/session-token";
 
 const authRoutes = new Set(["/login", "/register", "/forgot-password"]);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = await verifySessionToken(sessionToken);
-  const isAuthenticated = Boolean(session?.userId);
+  const isAuthenticated = Boolean(parseSessionToken(sessionToken));
 
   if (pathname.startsWith("/dashboard") && !isAuthenticated) {
     const loginUrl = request.nextUrl.clone();

@@ -1,17 +1,20 @@
-export type AiModelSessionUser = {
+import type { SessionAccessFields } from "@/lib/auth/session-user-types";
+
+export type AiModelSessionUser = SessionAccessFields & {
   id: string;
   email: string;
-  isAdmin?: boolean;
 };
 
-export const AI_MODEL_PROVIDER_IDS = ["primary", "ark"] as const;
+export const AI_MODEL_PROVIDER_IDS = ["primary", "ark", "anthropic"] as const;
 export type AiModelProviderId = (typeof AI_MODEL_PROVIDER_IDS)[number];
+export type AiModelProviderProtocol = "chat" | "responses" | "anthropic";
 
 export const AI_MODEL_CONFIG_KEYS = [
   "ideaGenerate",
   "ideaAnalyze",
   "outlineGenerate",
   "chapterGenerate",
+  "chapterRewrite",
   "chapterSummary",
   "chapterOutline",
   "chapterDetails",
@@ -30,7 +33,7 @@ export type ProviderOption = {
   model: string;
   modelOptions: string[];
   baseUrl: string;
-  prefer: "chat" | "responses";
+  prefer: AiModelProviderProtocol;
 };
 
 export type AiModelTarget = {

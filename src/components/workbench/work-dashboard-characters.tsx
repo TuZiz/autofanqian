@@ -13,15 +13,15 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
   const [managerOpen, setManagerOpen] = useState(false);
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950 md:p-6">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300">
-            <Users className="h-4 w-4" />
+    <section className="rounded-3xl border border-zinc-200/50 bg-white/60 p-6 shadow-sm backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-900/60 md:p-8">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+            <Users className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-slate-950 dark:text-white">主要角色</h2>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <h2 className="text-xl font-black text-zinc-950 dark:text-white">主要角色</h2>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               角色矩阵 · {charCount}份档案
             </p>
           </div>
@@ -31,7 +31,7 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
           disabled={!charCount}
           onClick={() => setManagerOpen(true)}
           title={charCount ? "打开角色管理" : "暂无角色档案"}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:border-emerald-500/30 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-200"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-200/80 bg-white px-5 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-1 hover:ring-emerald-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/40"
         >
           <Settings2 className="h-4 w-4" />
           <span>管理角色</span>
@@ -39,7 +39,7 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
       </div>
 
       {charCount > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {outline!.characters.map((char, index) => {
             const displayRole = roleToDisplay(char.role);
             const isMain =
@@ -52,40 +52,40 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
               <article
                 key={index}
                 className={cn(
-                  "flex h-full min-h-[154px] flex-col rounded-lg border bg-slate-50 p-4 transition-colors hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-900/70",
+                  "group flex h-full min-h-[160px] flex-col rounded-2xl border bg-white/80 p-5 shadow-sm backdrop-blur-sm transition-all hover:shadow-md dark:bg-zinc-900/80",
                   isMain
-                    ? "border-emerald-200 dark:border-emerald-500/25"
-                    : "border-slate-200 dark:border-slate-800",
+                    ? "border-emerald-200/80 ring-1 ring-emerald-200/50 hover:ring-emerald-300 dark:border-emerald-500/30 dark:ring-emerald-500/20 dark:hover:ring-emerald-500/40"
+                    : "border-zinc-200/80 hover:ring-1 hover:ring-zinc-300 dark:border-zinc-800/80 dark:hover:ring-zinc-700",
                 )}
               >
-                <div className="mb-3 flex items-start gap-3">
+                <div className="mb-4 flex items-start gap-4">
                   <div
                     className={cn(
-                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border text-lg font-black",
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border text-xl font-black shadow-sm",
                       isMain
-                        ? "border-slate-950 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950"
-                        : "border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300",
+                        ? "border-emerald-400 bg-emerald-500 text-white dark:border-emerald-500 dark:bg-emerald-600 dark:text-zinc-50"
+                        : "border-zinc-200/80 bg-zinc-50 text-zinc-600 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300",
                     )}
                   >
                     {(char.name ?? "?").trim().slice(0, 1) || "?"}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-base font-black text-slate-950 dark:text-white">
+                    <h3 className="truncate text-lg font-black text-zinc-950 dark:text-white">
                       {char.name}
                     </h3>
                     <span
                       className={cn(
-                        "mt-1.5 inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold",
+                        "mt-2 inline-flex rounded-lg border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm",
                         isMain
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300"
-                          : "border-slate-200 bg-white text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400",
+                          ? "border-emerald-200/80 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+                          : "border-zinc-200/80 bg-zinc-50/80 text-zinc-500 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400",
                       )}
                     >
                       {displayRole}
                     </span>
                   </div>
                 </div>
-                <p className="line-clamp-4 text-sm font-medium leading-6 text-slate-600 dark:text-slate-300">
+                <p className="line-clamp-4 text-sm font-medium leading-relaxed text-zinc-600 dark:text-zinc-300">
                   {char.desc || "暂无人物小传。"}
                 </p>
               </article>
@@ -93,7 +93,7 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
           })}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-slate-300 p-10 text-center text-sm font-semibold text-slate-400 dark:border-slate-700 dark:text-slate-500">
+        <div className="rounded-3xl border border-dashed border-zinc-300/80 p-12 text-center text-sm font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-700/80 dark:text-zinc-400">
           暂无角色档案数据
         </div>
       )}
@@ -153,35 +153,35 @@ function CharacterManagerDialog({
       <button
         type="button"
         aria-label="关闭角色管理"
-        className="absolute inset-0 cursor-pointer bg-slate-950/35 backdrop-blur-md"
+        className="absolute inset-0 cursor-pointer bg-zinc-950/40 backdrop-blur-md"
         onClick={onClose}
       />
 
-      <div className="relative grid max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-950/20 dark:border-slate-800 dark:bg-slate-950 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="flex min-h-0 flex-col border-b border-slate-200 bg-[#fbfcf8] dark:border-slate-800 dark:bg-slate-900/80 lg:border-b-0 lg:border-r">
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5 dark:border-slate-800">
+      <div className="relative grid max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/90 shadow-2xl shadow-zinc-950/20 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/90 lg:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="flex min-h-0 flex-col border-b border-zinc-200/50 bg-white/50 dark:border-zinc-800/50 dark:bg-zinc-900/50 lg:border-b-0 lg:border-r">
+          <div className="flex items-start justify-between gap-4 border-b border-zinc-200/50 p-6 dark:border-zinc-800/50">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-700 dark:text-emerald-300">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
                 Character Matrix
               </p>
-              <h3 className="mt-1 text-xl font-black text-slate-950 dark:text-white">角色管理</h3>
-              <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <h3 className="mt-1 text-2xl font-black text-zinc-950 dark:text-white">角色管理</h3>
+              <p className="mt-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400">
                 {characters.length}份角色档案，可搜索、筛选和复制。
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200/80 bg-white text-zinc-500 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-zinc-300 dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
               aria-label="关闭"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="space-y-3 border-b border-slate-200 p-4 dark:border-slate-800">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-              <Search className="h-4 w-4 shrink-0 text-slate-400" />
+          <div className="space-y-4 border-b border-zinc-200/50 p-6 dark:border-zinc-800/50">
+            <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-white/80 px-4 py-3 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-950/80">
+              <Search className="h-4 w-4 shrink-0 text-zinc-500" />
               <input
                 value={query}
                 onChange={(event) => {
@@ -189,10 +189,10 @@ function CharacterManagerDialog({
                   setSelectedIndex(0);
                 }}
                 placeholder="搜索姓名、身份或动机"
-                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
+                className="min-w-0 flex-1 bg-transparent text-sm font-bold text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
               />
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {roleOptions.map((role) => (
                 <button
                   key={role}
@@ -202,10 +202,10 @@ function CharacterManagerDialog({
                     setSelectedIndex(0);
                   }}
                   className={cn(
-                    "rounded-md border px-2.5 py-1.5 text-xs font-black transition-colors active:scale-[0.98]",
+                    "rounded-xl border px-3 py-2 text-xs font-bold transition-all active:scale-[0.98]",
                     roleFilter === role
-                      ? "border-slate-950 bg-slate-950 text-white dark:border-white dark:bg-white dark:text-slate-950"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-900",
+                      ? "border-zinc-950 bg-zinc-950 text-white shadow-md dark:border-white dark:bg-white dark:text-zinc-950"
+                      : "border-zinc-200/80 bg-white/80 text-zinc-600 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 hover:shadow dark:border-zinc-800/80 dark:bg-zinc-950/80 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white",
                   )}
                 >
                   {role}
@@ -214,7 +214,7 @@ function CharacterManagerDialog({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {filteredCharacters.length ? (
               filteredCharacters.map((char, index) => {
                 const selected = index === selectedIndex;
@@ -224,20 +224,20 @@ function CharacterManagerDialog({
                     type="button"
                     onClick={() => setSelectedIndex(index)}
                     className={cn(
-                      "mb-2 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors",
+                      "mb-3 flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all",
                       selected
-                        ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/25 dark:bg-emerald-500/10"
-                        : "border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900",
+                        ? "border-emerald-300/80 bg-emerald-50/80 shadow-md ring-1 ring-emerald-300/50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:ring-emerald-500/20"
+                        : "border-zinc-200/80 bg-white/80 shadow-sm hover:border-zinc-300 hover:bg-zinc-50/80 hover:shadow dark:border-zinc-800/80 dark:bg-zinc-950/80 dark:hover:border-zinc-700",
                     )}
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-sm font-black text-white dark:bg-white dark:text-slate-950">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-950 text-base font-black text-white shadow-sm dark:bg-white dark:text-zinc-950">
                       {(char.name ?? "?").trim().slice(0, 1) || "?"}
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-sm font-black text-slate-950 dark:text-white">
+                      <span className="block truncate text-base font-black text-zinc-950 dark:text-white">
                         {char.name}
                       </span>
-                      <span className="mt-1 block truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+                      <span className="mt-1 block truncate text-xs font-bold text-zinc-500 dark:text-zinc-400">
                         {roleToDisplay(char.role)}
                       </span>
                     </span>
@@ -245,29 +245,29 @@ function CharacterManagerDialog({
                 );
               })
             ) : (
-              <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm font-semibold text-slate-400 dark:border-slate-700 dark:text-slate-500">
+              <div className="rounded-2xl border border-dashed border-zinc-300/80 p-8 text-center text-sm font-bold text-zinc-500 dark:border-zinc-700/80 dark:text-zinc-400">
                 没有匹配的角色。
               </div>
             )}
           </div>
         </div>
 
-        <div className="min-h-0 overflow-y-auto p-5 dark:bg-slate-950">
+        <div className="min-h-0 overflow-y-auto p-6 dark:bg-zinc-950/50">
           {selected ? (
             <div className="mx-auto max-w-2xl">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-4">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-950 text-2xl font-black text-white dark:border-slate-800 dark:bg-white dark:text-slate-950">
+              <div className="flex flex-wrap items-start justify-between gap-5">
+                <div className="flex min-w-0 items-center gap-5">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-zinc-200/50 bg-zinc-950 text-3xl font-black text-white shadow-lg dark:border-zinc-800/50 dark:bg-white dark:text-zinc-950">
                     {(selected.name ?? "?").trim().slice(0, 1) || "?"}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
                       Selected Role
                     </p>
-                    <h4 className="mt-1 truncate text-3xl font-black text-slate-950 dark:text-white">
+                    <h4 className="mt-1 truncate text-4xl font-black text-zinc-950 dark:text-white">
                       {selected.name}
                     </h4>
-                    <span className="mt-2 inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300">
+                    <span className="mt-3 inline-flex rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
                       {roleToDisplay(selected.role)}
                     </span>
                   </div>
@@ -275,24 +275,26 @@ function CharacterManagerDialog({
                 <button
                   type="button"
                   onClick={() => void handleCopy()}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm transition-colors hover:bg-slate-50 active:scale-[0.98] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-200/80 bg-white px-5 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-1 hover:ring-zinc-300 active:scale-[0.98] dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
                 >
                   {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                   {copied ? "已复制" : "复制全部"}
                 </button>
               </div>
 
-              <div className="mt-6 rounded-lg border border-slate-200 bg-[#fbfcf8] p-5 dark:border-slate-800 dark:bg-slate-900/70">
-                <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-950 dark:text-white">
-                  <UserRound className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+              <div className="mt-8 rounded-2xl border border-zinc-200/50 bg-white/50 p-6 shadow-inner dark:border-zinc-800/50 dark:bg-zinc-900/50">
+                <div className="mb-4 flex items-center gap-3 text-base font-black text-zinc-950 dark:text-white">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+                    <UserRound className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
                   人物定位与动机
                 </div>
-                <p className="whitespace-pre-wrap text-sm font-medium leading-7 text-slate-600 dark:text-slate-300">
+                <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-zinc-600 dark:text-zinc-300">
                   {selected.desc || "暂无人物小传。"}
                 </p>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
                 <InfoTile label="角色身份" value={roleToDisplay(selected.role)} />
                 <InfoTile label="管理状态" value="已接入" accent="emerald" />
                 <InfoTile label="档案来源" value="作品大纲" />
@@ -315,11 +317,11 @@ function InfoTile({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
-      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
+    <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/80">
+      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{label}</p>
       <p
         className={cn(
-          "mt-2 truncate text-sm font-black text-slate-950 dark:text-white",
+          "mt-2 truncate text-base font-black text-zinc-950 dark:text-white",
           accent === "emerald" && "text-emerald-700 dark:text-emerald-300",
         )}
       >

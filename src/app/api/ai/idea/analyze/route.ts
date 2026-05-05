@@ -6,10 +6,17 @@ import {
   buildIdeaAnalysisUserPrompt,
 } from "@/lib/ai/idea-analysis-prompt";
 import { logAiUsage } from "@/lib/ai/usage-log";
-import { callAiText, getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
-import { isAdminEmail } from "@/lib/auth/admin";
+import {
+  buildAiProviderChain,
+  callAiText,
+  getAiProvidersFromEnv,
+  getProviderApiKeyEnvName,
+  getReadableAiErrorMessage,
+} from "@/lib/ai/upstream-text";
+import { isAdminUser } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
+import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
 
 export const runtime = "nodejs";
@@ -82,17 +89,18 @@ export async function POST(request: Request) {
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.ideaAnalyze;
 
-  const selectedProvider = providers.find(
-    (provider) => provider.id === target.providerId,
-  );
+  const analysisProviders = buildAiProviderChain({
+    providers,
+    preferredProviderId: target.providerId,
+    overrideModel: target.model,
+  });
 
-  if (!selectedProvider) {
-    const envKey = target.providerId === "primary" ? "AI_API_KEY" : "ARK_API_KEY";
+  if (!analysisProviders.length) {
+    const envKey = getProviderApiKeyEnvName(target.providerId);
     return NextResponse.json(
       {
         success: false,
-        message:
-          `AI 未配置：当前“创意分析”配置使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
+        message: `AI 未配置：当前“创意分析”配置使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
       },
       { status: 500 },
     );
@@ -135,7 +143,7 @@ export async function POST(request: Request) {
   const wordsMeta = wordsId ? uiConfig.wordOptions.find((item) => item.id === wordsId) : null;
   const wordsText = wordsMeta ? wordsMeta.label : wordsId;
 
-  const isAdmin = isAdminEmail(user.email);
+  const isAdmin = isAdminUser(user);
   const dnaBookTitle = isAdmin ? parsed.data.dnaBookTitle?.trim() : undefined;
   const dnaText = dnaBookTitle
     ? `参考书名：${dnaBookTitle}（只抽象写法与结构，不复刻原作剧情）`
@@ -157,10 +165,6 @@ export async function POST(request: Request) {
       },
     ];
 
-  const analysisProviders = [
-    { ...selectedProvider, model: target.model ?? selectedProvider.model },
-  ];
-
   const first = await callAiText({
     providers: analysisProviders,
     preferredProviderId: target.providerId,
@@ -173,21 +177,10 @@ export async function POST(request: Request) {
   await logAiUsage({ userId: user.id, action: "idea_analyze", result: first });
 
   if (!first.ok || !first.text) {
-    const upstreamMessage = first.upstreamMessage;
-
     return NextResponse.json(
       {
         success: false,
-        message:
-          first.status === 401
-            ? "AI 服务鉴权失败，请检查 AI_API_KEY / ARK_API_KEY。"
-            : first.status === 429
-              ? "AI 服务请求过于频繁（上游限流），请稍后重试。"
-              : first.status === 503
-                ? "AI 服务暂时不可用（上游拥堵或维护），请稍后重试。"
-                : typeof upstreamMessage === "string"
-                  ? `AI 服务调用失败：${upstreamMessage}${first.status ? `（HTTP ${first.status}）` : ""}`
-                  : "AI 服务调用失败，请稍后重试。",
+        message: getReadableAiErrorMessage(first, aiZhCN.idea.analyzeFailed),
       },
       { status: 502 },
     );
@@ -224,14 +217,14 @@ export async function POST(request: Request) {
   const validated = analysisSchema.safeParse(analysisRaw);
   if (!validated.success) {
     return NextResponse.json(
-      { success: false, message: "创意分析解析失败，请点击“换一个”重试。" },
+      { success: false, message: aiZhCN.idea.parseFailed },
       { status: 502 },
     );
   }
 
   return NextResponse.json({
     success: true,
-    message: "创意分析生成成功。",
+    message: aiZhCN.idea.analyzeSuccess,
     data: { analysis: validated.data },
   });
 }

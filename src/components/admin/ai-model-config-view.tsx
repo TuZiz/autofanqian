@@ -25,7 +25,6 @@ import { cn } from "@/lib/utils";
 
 type AiModelRoute = {
   api: string;
-  defaultProvider: ProviderOption["id"];
   description: string;
   icon: LucideIcon;
   key: AiModelConfigKey;
@@ -44,7 +43,7 @@ const defaultConfig = getDefaultAiModelConfig();
 const routeGroups: AiModelRouteGroup[] = [
   {
     title: "创作入口",
-    description: "作品创建页的创意生成、卖点分析和标题建议。",
+    description: "创意、卖点、标题和受众分析。",
     accentClass:
       "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200",
     routes: [
@@ -52,15 +51,13 @@ const routeGroups: AiModelRouteGroup[] = [
         key: "ideaGenerate",
         title: "生成创意",
         api: "/api/ai/idea",
-        defaultProvider: "ark",
         icon: Sparkles,
-        description: "从题材、标签、平台和参考风格生成完整创意稿。",
+        description: "从题材、标签、平台和参考风格生成创意稿。",
       },
       {
         key: "ideaAnalyze",
         title: "创意分析",
         api: "/api/ai/idea/analyze",
-        defaultProvider: "primary",
         icon: ListChecks,
         description: "输出卖点、标题、关键词和目标读者。",
       },
@@ -68,7 +65,7 @@ const routeGroups: AiModelRouteGroup[] = [
   },
   {
     title: "大纲规划",
-    description: "负责作品级结构、卷纲、章节范围和后续延伸。",
+    description: "作品结构、卷纲和后续规划。",
     accentClass:
       "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200",
     routes: [
@@ -76,31 +73,36 @@ const routeGroups: AiModelRouteGroup[] = [
         key: "outlineGenerate",
         title: "生成大纲",
         api: "/api/ai/outline",
-        defaultProvider: "ark",
         icon: Layers3,
-        description: "把创意扩展成全书大纲、卷结构、人物与总章数。",
+        description: "把创意扩展成全书大纲、卷结构和章节范围。",
       },
     ],
   },
   {
-    title: "写作生产",
-    description: "直接影响正文生成质量、节奏和连续写作稳定性。",
+    title: "正文生产",
+    description: "正文生成、润色和重写。",
     accentClass:
-      "border-slate-300 bg-slate-100 text-slate-800 dark:border-white/15 dark:bg-white/10 dark:text-slate-100",
+      "border-stone-300 bg-stone-100 text-stone-800 dark:border-white/15 dark:bg-white/10 dark:text-stone-100",
     routes: [
       {
         key: "chapterGenerate",
         title: "生成章节正文",
         api: "/api/ai/chapter",
-        defaultProvider: "primary",
         icon: PenLine,
-        description: "根据设定、大纲和上一章状态生成章节正文。",
+        description: "根据设定、大纲和前文状态生成章节正文。",
+      },
+      {
+        key: "chapterRewrite",
+        title: "章节改写 / 润色",
+        api: "/api/ai/chapter/rewrite",
+        icon: RefreshCw,
+        description: "写作页里的润色、扩写、压缩、冲突检查。",
       },
     ],
   },
   {
     title: "章节辅助",
-    description: "写作页右侧工具：摘要、章纲和细节设定提取。",
+    description: "摘要、章节纲要和细节设定提取。",
     accentClass:
       "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-200",
     routes: [
@@ -108,31 +110,28 @@ const routeGroups: AiModelRouteGroup[] = [
         key: "chapterSummary",
         title: "生成章节摘要",
         api: "/api/ai/chapter/summary",
-        defaultProvider: "primary",
         icon: FileText,
-        description: "读取正文后生成本章摘要，用于连续性和回顾。",
+        description: "读正文后生成本章摘要，用于连续性回顾。",
       },
       {
         key: "chapterOutline",
         title: "生成章节大纲",
         api: "/api/ai/chapter/outline",
-        defaultProvider: "primary",
         icon: BookOpen,
-        description: "从全书大纲或正文中整理本章写作大纲。",
+        description: "从全书大纲或正文整理本章写作大纲。",
       },
       {
         key: "chapterDetails",
         title: "提取细节设定",
         api: "/api/ai/chapter/details",
-        defaultProvider: "primary",
         icon: KeyRound,
-        description: "抽取人物、地点、道具、组织和规则，避免前后矛盾。",
+        description: "抽取人物、地点、道具、组织和规则。",
       },
     ],
   },
   {
     title: "二次生成",
-    description: "统一管理已有内容的重新生成、重写、延伸和优化。",
+    description: "已有内容的重新生成和统一优化。",
     accentClass:
       "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-300/20 dark:bg-violet-300/10 dark:text-violet-200",
     routes: [
@@ -140,29 +139,29 @@ const routeGroups: AiModelRouteGroup[] = [
         key: "regenerateAll",
         title: "全部重新生成",
         api: "全局：已有内容二次生成",
-        defaultProvider: "primary",
         icon: RefreshCw,
-        description: "已有创意、已有章节、摘要、章纲、细节和大纲延伸统一走这里。",
+        description: "创意、章节、摘要、章节纲、细节和延展统一走这里。",
       },
     ],
   },
   {
     title: "管理工具",
-    description: "管理员专用的模板库学习和批量生成能力。",
+    description: "管理员专用的模板学习能力。",
     accentClass:
-      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-300/20 dark:bg-rose-300/10 dark:text-rose-200",
+      "border-red-200 bg-red-50 text-red-700 dark:border-red-300/20 dark:bg-red-300/10 dark:text-red-200",
     routes: [
       {
         key: "templatesLearn",
         title: "模板库学习生成",
         api: "/api/admin/templates/learn",
-        defaultProvider: "primary",
         icon: Route,
-        description: "根据近期创意和热门模板，生成新的预设模板内容。",
+        description: "根据近期创意和热门模板生成新的预设模板内容。",
       },
     ],
   },
 ];
+
+const allRoutes = routeGroups.flatMap((group) => group.routes);
 
 type AiModelConfigViewProps = {
   model: AiModelConfigController;
@@ -170,10 +169,7 @@ type AiModelConfigViewProps = {
 
 export function AiModelConfigView({ model }: AiModelConfigViewProps) {
   const configuredProviders = model.providers.filter((provider) => provider.configured).length;
-  const routeCount = routeGroups.reduce((total, group) => total + group.routes.length, 0);
-  const overrideCount = routeGroups
-    .flatMap((group) => group.routes)
-    .filter((route) => Boolean(model.config?.[route.key]?.model)).length;
+  const overrideCount = allRoutes.filter((route) => Boolean(model.config?.[route.key]?.model)).length;
 
   return (
     <main className="theme-page relative min-h-screen overflow-x-hidden pb-10 font-sans transition-[background-color,color]">
@@ -196,30 +192,28 @@ export function AiModelConfigView({ model }: AiModelConfigViewProps) {
       />
 
       <div className="relative z-10 mx-auto max-w-[1540px] px-4 pt-4 sm:px-5 lg:px-6">
-        <section className="rounded-lg border border-slate-200 bg-white/78 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <section className="rounded-lg border border-stone-200 bg-white/82 px-3 py-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-black text-slate-600 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300">
+                <span className="inline-flex h-8 items-center gap-2 rounded-md border border-stone-200 bg-stone-50 px-2.5 text-xs font-black text-stone-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-200">
                   <Route className="h-3.5 w-3.5" />
-                  AI Route Matrix
+                  Route Matrix
                 </span>
-                <MetricPill label="功能" value={`${routeCount}`} />
+                <MetricPill label="功能" value={`${allRoutes.length}`} />
                 <MetricPill label="线路" value={`${configuredProviders}/${model.providers.length}`} />
                 <MetricPill label="覆盖" value={`${overrideCount}`} />
-                <MetricPill label="模型源" value=".env.local" />
+                <MetricPill label="协议" value="OpenAI / Anthropic" />
               </div>
-              <h1 className="mt-3 text-2xl font-black leading-tight text-slate-950 dark:text-slate-50 md:text-3xl">
-                按功能分配 AI 生成链路
+              <h1 className="mt-2 text-xl font-black leading-tight text-stone-950 dark:text-stone-50 md:text-2xl">
+                按功能切换 AI 线路和模型
               </h1>
-              <p className="mt-2 max-w-5xl text-sm font-semibold leading-6 text-slate-600 dark:text-slate-400">
-                每个功能独立选择线路和模型；候选模型名从{" "}
-                <span className="font-mono text-slate-900 dark:text-slate-200">web/.env.local</span>{" "}
-                的 <span className="font-mono">*_MODEL_OPTIONS</span> 读取。二次生成统一由“全部重新生成”管理，后续新增功能直接加行，不再撑爆页面。
+              <p className="mt-1 max-w-4xl text-xs font-semibold leading-5 text-stone-600 dark:text-stone-400 sm:text-sm">
+                左侧维护功能路由，右侧查看环境线路。新增功能时只需要继续加入矩阵行，不会把页面撑成大表单。
               </p>
             </div>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
               <Link
                 href="/dashboard/admin"
                 className="theme-button-secondary inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-black active:scale-95"
@@ -228,7 +222,9 @@ export function AiModelConfigView({ model }: AiModelConfigViewProps) {
               </Link>
               <button
                 type="button"
-                onClick={() => model.setConfig(getDefaultAiModelConfig())}
+                onClick={() => {
+                  if (window.confirm("确定要恢复默认配置吗？当前所有自定义配置将丢失。")) model.setConfig(getDefaultAiModelConfig());
+                }}
                 className="theme-button-secondary inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-black active:scale-95"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -247,19 +243,18 @@ export function AiModelConfigView({ model }: AiModelConfigViewProps) {
           </div>
         </section>
 
-        <section className="mt-3 rounded-lg border border-slate-200 bg-white/76 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
-          <div className="grid gap-0 divide-y divide-slate-100 dark:divide-white/10">
-            {model.providers.map((provider) => (
-              <ProviderStrip key={provider.id} provider={provider} />
+        <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="space-y-3">
+            {routeGroups.map((group) => (
+              <RouteMatrixGroup key={group.title} group={group} model={model} />
             ))}
-          </div>
-        </section>
+          </section>
 
-        <section className="mt-3 space-y-3">
-          {routeGroups.map((group) => (
-            <RouteMatrixGroup key={group.title} group={group} model={model} />
-          ))}
-        </section>
+          <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
+            <ProviderStatusPanel providers={model.providers} />
+            <EnvReferencePanel providers={model.providers} />
+          </aside>
+        </div>
       </div>
     </main>
   );
@@ -267,72 +262,134 @@ export function AiModelConfigView({ model }: AiModelConfigViewProps) {
 
 function MetricPill({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-black text-slate-600 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
-      <span className="text-slate-400 dark:text-slate-500">{label}</span>
-      <span className="text-slate-950 dark:text-slate-50">{value}</span>
+    <span className="inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 text-xs font-black text-stone-600 shadow-sm dark:border-white/10 dark:bg-white/[0.03] dark:text-stone-300">
+      <span className="text-stone-500 dark:text-stone-400">{label}</span>
+      <span className="text-stone-950 dark:text-stone-50">{value}</span>
     </span>
   );
 }
 
-function ProviderStrip({ provider }: { provider: ProviderOption }) {
+function ProviderStatusPanel({ providers }: { providers: ProviderOption[] }) {
   return (
-    <article className="grid gap-3 p-3 md:grid-cols-[minmax(180px,0.7fr)_minmax(220px,1fr)_minmax(260px,1.2fr)] md:items-center">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-sm font-black text-slate-950 dark:text-slate-50">{provider.label}</h2>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-black",
-              provider.configured
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200"
-                : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-300/20 dark:bg-rose-300/10 dark:text-rose-200",
-            )}
+    <section className="overflow-hidden rounded-lg border border-stone-200 bg-white/82 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="flex items-center justify-between gap-3 border-b border-stone-100 px-3 py-2.5 dark:border-white/10">
+        <div>
+          <h2 className="text-sm font-black text-stone-950 dark:text-stone-50">线路状态</h2>
+          <p className="mt-0.5 text-[11px] font-bold text-stone-500 dark:text-stone-400">
+            env 决定可用线路，矩阵决定功能走向
+          </p>
+        </div>
+        <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-[11px] font-black text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
+          {providers.filter((provider) => provider.configured).length}/{providers.length}
+        </span>
+      </div>
+
+      <div className="divide-y divide-stone-100 dark:divide-white/10">
+        {providers.map((provider) => (
+          <ProviderRow key={provider.id} provider={provider} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ProviderRow({ provider }: { provider: ProviderOption }) {
+  const modelOptions = provider.modelOptions.slice(0, 2);
+  const hiddenOptions = Math.max(0, provider.modelOptions.length - modelOptions.length);
+
+  return (
+    <article className="px-3 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="truncate text-sm font-black text-stone-950 dark:text-stone-50">
+              {provider.label}
+            </h3>
+            <span className="rounded-md border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] font-black text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
+              {protocolLabel(provider.prefer)}
+            </span>
+          </div>
+          <p
+            title={provider.baseUrl}
+            className="mt-1 truncate font-mono text-[11px] font-bold text-stone-500 dark:text-stone-400"
           >
-            {provider.configured ? <CheckCircle2 className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
-            {provider.configured ? "已配置密钥" : `缺少 ${provider.apiKeyEnvKey}`}
+            {provider.baseUrl}
+          </p>
+        </div>
+
+        <StatusBadge configured={provider.configured} label={provider.configured ? "可用" : `缺少 ${provider.apiKeyEnvKey}`} />
+      </div>
+
+      <div className="mt-2 rounded-md border border-stone-200 bg-stone-50 px-2.5 py-2 dark:border-white/10 dark:bg-white/[0.04]">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] font-black uppercase text-stone-500 dark:text-stone-400">
+            默认模型
+          </span>
+          <span className="font-mono text-[10px] font-black text-stone-500 dark:text-stone-400">
+            {provider.envModelKey}
           </span>
         </div>
-        <p className="mt-1 truncate font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400">
-          {provider.baseUrl}
+        <p
+          title={provider.model}
+          className="mt-1 truncate font-mono text-xs font-black text-stone-800 dark:text-stone-100"
+        >
+          {provider.model || "-"}
         </p>
       </div>
 
-      <div className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2 dark:border-white/10 dark:bg-white/[0.04]">
-        <div className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">
-          默认模型
-        </div>
-        <div className="mt-0.5 truncate font-mono text-xs font-black text-slate-800 dark:text-slate-100">
-          {provider.envModelKey}={provider.model || "-"}
-        </div>
-      </div>
-
-      <div className="min-w-0">
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">
-            候选模型
-          </span>
-          <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[10px] font-black text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
-            {provider.prefer}
-          </span>
-        </div>
-        <div className="flex min-h-7 flex-wrap gap-1">
-          {provider.modelOptions.length ? (
-            provider.modelOptions.map((option) => (
-              <span
-                key={option}
-                className="max-w-[220px] truncate rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-[11px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300"
-              >
-                {option}
-              </span>
-            ))
-          ) : (
-            <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-400 dark:border-white/10 dark:bg-white/[0.03]">
-              未配置 *_MODEL_OPTIONS
+      <div className="mt-2 flex min-h-7 flex-wrap gap-1">
+        {modelOptions.length ? (
+          modelOptions.map((option) => (
+            <span
+              key={option}
+              title={option}
+              className="max-w-[145px] truncate rounded-md border border-stone-200 bg-white px-2 py-1 font-mono text-[11px] font-bold text-stone-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-stone-300"
+            >
+              {option}
             </span>
-          )}
-        </div>
+          ))
+        ) : (
+          <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] font-bold text-stone-500 dark:border-white/10 dark:bg-white/[0.03]">
+            未配置候选模型
+          </span>
+        )}
+        {hiddenOptions ? (
+          <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-[11px] font-black text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
+            +{hiddenOptions}
+          </span>
+        ) : null}
       </div>
     </article>
+  );
+}
+
+function EnvReferencePanel({ providers }: { providers: ProviderOption[] }) {
+  return (
+    <section className="overflow-hidden rounded-lg border border-stone-200 bg-white/76 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="border-b border-stone-100 px-3 py-2.5 dark:border-white/10">
+        <h2 className="text-sm font-black text-stone-950 dark:text-stone-50">环境键</h2>
+      </div>
+      <div className="divide-y divide-stone-100 dark:divide-white/10">
+        {providers.map((provider) => (
+          <div key={provider.id} className="grid gap-1 px-3 py-2.5 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-black text-stone-700 dark:text-stone-200">{provider.label}</span>
+              <span className="font-mono text-[10px] font-black text-stone-500 dark:text-stone-400">
+                {provider.prefer}
+              </span>
+            </div>
+            <p className="truncate font-mono font-bold text-stone-500 dark:text-stone-400">
+              {apiKeyEnvName(provider.id)} / {provider.envModelKey}
+            </p>
+          </div>
+        ))}
+        <div className="px-3 py-2.5">
+          <p className="font-mono text-[11px] font-bold leading-5 text-stone-500 dark:text-stone-400">
+            ANTHROPIC_BASE_URL 可填 https://token-plan-cn.xiaomimimo.com/anthropic
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -344,31 +401,31 @@ function RouteMatrixGroup({
   model: AiModelConfigController;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white/82 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="flex flex-col gap-2 border-b border-slate-100 px-3 py-2.5 dark:border-white/10 md:flex-row md:items-center md:justify-between">
+    <section className="overflow-hidden rounded-lg border border-stone-200 bg-white/82 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="grid gap-2 border-b border-stone-100 px-3 py-2.5 dark:border-white/10 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className={cn("inline-flex items-center rounded-md border px-2 py-1 text-xs font-black", group.accentClass)}>
               {group.title}
             </span>
-            <span className="text-xs font-black text-slate-400 dark:text-slate-500">
+            <span className="text-xs font-black text-stone-500 dark:text-stone-400">
               {group.routes.length} 项
             </span>
           </div>
-          <p className="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-400">
+          <p className="mt-1 truncate text-xs font-semibold text-stone-600 dark:text-stone-400">
             {group.description}
           </p>
         </div>
       </div>
 
-      <div className="hidden grid-cols-[minmax(240px,1.1fr)_minmax(230px,0.85fr)_minmax(260px,0.95fr)_minmax(160px,0.55fr)] border-b border-slate-100 bg-slate-50/80 px-3 py-2 text-[11px] font-black uppercase text-slate-400 dark:border-white/10 dark:bg-white/[0.03] lg:grid">
+      <div className="hidden grid-cols-[minmax(230px,1.1fr)_minmax(170px,0.75fr)_minmax(230px,0.95fr)_minmax(130px,0.5fr)] border-b border-stone-100 bg-stone-50/80 px-3 py-2 text-[11px] font-black uppercase text-stone-500 dark:border-white/10 dark:bg-white/[0.03] lg:grid">
         <span>功能 / 接口</span>
-        <span>使用线路</span>
+        <span>线路</span>
         <span>模型覆盖</span>
         <span>状态</span>
       </div>
 
-      <div className="divide-y divide-slate-100 dark:divide-white/10">
+      <div className="divide-y divide-stone-100 dark:divide-white/10">
         {group.routes.map((route) => (
           <RouteMatrixRow key={route.key} model={model} route={route} />
         ))}
@@ -390,37 +447,37 @@ function RouteMatrixRow({
   const Icon = route.icon;
 
   return (
-    <article className="grid gap-3 px-3 py-3 lg:grid-cols-[minmax(240px,1.1fr)_minmax(230px,0.85fr)_minmax(260px,0.95fr)_minmax(160px,0.55fr)] lg:items-center lg:gap-4 lg:py-2.5">
-      <div className="flex min-w-0 items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-200">
+    <article className="grid gap-3 px-3 py-3 lg:grid-cols-[minmax(230px,1.1fr)_minmax(170px,0.75fr)_minmax(230px,0.95fr)_minmax(130px,0.5fr)] lg:items-center lg:gap-4 lg:py-2.5">
+      <div className="flex min-w-0 items-start gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-stone-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-200">
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-black text-slate-950 dark:text-slate-50">{route.title}</h3>
+            <h3 className="text-sm font-black text-stone-950 dark:text-stone-50">{route.title}</h3>
             {target.model ? (
               <span className="rounded-md border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-black text-sky-700 dark:border-sky-300/20 dark:bg-sky-300/10 dark:text-sky-200">
                 已覆盖
               </span>
             ) : null}
           </div>
-          <p className="mt-0.5 truncate font-mono text-[11px] font-bold text-slate-400 dark:text-slate-500">
+          <p className="mt-0.5 truncate font-mono text-[11px] font-bold text-stone-500 dark:text-stone-400">
             {route.api}
           </p>
-          <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-400">
+          <p className="mt-1 line-clamp-1 text-xs font-semibold leading-5 text-stone-600 dark:text-stone-400">
             {route.description}
           </p>
         </div>
       </div>
 
       <label className="block min-w-0">
-        <span className="mb-1 block text-[11px] font-black text-slate-500 dark:text-slate-400 lg:hidden">
-          使用线路
+        <span className="mb-1 block text-[11px] font-black text-stone-500 dark:text-stone-400 lg:hidden">
+          线路
         </span>
         <select
           value={target.providerId}
           onChange={(event) => {
-            const nextProviderId = (event.target.value || route.defaultProvider) as ProviderOption["id"];
+            const nextProviderId = (event.target.value || defaultConfig[route.key].providerId) as ProviderOption["id"];
             model.setConfig((prev) =>
               prev
                 ? {
@@ -438,14 +495,14 @@ function RouteMatrixRow({
         >
           {model.providers.map((providerOption) => (
             <option key={providerOption.id} value={providerOption.id}>
-              {providerOption.label} ({providerOption.envModelKey}={providerOption.model || "-"})
+              {providerOption.label} · {providerOption.model || "-"}
             </option>
           ))}
         </select>
       </label>
 
       <label className="block min-w-0">
-        <span className="mb-1 block text-[11px] font-black text-slate-500 dark:text-slate-400 lg:hidden">
+        <span className="mb-1 block text-[11px] font-black text-stone-500 dark:text-stone-400 lg:hidden">
           模型覆盖
         </span>
         <select
@@ -459,7 +516,7 @@ function RouteMatrixRow({
         >
           <option value="">
             {provider
-              ? `使用 ${provider.envModelKey} 默认: ${provider.model || "-"}`
+              ? `默认 ${provider.envModelKey}: ${provider.model || "-"}`
               : "使用当前线路默认模型"}
           </option>
           {modelOptions.map((option) => (
@@ -471,31 +528,50 @@ function RouteMatrixRow({
       </label>
 
       <div className="flex min-w-0 items-center justify-between gap-2 lg:justify-start">
-        <span
-          className={cn(
-            "inline-flex min-w-0 items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-black",
-            provider?.configured
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200"
-              : "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-300/20 dark:bg-rose-300/10 dark:text-rose-200",
-          )}
-        >
-          {provider?.configured ? <CheckCircle2 className="h-3 w-3 shrink-0" /> : <ShieldAlert className="h-3 w-3 shrink-0" />}
-          <span className="truncate">
-            {provider?.configured ? "可用" : `缺少 ${provider ? apiKeyEnvName(provider.id) : "API_KEY"}`}
-          </span>
-        </span>
+        <StatusBadge
+          configured={Boolean(provider?.configured)}
+          label={provider?.configured ? "可用" : `缺少 ${provider ? apiKeyEnvName(provider.id) : "API_KEY"}`}
+        />
 
         <button
           type="button"
           onClick={() => updateRouteModel(model, route.key, null)}
           disabled={!target.model}
-          className="h-8 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-black text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400 dark:hover:bg-white/[0.06]"
+          className="h-8 rounded-md border border-stone-200 bg-white px-2.5 text-[11px] font-black text-stone-500 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-white/[0.03] dark:text-stone-400 dark:hover:bg-white/[0.06]"
         >
           清空
         </button>
       </div>
     </article>
   );
+}
+
+function StatusBadge({
+  configured,
+  label,
+}: {
+  configured: boolean;
+  label: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex min-w-0 items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-black",
+        configured
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200"
+          : "border-red-200 bg-red-50 text-red-700 dark:border-red-300/20 dark:bg-red-300/10 dark:text-red-200",
+      )}
+    >
+      {configured ? <CheckCircle2 className="h-3 w-3 shrink-0" /> : <ShieldAlert className="h-3 w-3 shrink-0" />}
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
+function protocolLabel(protocol: ProviderOption["prefer"]) {
+  if (protocol === "anthropic") return "Messages";
+  if (protocol === "responses") return "Responses";
+  return "Chat";
 }
 
 function getModelOptions(provider: ProviderOption | undefined, currentModel: string | null) {

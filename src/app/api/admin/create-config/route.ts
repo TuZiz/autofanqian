@@ -1,5 +1,6 @@
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { requireAdminUser } from "@/lib/auth/admin";
+import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { updateCreateUiConfig, getCreateUiConfig } from "@/lib/config/create-ui";
 import { z } from "zod";
 
@@ -21,12 +22,21 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    await requireAdminUser();
+    const adminUser = await requireAdminUser();
+    const before = await getCreateUiConfig();
     const body = await parseJsonBody(request, bodySchema);
     const config = await updateCreateUiConfig(body.config);
+    await recordAdminAuditLog({
+      request,
+      adminUser,
+      action: "create_config.update",
+      targetType: "AppConfig",
+      targetId: "create_ui_config",
+      before,
+      after: config,
+    });
     return successResponse({ config }, { message: "配置已保存。" });
   } catch (error) {
     return errorResponse(error);
   }
 }
-

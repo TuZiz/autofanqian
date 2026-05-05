@@ -87,14 +87,14 @@ export function AdminConfigSection({ admin }: AdminConfigSectionProps) {
   const addLabel = activeModule.key === "genres" ? "新增类型" : "新增选项";
 
   return (
-    <section className="mb-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
-      <div className="border-b border-slate-100 px-4 py-3 dark:border-white/10">
+    <section className="mb-4 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm dark:border-white/10 dark:bg-stone-950">
+      <div className="border-b border-stone-100 px-4 py-3 dark:border-white/10">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <h2 className="text-lg font-black text-slate-950 dark:text-slate-50">
+            <h2 className="text-lg font-black text-stone-950 dark:text-stone-50">
               创作入口配置
             </h2>
-            <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs font-semibold text-stone-500 dark:text-stone-400">
               左侧切模块，中间看摘要，右侧只编辑当前选中项。修改后会自动保存。
             </p>
           </div>
@@ -190,8 +190,8 @@ function ModuleNav({
   onSelect: (key: ConfigModuleKey) => void;
 }) {
   return (
-    <aside className="border-b border-slate-100 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-white/[0.03] lg:border-b-0 lg:border-r">
-      <div className="mb-3 px-1 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+    <aside className="border-b border-stone-100 bg-stone-50/80 p-3 dark:border-white/10 dark:bg-white/[0.03] lg:border-b-0 lg:border-r">
+      <div className="mb-3 px-1 text-[11px] font-black uppercase tracking-[0.16em] text-stone-500">
         Modules
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
@@ -207,8 +207,8 @@ function ModuleNav({
               className={cn(
                 "group flex items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left transition",
                 selected
-                  ? "border-slate-950 bg-slate-950 text-white shadow-sm dark:border-white dark:bg-white dark:text-slate-950"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200 dark:hover:bg-white/[0.06]",
+                  ? "border-stone-950 bg-stone-950 text-white shadow-sm dark:border-white dark:bg-white dark:text-stone-950"
+                  : "border-stone-200 bg-white text-stone-700 hover:border-stone-300 hover:bg-stone-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-stone-200 dark:hover:bg-white/[0.06]",
               )}
             >
               <span className="flex min-w-0 items-center gap-3">
@@ -216,8 +216,8 @@ function ModuleNav({
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
                     selected
-                      ? "border-white/20 bg-white/10 dark:border-slate-950/10 dark:bg-slate-950/10"
-                      : "border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.04]",
+                      ? "border-white/20 bg-white/10 dark:border-stone-950/10 dark:bg-stone-950/10"
+                      : "border-stone-200 bg-stone-50 dark:border-white/10 dark:bg-white/[0.04]",
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -227,7 +227,7 @@ function ModuleNav({
                   <span
                     className={cn(
                       "mt-0.5 block truncate text-[11px] font-bold",
-                      selected ? "text-white/65 dark:text-slate-600" : "text-slate-500 dark:text-slate-400",
+                      selected ? "text-white/65 dark:text-stone-600" : "text-stone-500 dark:text-stone-400",
                     )}
                   >
                     {module.active}/{module.total} 启用
@@ -259,22 +259,22 @@ function SummaryList({
   selectedId: string;
 }) {
   return (
-    <section className="min-w-0 border-b border-slate-100 dark:border-white/10 lg:border-b-0 lg:border-r">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-white/10">
+    <section className="min-w-0 border-b border-stone-100 dark:border-white/10 lg:border-b-0 lg:border-r">
+      <div className="flex items-center justify-between gap-3 border-b border-stone-100 px-4 py-3 dark:border-white/10">
         <div className="min-w-0">
-          <h3 className="text-base font-black text-slate-950 dark:text-slate-50">
+          <h3 className="text-base font-black text-stone-950 dark:text-stone-50">
             {module.title}
           </h3>
-          <p className="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <p className="truncate text-xs font-semibold text-stone-500 dark:text-stone-400">
             {module.description}
           </p>
         </div>
-        <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-black text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+        <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-black text-stone-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-300">
           {items.length} 项
         </span>
       </div>
 
-      <div className="divide-y divide-slate-100 dark:divide-white/10">
+      <div className="divide-y divide-stone-100 dark:divide-white/10">
         {items.map((item) => (
           <SummaryRow
             key={item.id}
@@ -287,7 +287,7 @@ function SummaryList({
           />
         ))}
         {!items.length ? (
-          <div className="p-8 text-center text-sm font-bold text-slate-400">
+          <div className="p-8 text-center text-sm font-bold text-stone-500">
             当前模块暂无配置项
           </div>
         ) : null}
@@ -336,20 +336,20 @@ function SummaryRow({
       >
         <div className="flex items-center gap-2">
           {isGenre ? (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-black dark:border-white/10 dark:bg-white/[0.04]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-sm font-black dark:border-white/10 dark:bg-white/[0.04]">
               {genre!.icon || "?"}
             </span>
           ) : null}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate text-sm font-black text-slate-950 dark:text-slate-50">
+              <span className="truncate text-sm font-black text-stone-950 dark:text-stone-50">
                 {title}
               </span>
-              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-black text-slate-500 dark:bg-white/[0.08] dark:text-slate-400">
+              <span className="rounded-md bg-stone-100 px-1.5 py-0.5 font-mono text-[10px] font-black text-stone-500 dark:bg-white/[0.08] dark:text-stone-400">
                 {item.id}
               </span>
             </div>
-            <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <p className="mt-1 line-clamp-1 text-xs font-semibold text-stone-500 dark:text-stone-400">
               {subtitle}
             </p>
           </div>
@@ -362,16 +362,16 @@ function SummaryRow({
             "rounded-md border px-2 py-1",
             item.active
               ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-400/10 dark:text-emerald-200"
-              : "border-slate-200 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400",
+              : "border-stone-200 bg-stone-50 text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400",
           )}
         >
           {item.active ? "启用" : "停用"}
         </span>
-        <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
+        <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
           排序 {item.sortOrder}
         </span>
         {usage ? (
-          <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400">
+          <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
             {usage}
           </span>
         ) : null}
@@ -388,8 +388,10 @@ function SummaryRow({
         </button>
         <button
           type="button"
-          onClick={() => onDelete(item.id)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-black text-rose-500 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-400/10"
+          onClick={() => {
+            if (window.confirm("确定要删除该配置项吗？")) onDelete(item.id);
+          }}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-black text-red-500 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-400/10"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -413,7 +415,7 @@ function EditDrawer({
 }) {
   if (!selectedItem) {
     return (
-      <aside className="flex min-h-[320px] items-center justify-center bg-slate-50/60 p-6 text-sm font-bold text-slate-400 dark:bg-white/[0.02]">
+      <aside className="flex min-h-[320px] items-center justify-center bg-stone-50/60 p-6 text-sm font-bold text-stone-500 dark:bg-white/[0.02]">
         选择左侧列表项后在这里编辑
       </aside>
     );
@@ -422,18 +424,18 @@ function EditDrawer({
   const isGenre = moduleKey === "genres";
 
   return (
-    <aside className="bg-slate-50/70 dark:bg-white/[0.02]">
+    <aside className="bg-stone-50/70 dark:bg-white/[0.02]">
       <div className="sticky top-20">
-        <div className="border-b border-slate-100 px-4 py-3 dark:border-white/10">
+        <div className="border-b border-stone-100 px-4 py-3 dark:border-white/10">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
+              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 Edit Drawer
               </div>
-              <h3 className="mt-1 truncate text-lg font-black text-slate-950 dark:text-slate-50">
+              <h3 className="mt-1 truncate text-lg font-black text-stone-950 dark:text-stone-50">
                 {isGenre ? (selectedItem as GenreConfig).name : (selectedItem as OptionConfig).label}
               </h3>
-              <p className="mt-0.5 truncate font-mono text-xs font-bold text-slate-500 dark:text-slate-400">
+              <p className="mt-0.5 truncate font-mono text-xs font-bold text-stone-500 dark:text-stone-400">
                 {selectedItem.id}
               </p>
             </div>
@@ -442,7 +444,7 @@ function EditDrawer({
                 "rounded-md border px-2 py-1 text-xs font-black",
                 selectedItem.active
                   ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-400/10 dark:text-emerald-200"
-                  : "border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400",
+                  : "border-stone-200 bg-white text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400",
               )}
             >
               {selectedItem.active ? "启用" : "停用"}
@@ -468,8 +470,10 @@ function EditDrawer({
 
           <button
             type="button"
-            onClick={() => onDelete(selectedItem.id)}
-            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 text-sm font-black text-rose-600 transition hover:bg-rose-100 dark:border-rose-300/20 dark:bg-rose-400/10 dark:text-rose-200"
+            onClick={() => {
+              if (window.confirm("确定要删除该配置项吗？")) onDelete(selectedItem.id);
+            }}
+            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 text-sm font-black text-red-600 transition hover:bg-red-100 dark:border-red-300/20 dark:bg-red-400/10 dark:text-red-200"
           >
             <Trash2 className="h-4 w-4" />
             删除当前项
@@ -563,7 +567,7 @@ function OptionEditor({
         onChange={(value) => updateItem({ sortOrder: Number(value) || 0 })}
       />
       <label className="block">
-        <span className="mb-1 block text-[11px] font-black text-slate-500 dark:text-slate-400">
+        <span className="mb-1 block text-[11px] font-black text-stone-500 dark:text-stone-400">
           提示词注入规则
         </span>
         <textarea
@@ -580,10 +584,10 @@ function OptionEditor({
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] font-black text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-[11px] font-black text-stone-500 dark:text-stone-400">
         {label}
       </span>
-      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 font-mono text-sm font-black text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+      <div className="rounded-lg border border-stone-200 bg-white px-3 py-2 font-mono text-sm font-black text-stone-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-300">
         {value}
       </div>
     </label>
@@ -600,13 +604,13 @@ function ToggleField({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]">
-      <span className="text-sm font-black text-slate-700 dark:text-slate-200">{label}</span>
+    <label className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-white/[0.04]">
+      <span className="text-sm font-black text-stone-700 dark:text-stone-200">{label}</span>
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/50 dark:border-white/20 dark:bg-white/10"
+        className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500/50 dark:border-white/20 dark:bg-white/10"
       />
     </label>
   );
@@ -622,7 +626,7 @@ type TextInputProps = {
 function TextInput({ label, onChange, type = "text", value }: TextInputProps) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] font-black text-slate-500 dark:text-slate-400">
+      <span className="mb-1 block text-[11px] font-black text-stone-500 dark:text-stone-400">
         {label}
       </span>
       <input
