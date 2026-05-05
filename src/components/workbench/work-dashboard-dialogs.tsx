@@ -39,19 +39,19 @@ export function WorkChapterCommandDialog({
         }}
       />
 
-      <div className="relative flex max-h-[82vh] w-full max-w-4xl animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/90 shadow-2xl shadow-zinc-950/20 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/90">
+      <div className="relative flex max-h-[82vh] w-full max-w-4xl animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-[32px] border border-white/60 bg-white/90 shadow-2xl shadow-zinc-950/20 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-950/90 dark:shadow-black/30 dark:ring-white/10">
         <div className="grid gap-4 border-b border-zinc-200/50 bg-white/50 p-6 dark:border-zinc-800/50 dark:bg-zinc-900/50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-          <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white/80 px-4 py-3 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-950/80">
-            <Search className="h-5 w-5 shrink-0 text-zinc-500" />
+          <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white/80 px-5 py-4 shadow-sm transition-all focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-400/20 dark:border-zinc-700/80 dark:bg-zinc-950/80 dark:focus-within:border-blue-500 dark:focus-within:ring-blue-500/20">
+            <Search className="h-5 w-5 shrink-0 text-zinc-500 dark:text-zinc-400" />
             <input
               autoFocus
               value={commandQuery}
               onChange={(event) => setCommandQuery(event.target.value)}
-              className="min-w-0 flex-1 bg-transparent text-base font-bold text-zinc-950 outline-none placeholder:text-zinc-400 dark:text-white dark:placeholder:text-zinc-500"
+              className="min-w-0 flex-1 bg-transparent text-lg font-black tracking-tight text-zinc-950 outline-none placeholder:text-zinc-400 dark:text-white dark:placeholder:text-zinc-500"
               placeholder="搜索章节名、卷号或关键字..."
             />
-            <kbd className="hidden rounded-lg border border-zinc-200/80 bg-zinc-50 px-2 py-1 font-mono text-[11px] font-bold text-zinc-500 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 sm:block">
-              Esc
+            <kbd className="hidden rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-2.5 py-1 font-mono text-[11px] font-bold tracking-widest text-zinc-500 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-400 sm:block">
+              ESC
             </kbd>
           </div>
           <button
@@ -62,25 +62,25 @@ export function WorkChapterCommandDialog({
               setCommandQuery("");
               goToChapter(nextChapterIndex);
             }}
-            className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-6 text-sm font-bold text-white shadow-md transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+            className="inline-flex h-[60px] items-center justify-center gap-3 rounded-2xl bg-zinc-950 px-6 text-sm font-black text-white shadow-lg shadow-zinc-950/20 transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-xl active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:shadow-white/10 dark:hover:bg-zinc-200"
           >
-            <PenLine className="h-4 w-4" />
-            继续写作：{formatChapterLabel(nextChapterIndex)}
+            <PenLine className="h-5 w-5" />
+            <span>继续写作：{formatChapterLabel(nextChapterIndex)}</span>
           </button>
         </div>
 
-        <div className="border-b border-zinc-200/50 px-6 py-4 dark:border-zinc-800/50">
+        <div className="border-b border-zinc-200/50 px-6 py-5 dark:border-zinc-800/50">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
                 Chapter Navigator
               </p>
-              <h3 className="mt-1 text-base font-black text-zinc-950 dark:text-white">
+              <h3 className="mt-1 truncate text-xl font-black tracking-tight text-zinc-950 dark:text-white">
                 {commandQuery.trim() ? "匹配章节" : "章节列表"}
                 {work?.title ? ` · ${work.title}` : ""}
               </h3>
             </div>
-            <span className="rounded-lg border border-zinc-200/80 bg-zinc-50/80 px-3 py-1.5 text-xs font-bold text-zinc-500 dark:border-zinc-800/80 dark:bg-zinc-900/80 dark:text-zinc-400">
+            <span className="rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-400">
               点击章节打开
             </span>
           </div>
