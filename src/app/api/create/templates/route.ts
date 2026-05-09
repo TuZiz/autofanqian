@@ -3,7 +3,7 @@ import { z } from "zod";
 import { AuthApiError } from "@/lib/auth/errors";
 import { errorResponse, successResponse } from "@/lib/auth/api";
 import { getCurrentUser } from "@/lib/auth/service";
-import { listHotTemplatesShowcase } from "@/lib/create/templates";
+import { listUsedTemplatesShowcase } from "@/lib/create/templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,10 +24,9 @@ export async function GET(request: Request) {
       genreId: url.searchParams.get("genreId") ?? "",
     });
 
-    const templates = await listHotTemplatesShowcase({
+    const templates = await listUsedTemplatesShowcase({
       genreId: query.genreId,
-      hotCount: 2,
-      randomCount: 2,
+      take: 4,
     });
 
     return successResponse(

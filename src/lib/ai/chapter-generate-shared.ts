@@ -1,7 +1,9 @@
-import { z } from "zod";
-
 import { buildChapterSystemPrompt, buildChapterUserPrompt } from "@/lib/ai/chapter-prompt";
 import { extractChapterDraftFromText } from "@/lib/ai/chapter-draft";
+import type {
+  ChapterGenerateInput,
+  PreparedChapterGeneration,
+} from "@/lib/ai/chapter-generate-types";
 import {
   buildAiProviderChain,
   getProviderApiKeyEnvName,
@@ -18,53 +20,13 @@ import {
 } from "@/lib/create/progressive-planning";
 import { prisma } from "@/lib/prisma";
 
-export const chapterGenerateBodySchema = z.object({
-  workId: z.string().min(1).max(64),
-  index: z.coerce.number().int().min(1).max(9999),
-  extraPrompt: z.string().trim().max(2000).optional().nullable(),
-});
+export {
+  chapterGenerateBodySchema,
+  type ChapterGenerateInput,
+  type PreparedChapterGeneration,
+} from "@/lib/ai/chapter-generate-types";
 
-export type ChapterGenerateInput = {
-  workId: string;
-  index: number;
-  extraPrompt?: string | null;
-};
-
-export type PreparedChapterGeneration = {
-  user: SessionUser;
-  work: {
-    id: string;
-    userId: string;
-    genreId: string;
-    genreLabel: string | null;
-    idea: string;
-    tags: string[];
-    platformLabel: string | null;
-    words: string | null;
-    dnaBookTitle: string | null;
-    tag: string;
-    title: string;
-    synopsis: string;
-    outline: StoryOutline;
-    targetChapters: number | null;
-    plannedUntilChapter: number;
-  };
-  existingChapter: {
-    id: string;
-    title: string | null;
-    content: string;
-    wordCount: number;
-  } | null;
-  generationMode: "generate" | "regenerate";
-  providers: UpstreamProvider[];
-  preferredProvider: UpstreamProvider;
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
-  promptSnapshot: string;
-  maxTokens: number;
-  temperature: number;
-};
-
-const DEFAULT_CHAPTER_MAX_TOKENS = 5200;
+const DEFAULT_CHAPTER_MAX_TOKENS = 1600;
 const DEFAULT_CHAPTER_TEMPERATURE = 0.85;
 
 export function countWords(text: string) {
@@ -240,10 +202,11 @@ export async function prepareChapterGeneration(params: {
   const target = existingChapter?.content?.trim()
     ? aiModelConfig.regenerateAll
     : aiModelConfig.chapterGenerate;
+  const routeId = target.providerId;
 
   const providers = buildAiProviderChain({
     providers: providersFromEnv,
-    preferredProviderId: target.providerId,
+    preferredProviderId: routeId,
     overrideModel: target.model,
   });
 
@@ -262,18 +225,18 @@ export async function prepareChapterGeneration(params: {
     .slice()
     .filter((chapter) => chapter.summary?.trim() || chapter.content.trim())
     .sort((left, right) => right.index - left.index)
-    .slice(0, 5)
-    .map((chapter) => ({
-      index: chapter.index,
-      title: chapter.title,
-      summary: clampText(chapter.summary || chapter.content, 600),
-    }))
-    .reverse();
+      .slice(0, input.index === 1 ? 0 : 3)
+      .map((chapter) => ({
+        index: chapter.index,
+        title: chapter.title,
+        summary: clampText(chapter.summary || chapter.content, 220),
+      }))
+      .reverse();
 
   const writingMemories = await prisma.writingMemory.findMany({
     where: { novelId: work.id, isActive: true },
     orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
-    take: 12,
+    take: input.index === 1 ? 4 : 6,
     select: { content: true },
   });
 
@@ -281,7 +244,7 @@ export async function prepareChapterGeneration(params: {
     prisma.character.findMany({
       where: { novelId: work.id, deletedAt: null },
       orderBy: [{ lastChapter: "desc" }, { updatedAt: "desc" }],
-      take: 12,
+      take: input.index === 1 ? 4 : 6,
       select: {
         name: true,
         role: true,
@@ -294,7 +257,7 @@ export async function prepareChapterGeneration(params: {
     prisma.worldSetting.findMany({
       where: { novelId: work.id, deletedAt: null },
       orderBy: [{ lastUpdatedChapter: "desc" }, { updatedAt: "desc" }],
-      take: 12,
+      take: input.index === 1 ? 4 : 6,
       select: { kind: true, name: true, desc: true },
     }),
     prisma.timelineEvent.findMany({
@@ -304,7 +267,7 @@ export async function prepareChapterGeneration(params: {
         chapterIndex: { lt: input.index },
       },
       orderBy: [{ chapterIndex: "desc" }, { order: "desc" }],
-      take: 8,
+      take: input.index === 1 ? 0 : 4,
       select: { title: true, summary: true, storyTime: true, chapterIndex: true },
     }),
     prisma.foreshadowing.findMany({
@@ -314,7 +277,7 @@ export async function prepareChapterGeneration(params: {
         status: { in: ["open", "partial"] },
       },
       orderBy: [{ importance: "desc" }, { updatedAt: "desc" }],
-      take: 10,
+      take: input.index === 1 ? 2 : 4,
       select: {
         title: true,
         hint: true,
@@ -348,22 +311,22 @@ export async function prepareChapterGeneration(params: {
       characters: characters.map((item) =>
         clampText(
           `${item.name}（${item.role || item.identity || "角色"}）：${item.currentState || item.goal || item.desc}`,
-          360,
+          120,
         ),
       ),
       worldSettings: worldSettings.map((item) =>
-        clampText(`${item.kind}/${item.name}：${item.desc}`, 360),
+        clampText(`${item.kind}/${item.name}：${item.desc}`, 120),
       ),
       timelineEvents: timelineEvents.map((item) =>
         clampText(
           `${item.chapterIndex ? `第${item.chapterIndex}章 ` : ""}${item.storyTime ? `${item.storyTime} ` : ""}${item.title || item.summary}：${item.summary}`,
-          360,
+          140,
         ),
       ),
       foreshadowings: foreshadowings.map((item) =>
         clampText(
           `${item.title || "伏笔"}（${item.status}，重要度${item.importance}）：${item.hint}${item.payoff ? `；兑现方向：${item.payoff}` : ""}`,
-          360,
+          140,
         ),
       ),
     },
@@ -398,6 +361,8 @@ export async function prepareChapterGeneration(params: {
         }
       : null,
     generationMode: existingChapter?.content?.trim() ? "regenerate" : "generate",
+    routeId,
+    contextExtractRouteId: aiModelConfig.chapterDetails.providerId,
     providers,
     preferredProvider: providers[0],
     messages: [

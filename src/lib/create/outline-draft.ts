@@ -4,6 +4,7 @@ export const CREATE_OUTLINE_RESULT_CACHE_KEY = "tomato:create:outline_result_cac
 export type CreateOutlineDraft = {
   genre: string;
   genreLabel?: string;
+  customDetails?: string;
   idea: string;
   tags?: string[];
   platform?: string;

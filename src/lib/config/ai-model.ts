@@ -15,7 +15,17 @@ import { prisma } from "@/lib/prisma";
 
 export const AI_MODEL_CONFIG_KEY = "ai_model_v1";
 
-const providerIdSchema = z.enum(AI_MODEL_PROVIDER_IDS);
+function normalizeProviderId(value: unknown): AiModelProviderId | undefined {
+  if (typeof value !== "string") return undefined;
+  if (value === "gpt" || value === "primary" || value === "anthropic") return "gpt";
+  if (value === "ark") return "ark";
+  return undefined;
+}
+
+const providerIdSchema = z.preprocess(
+  (value) => normalizeProviderId(value) ?? value,
+  z.enum(AI_MODEL_PROVIDER_IDS),
+);
 
 const targetSchema = z.object({
   providerId: providerIdSchema,
@@ -41,7 +51,8 @@ const aiModelConfigSchema = z.object({
 });
 
 function normalizeTarget(candidate: AiModelTarget | undefined, fallback: AiModelTarget) {
-  const providerId: AiModelProviderId = candidate?.providerId ?? fallback.providerId;
+  const providerId =
+    normalizeProviderId(candidate?.providerId) ?? fallback.providerId;
   const model = candidate?.model?.trim() || null;
   return { providerId, model };
 }
@@ -87,7 +98,18 @@ export async function getAiModelConfig() {
     return getDefaultAiModelConfig();
   }
 
-  return normalizeParsedConfig(parsed.data);
+  const normalized = normalizeParsedConfig(parsed.data);
+  const serializedExisting = JSON.stringify(existing.value);
+  const serializedNormalized = JSON.stringify(normalized);
+
+  if (serializedExisting !== serializedNormalized) {
+    await prisma.appConfig.update({
+      where: { key: AI_MODEL_CONFIG_KEY },
+      data: { value: normalized },
+    });
+  }
+
+  return normalized;
 }
 
 export async function updateAiModelConfig(nextConfig: unknown) {

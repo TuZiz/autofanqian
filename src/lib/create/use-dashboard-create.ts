@@ -1,203 +1,223 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
 
-import { apiRequest } from "@/lib/client/auth-api";
-import { aiZhCN } from "@/lib/copy/ai-zh-cn";
+import { markCreateTemplateUsed } from "@/frontend/api/create-flow";
 import {
-  CREATE_OUTLINE_DRAFT_STORAGE_KEY,
-  CREATE_OUTLINE_RESULT_CACHE_KEY,
-  type CreateOutlineDraft,
-} from "@/lib/create/outline-draft";
+  MIN_IDEA_LENGTH_FOR_AI,
+  MIN_IDEA_LENGTH_FOR_OUTLINE,
+} from "./dashboard-create-rules";
 
-import type {
-  CreateUiConfig,
-  HotTemplate,
-  IdeaAnalysis,
-  GenreId,
-  SessionUser,
-} from "./dashboard-create-types";
-import { AI_THINKING_COPY, CUSTOM_GENRE_ID, parseTagInput } from "./dashboard-create-utils";
-
-type CreateFormErrorTarget = "genre" | "idea" | "ai" | "storage";
+import {
+  getCreateAvailability,
+  getCustomDetails,
+  getCustomGenreValidationMessage,
+  getEffectiveGenreLabel,
+  getEffectiveIdeaForAi,
+  getSelectedTags,
+  getSubmitBlockedReason,
+} from "./dashboard-create-derived";
+import type { GenreId, HotTemplate, IdeaAnalysis } from "./dashboard-create-types";
+import { CUSTOM_GENRE_ID, parseTagInput } from "./dashboard-create-utils";
+import { useCreateAiActions } from "./use-create-ai-actions";
+import { useCreateAiProgress } from "./use-create-ai-progress";
+import { useCreateBootstrapData } from "./use-create-bootstrap-data";
+import { useCreateFormError } from "./use-create-form-error";
+import { useCreateSubmit } from "./use-create-submit";
 
 export function useDashboardCreate() {
   const [selectedGenre, setSelectedGenre] = useState<GenreId | "">("");
-  const [customGenreLabel, setCustomGenreLabel] = useState("");
-  const [customTagsInput, setCustomTagsInput] = useState("");
+  const [customGenreLabel, setCustomGenreLabelState] = useState("");
+  const [customTagsInput, setCustomTagsInputState] = useState("");
+  const [customWorldDetails, setCustomWorldDetailsState] = useState("");
   const [idea, setIdea] = useState("");
   const [wordCount, setWordCount] = useState(0);
   const [aiBusy, setAiBusy] = useState(false);
-  const [aiProgress, setAiProgress] = useState(0);
-  const [aiThinkingCopyIndex, setAiThinkingCopyIndex] = useState(0);
-  const [submitBusy, setSubmitBusy] = useState(false);
   const [platform, setPlatform] = useState("");
   const [dnaBookTitle, setDnaBookTitle] = useState("");
   const [words, setWords] = useState("100w");
-  const [userEmail, setUserEmail] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [config, setConfig] = useState<CreateUiConfig | null>(null);
-  const [hotTemplates, setHotTemplates] = useState<HotTemplate[]>([]);
-  const [bootstrapLoading, setBootstrapLoading] = useState(true);
+  const [selectedTemplateCardId, setSelectedTemplateCardId] = useState<string | null>(null);
   const [ideaAnalysis, setIdeaAnalysis] = useState<IdeaAnalysis | null>(null);
-  const [analysisBusy, setAnalysisBusy] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [formErrorTarget, setFormErrorTarget] = useState<CreateFormErrorTarget | null>(null);
 
   const router = useRouter();
-  const aiProgressIntervalRef = useRef<number | null>(null);
-  const aiProgressResetRef = useRef<number | null>(null);
-  const aiThinkingCopyIntervalRef = useRef<number | null>(null);
-
-  const genres = config?.genres ?? [];
-  const platforms = config?.platforms ?? [];
-  const dnaStyles = config?.dnaStyles ?? [];
-  const wordOptions = config?.wordOptions ?? [];
-  const customGenre = genres.find((item) => item.id === CUSTOM_GENRE_ID);
-  const visibleGenres = genres.filter((item) => item.id !== CUSTOM_GENRE_ID);
+  const {
+    aiProgressLabelLeft,
+    aiProgressPercent,
+    aiProgressValue,
+    aiThinkingCopy,
+    aiThinkingCopyIndex,
+    finishAiProgress,
+    showAiProgress,
+    startAiProgress,
+  } = useCreateAiProgress(aiBusy);
+  const {
+    bootstrapLoading,
+    config,
+    customGenre,
+    dnaStyles,
+    genres,
+    hotTemplates,
+    isAdmin,
+    platforms,
+    refreshTemplateShowcase,
+    templateShowcaseBusy,
+    templateShowcaseCards,
+    userEmail,
+    visibleGenres,
+    wordOptions,
+  } = useCreateBootstrapData({
+    selectedGenre,
+    setDnaBookTitle,
+    setSelectedGenre,
+    setWords,
+  });
+  const {
+    clearFormError,
+    formError,
+    formErrorTarget,
+    maybeClearCustomGenreError,
+    showFormError,
+  } = useCreateFormError({
+    customGenreLabel,
+    customTagsInput,
+    customWorldDetails,
+    selectedGenre,
+  });
   const isCustomGenre = selectedGenre === CUSTOM_GENRE_ID;
   const customTags = useMemo(() => parseTagInput(customTagsInput), [customTagsInput]);
   const normalizedCustomGenreLabel = customGenreLabel.trim();
-  const effectiveGenreLabel = isCustomGenre
-    ? normalizedCustomGenreLabel || customGenre?.name || "自定义"
-    : genres.find((item) => item.id === selectedGenre)?.name;
-  const aiThinkingCopy = AI_THINKING_COPY[aiThinkingCopyIndex] ?? AI_THINKING_COPY[0];
+  const trimmedCustomWorldDetails = customWorldDetails.trim();
   const trimmedIdea = idea.trim();
   const analysisPanelVisible = analysisOpen && Boolean(selectedGenre) && Boolean(trimmedIdea);
-  const canAnalyzeIdea = Boolean(selectedGenre) && trimmedIdea.length >= 10;
-  const canGenerateAi = Boolean(selectedGenre) && trimmedIdea.length >= 10;
 
-  const selectedTags = useMemo(() => {
-    if (!selectedGenre || !config) return [];
-    if (selectedGenre === CUSTOM_GENRE_ID && customTags.length) {
-      return customTags;
-    }
-    return config.genres.find((item) => item.id === selectedGenre)?.tags ?? [];
-  }, [config, customTags, selectedGenre]);
+  const customGenreValidationMessage = getCustomGenreValidationMessage({
+    customTags,
+    isCustomGenre,
+    normalizedCustomGenreLabel,
+    trimmedCustomWorldDetails,
+  });
 
-  const showAiProgress = aiBusy || aiProgress > 0;
-  const aiProgressValue = Math.max(0, Math.min(100, aiProgress));
-  const aiProgressPercent = Math.round(aiProgressValue);
-  const aiProgressLabelLeft = Math.min(97, Math.max(3, aiProgressValue));
+  const selectedTags = useMemo(
+    () => getSelectedTags({ config, customTags, selectedGenre }),
+    [config, customTags, selectedGenre],
+  );
+
+  const customDetails = getCustomDetails({
+    customTags,
+    isCustomGenre,
+    normalizedCustomGenreLabel,
+    trimmedCustomWorldDetails,
+  });
+  const effectiveIdeaForAi = getEffectiveIdeaForAi({
+    customDetails,
+    isCustomGenre,
+    trimmedIdea,
+  });
+  const effectiveGenreLabel = getEffectiveGenreLabel({
+    customGenre,
+    genres,
+    isCustomGenre,
+    normalizedCustomGenreLabel,
+    selectedGenre,
+  });
+  const {
+    canAnalyzeIdea,
+    canGenerateAi,
+    canSubmitOutline,
+    outlineIdeaRemaining,
+  } = getCreateAvailability({
+    customGenreValidationMessage,
+    isCustomGenre,
+    selectedGenre,
+    trimmedIdeaLength: trimmedIdea.length,
+  });
+  const submitBlockedReason = getSubmitBlockedReason({
+    customGenreValidationMessage,
+    selectedGenre,
+    trimmedIdeaLength: trimmedIdea.length,
+  });
+
   const analyzeBlockedByAiThinking = showAiProgress;
-
-  function clearFormError() {
-    setFormError("");
-    setFormErrorTarget(null);
-  }
-
-  function showFormError(message: string, target: CreateFormErrorTarget) {
-    setFormError(message);
-    setFormErrorTarget(target);
-
-    window.requestAnimationFrame(() => {
-      const targetId =
-        target === "genre"
-          ? "create-genre-section"
-          : target === "idea"
-            ? "create-idea-input"
-            : "create-form-error";
-      const element = document.getElementById(targetId);
-      element?.scrollIntoView({ behavior: "smooth", block: "center" });
-
-      if (target === "idea") {
-        (element as HTMLTextAreaElement | null)?.focus({ preventScroll: true });
-        return;
-      }
-
-      if (target === "genre") {
-        document
-          .querySelector<HTMLButtonElement>("#create-genre-section button")
-          ?.focus({ preventScroll: true });
-        return;
-      }
-
-      (element as HTMLElement | null)?.focus({ preventScroll: true });
-    });
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function bootstrap() {
-      const response = await apiRequest<{ user: SessionUser }>("/api/auth/session");
-
-      if (cancelled) return;
-
-      if (response.success && response.data?.user?.email) {
-        setUserEmail(response.data.user.email);
-        const admin = Boolean(response.data.user.isAdmin);
-        setIsAdmin(admin);
-        if (!admin) setDnaBookTitle("");
-      } else {
-        window.location.href = "/login";
-        return;
-      }
-
-      const configResponse = await apiRequest<{ config: CreateUiConfig }>("/api/config/create");
-
-      if (!cancelled && configResponse.success && configResponse.data?.config) {
-        const nextConfig = configResponse.data.config;
-        setConfig(nextConfig);
-
-        const defaultWords = nextConfig.wordOptions[0]?.id;
-        if (defaultWords) {
-          setWords((prev) =>
-            nextConfig.wordOptions.some((opt) => opt.id === prev) ? prev : defaultWords,
-          );
-        }
-      }
-
-      if (!cancelled) setBootstrapLoading(false);
-    }
-
-    void bootstrap();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadHotTemplates() {
-      if (!selectedGenre) {
-        setHotTemplates([]);
-        return;
-      }
-
-      const response = await apiRequest<{ templates: HotTemplate[] }>(
-        `/api/create/templates?genreId=${encodeURIComponent(selectedGenre)}`,
-      );
-
-      if (cancelled) return;
-
-      if (response.success && response.data?.templates) {
-        setHotTemplates(response.data.templates);
-        return;
-      }
-
-      setHotTemplates([]);
-    }
-
-    void loadHotTemplates();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedGenre]);
+  const {
+    analysisBusy,
+    handleAnalyzeIdea: runAnalyzeIdea,
+    handleGenerateAi,
+    handleRandomTemplateStart: runRandomTemplateStart,
+    randomTemplateBusy,
+  } = useCreateAiActions({
+    clearFormError,
+    customGenreValidationMessage,
+    dnaBookTitle,
+    effectiveIdeaForAi,
+    finishAiProgress,
+    isAdmin,
+    isCustomGenre,
+    normalizedCustomGenreLabel,
+    platform,
+    selectedGenre,
+    selectedTags,
+    setAiBusy,
+    setAnalysisOpen,
+    setIdeaAnalysis,
+    setSelectedGenre,
+    setSelectedTemplateCardId,
+    showFormError,
+    startAiProgress,
+    trimmedIdea,
+    updateIdea,
+    visibleGenres,
+    words,
+  });
+  const { handleSubmit, submitBusy } = useCreateSubmit({
+    customDetails: customDetails ?? "",
+    customGenreValidationMessage,
+    dnaBookTitle,
+    effectiveGenreLabel: effectiveGenreLabel ?? "",
+    idea,
+    isAdmin,
+    platform,
+    platforms,
+    router,
+    selectedGenre,
+    selectedTags,
+    showFormError,
+    words,
+  });
 
   function updateIdea(value: string) {
     const nextValue = value.slice(0, 2000);
     setIdea(nextValue);
     setWordCount(nextValue.length);
-    if ((formErrorTarget === "idea" || formErrorTarget === "ai") && nextValue.trim().length >= 10) {
+    const nextTrimmedLength = nextValue.trim().length;
+    if (
+      (formErrorTarget === "idea" && nextTrimmedLength >= MIN_IDEA_LENGTH_FOR_OUTLINE) ||
+      (formErrorTarget === "ai" && nextTrimmedLength >= MIN_IDEA_LENGTH_FOR_AI)
+    ) {
       clearFormError();
     }
+  }
+
+  function setCustomGenreLabel(value: string) {
+    const nextValue = value.slice(0, 32);
+    setCustomGenreLabelState(nextValue);
+    setIdeaAnalysis(null);
+    maybeClearCustomGenreError({ genreLabel: nextValue });
+  }
+
+  function setCustomTagsInput(value: string) {
+    const nextValue = value.slice(0, 160);
+    setCustomTagsInputState(nextValue);
+    setIdeaAnalysis(null);
+    maybeClearCustomGenreError({ tagsInput: nextValue });
+  }
+
+  function setCustomWorldDetails(value: string) {
+    const nextValue = value.slice(0, 360);
+    setCustomWorldDetailsState(nextValue);
+    setIdeaAnalysis(null);
+    maybeClearCustomGenreError({ details: nextValue });
   }
 
   function handleSelectGenre(genreId: GenreId) {
@@ -208,213 +228,46 @@ export function useDashboardCreate() {
     }
   }
 
-  async function handleAnalyzeIdea(nextIdea: string) {
-    if (analyzeBlockedByAiThinking) return;
+  function handleUseCustomStart() {
+    const nextGenreId = customGenre?.id ?? CUSTOM_GENRE_ID;
+    clearFormError();
+    setSelectedTemplateCardId(null);
+    setAnalysisOpen(false);
+    setIdeaAnalysis(null);
+    setCustomWorldDetails("");
+    updateIdea("");
+    handleSelectGenre(nextGenreId);
+  }
 
-    const trimmed = nextIdea.trim();
-    if (!selectedGenre) return;
-    if (trimmed.length < 10) return;
+  async function handleTemplateShowcaseSelect(cardId: string) {
+    const card = templateShowcaseCards.find((item) => item.id === cardId);
+    if (!card) {
+      return;
+    }
 
-    setAnalysisBusy(true);
+    clearFormError();
+    setSelectedTemplateCardId(card.id);
+    handleSelectGenre(card.genreId);
+    setCustomWorldDetails(card.content);
+    updateIdea(card.content);
+    setAnalysisOpen(true);
     setIdeaAnalysis(null);
 
-    try {
-      const response = await apiRequest<{ analysis: IdeaAnalysis }>("/api/ai/idea/analyze", {
-        genre: selectedGenre,
-        customGenreLabel:
-          isCustomGenre && normalizedCustomGenreLabel ? normalizedCustomGenreLabel : undefined,
-        idea: trimmed,
-        tags: selectedTags,
-        platform: platform.trim() ? platform.trim() : undefined,
-        dnaBookTitle: isAdmin && dnaBookTitle.trim() ? dnaBookTitle.trim() : undefined,
-        words: words.trim() ? words.trim() : undefined,
-      });
-
-      if (response.success && response.data?.analysis) {
-        setIdeaAnalysis(response.data.analysis);
-      }
-    } finally {
-      setAnalysisBusy(false);
-    }
+    await markCreateTemplateUsed(card.id);
   }
 
-  function clearAiProgressTimers() {
-    if (aiProgressIntervalRef.current) {
-      window.clearInterval(aiProgressIntervalRef.current);
-      aiProgressIntervalRef.current = null;
-    }
-
-    if (aiProgressResetRef.current) {
-      window.clearTimeout(aiProgressResetRef.current);
-      aiProgressResetRef.current = null;
-    }
+  async function handleAnalyzeIdea(nextIdea: string) {
+    await runAnalyzeIdea(nextIdea, analyzeBlockedByAiThinking);
   }
 
-  function clearAiThinkingCopyTimer() {
-    if (aiThinkingCopyIntervalRef.current) {
-      window.clearInterval(aiThinkingCopyIntervalRef.current);
-      aiThinkingCopyIntervalRef.current = null;
-    }
-  }
-
-  function startAiThinkingCopyLoop() {
-    clearAiThinkingCopyTimer();
-    setAiThinkingCopyIndex(0);
-
-    aiThinkingCopyIntervalRef.current = window.setInterval(() => {
-      setAiThinkingCopyIndex((current) => (current + 1) % AI_THINKING_COPY.length);
-    }, 1400);
-  }
-
-  function stopAiThinkingCopyLoop() {
-    clearAiThinkingCopyTimer();
-    setAiThinkingCopyIndex(0);
-  }
-
-  function startAiProgress() {
-    clearAiProgressTimers();
-    startAiThinkingCopyLoop();
-    setAiProgress(6);
-
-    aiProgressIntervalRef.current = window.setInterval(() => {
-      setAiProgress((current) => {
-        const cap = 92;
-        if (current >= cap) return current;
-
-        const remaining = cap - current;
-        const step = Math.min(1, Math.max(0.12, remaining * 0.04));
-        return Math.min(cap, current + step);
-      });
-    }, 40);
-  }
-
-  function finishAiProgress() {
-    clearAiProgressTimers();
-    stopAiThinkingCopyLoop();
-    setAiProgress(100);
-    aiProgressResetRef.current = window.setTimeout(() => {
-      setAiProgress(0);
-    }, 650);
-  }
-
-  useEffect(() => {
-    return () => {
-      clearAiProgressTimers();
-      clearAiThinkingCopyTimer();
-    };
-  }, []);
-
-  async function handleGenerateAi() {
-    if (!selectedGenre) {
-      showFormError("请先选择小说类型，再让 AI 优化创意。", "genre");
-      return;
-    }
-
-    if (trimmedIdea.length < 10) {
-      showFormError("请先填写至少 10 个字的创意描述，再让 AI 优化创意。", "idea");
-      return;
-    }
-
-    setAiBusy(true);
-    startAiProgress();
-
-    try {
-      const response = await fetch("/api/ai/idea", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          genre: selectedGenre,
-          customGenreLabel:
-            isCustomGenre && normalizedCustomGenreLabel ? normalizedCustomGenreLabel : undefined,
-          tags: selectedTags,
-          platform: platform.trim() ? platform.trim() : undefined,
-          dnaBookTitle: isAdmin && dnaBookTitle.trim() ? dnaBookTitle.trim() : undefined,
-          words: words.trim() ? words.trim() : undefined,
-          existingIdea: trimmedIdea,
-        }),
-      });
-
-      const json = (await response.json().catch(() => null)) as
-        | { success: true; data: { idea: string }; message?: string }
-        | { success: false; message?: string; fieldErrors?: Record<string, string[]> }
-        | null;
-
-      if (json?.success && json.data?.idea) {
-        updateIdea(json.data.idea);
-        setIdeaAnalysis(null);
-        setAnalysisOpen(true);
-        clearFormError();
-        return;
-      }
-
-      showFormError(json?.message ?? aiZhCN.idea.generateFailed, "ai");
-    } catch {
-      showFormError(aiZhCN.common.networkFailed, "ai");
-    } finally {
-      setAiBusy(false);
-      finishAiProgress();
-    }
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (submitBusy) return;
-
-    if (!selectedGenre) {
-      showFormError("必须选择一个小说类型。", "genre");
-      return;
-    }
-
-    const trimmed = idea.trim();
-    if (trimmed.length < 10) {
-      showFormError("请先填写至少 10 个字的创意描述，再生成大纲。", "idea");
-      return;
-    }
-
-    setSubmitBusy(true);
-
-    const platformId = platform.trim() ? platform.trim() : undefined;
-    const draft: CreateOutlineDraft = {
-      genre: selectedGenre,
-      genreLabel: effectiveGenreLabel,
-      idea: trimmed,
-      tags: selectedTags,
-      platform: platformId,
-      platformLabel: platformId
-        ? platforms.find((item) => item.id === platformId)?.label
-        : undefined,
-      dnaBookTitle: isAdmin && dnaBookTitle.trim() ? dnaBookTitle.trim() : undefined,
-      words: words.trim() ? words.trim() : undefined,
-    };
-
-    try {
-      sessionStorage.setItem(CREATE_OUTLINE_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-      sessionStorage.removeItem(CREATE_OUTLINE_RESULT_CACHE_KEY);
-    } catch {
-      setSubmitBusy(false);
-      showFormError("浏览器存储不可用，无法进入生成页。请检查隐私模式或存储权限后重试。", "storage");
-      return;
-    }
-
-    router.push("/dashboard/create/outline");
-
-    window.setTimeout(() => {
-      if (window.location.pathname !== "/dashboard/create/outline") {
-        window.location.assign("/dashboard/create/outline");
-      }
-    }, 250);
+  async function handleRandomTemplateStart() {
+    await runRandomTemplateStart(aiBusy);
   }
 
   async function handleTemplateUse(template: HotTemplate) {
     updateIdea(template.content);
     setIdeaAnalysis(null);
-    await apiRequest("/api/create/templates/use", {
-      templateId: template.id,
-    });
+    await markCreateTemplateUsed(template.id);
   }
 
   return {
@@ -431,43 +284,62 @@ export function useDashboardCreate() {
     bootstrapLoading,
     canAnalyzeIdea,
     canGenerateAi,
+    canSubmitOutline,
     config,
+    customDetails,
     customGenre,
     customGenreLabel,
+    customGenreValidationMessage,
     customTags,
     customTagsInput,
+    customWorldDetails,
     dnaBookTitle,
     dnaStyles,
+    effectiveGenreLabel,
+    effectiveIdeaForAi,
     formError,
     formErrorTarget,
     handleAnalyzeIdea,
     handleGenerateAi,
+    handleRandomTemplateStart,
     handleSelectGenre,
     handleSubmit,
+    handleTemplateShowcaseSelect,
     handleTemplateUse,
+    handleUseCustomStart,
     hotTemplates,
     idea,
     ideaAnalysis,
     isAdmin,
     isCustomGenre,
+    outlineIdeaRemaining,
     platform,
     platforms,
+    randomTemplateBusy,
     selectedGenre,
+    selectedTemplateCardId,
+    selectedTags,
     setAnalysisOpen,
     setCustomGenreLabel,
     setCustomTagsInput,
+    setCustomWorldDetails,
     setDnaBookTitle,
     setIdeaAnalysis,
     setPlatform,
     setWords,
     showAiProgress,
+    submitBlockedReason,
     submitBusy,
+    templateShowcaseBusy,
+    templateShowcaseCards,
+    refreshTemplateShowcase,
     updateIdea,
     userEmail,
     visibleGenres,
     wordCount,
-    wordOptions,
     words,
+    MIN_IDEA_LENGTH_FOR_OUTLINE,
+    wordOptions,
   };
 }
 

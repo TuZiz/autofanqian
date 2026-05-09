@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, FileText, PenLine, Search } from "lucide-react";
+import { BookOpen, FileText, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { formatRelativeTime } from "@/lib/dashboard/dashboard-format";
@@ -10,6 +10,11 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | "written" | "empty">("all");
   const chapters = useMemo(() => dashboard.chapters ?? [], [dashboard.chapters]);
+  const createChapterIndex = Math.max(1, dashboard.maxChapterIndex + 1);
+  const canAddChapter =
+    Boolean(dashboard.work) &&
+    (!dashboard.plannedChapterCount || createChapterIndex <= dashboard.plannedChapterCount) &&
+    !dashboard.addChapterBusy;
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -17,11 +22,8 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
       if (status === "written" && chapter.wordCount <= 0) return false;
       if (status === "empty" && chapter.wordCount > 0) return false;
       if (!normalized) return true;
-      return [
-        chapter.index,
-        chapter.title ?? "",
-        `第 ${chapter.index} 章`,
-      ]
+
+      return [chapter.index, chapter.title ?? "", `第${chapter.index}章`]
         .join(" ")
         .toLowerCase()
         .includes(normalized);
@@ -29,48 +31,67 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
   }, [chapters, query, status]);
 
   return (
-    <section id="chapters" className="rounded-[32px] border border-white/60 bg-white/70 p-6 shadow-sm ring-1 ring-zinc-900/5 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60 dark:ring-white/10 md:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 shadow-inner ring-1 ring-blue-500/20 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-300/20">
+    <section id="chapters" className="app-compact-panel p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]">
             <BookOpen className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-              Chapters
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
+              章节面板
             </div>
-            <h3 className="mt-1 text-2xl font-black tracking-tight text-zinc-950 dark:text-white">章节工作台</h3>
+            <h3 className="mt-0.5 text-[1.34rem] font-extrabold tracking-tight text-[var(--theme-text-strong)]">
+              章节工作台
+            </h3>
           </div>
         </div>
+
         <button
           type="button"
-          onClick={() => dashboard.goToChapter(dashboard.nextChapterIndex)}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-zinc-800 hover:shadow-lg active:scale-[0.98] dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+          disabled={!canAddChapter}
+          title={
+            dashboard.addChapterBusy
+              ? "正在新增章节..."
+              : canAddChapter
+                ? `新增第${createChapterIndex}章`
+                : "请先规划下一段后再新增章节"
+          }
+          onClick={() => void dashboard.handleAddChapter()}
+          className="inline-flex h-9.5 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-3.5 text-sm font-bold text-white shadow-[0_14px_30px_-18px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-[0_18px_32px_-18px_rgba(16,185,129,0.18),inset_0_1px_0_rgba(255,255,255,0.12)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
         >
-          <PenLine className="h-4 w-4" />
-          继续写作
+          <Plus className="h-4 w-4" />
+          {dashboard.addChapterBusy ? "新增中..." : "新增章节"}
         </button>
       </div>
-      <p className="mt-4 max-w-2xl text-sm font-medium leading-relaxed text-zinc-500 dark:text-zinc-400">
-        紧凑查看所有已规划章节，快速过滤未写章节或进入写作页。
+
+      <p className="mt-2 max-w-2xl text-[13px] font-semibold leading-6 text-[var(--theme-text-muted)]">
+        快速查看全部章节，筛出未写内容，或直接跳转到对应写作页。
       </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
-        <label className="relative block group">
+      {dashboard.addChapterError ? (
+        <div className="mt-3 rounded-xl border border-red-200/70 bg-red-50/85 px-4 py-3 text-sm font-bold text-red-600 shadow-sm dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-300">
+          {dashboard.addChapterError}
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_148px]">
+        <label className="group relative block">
           <span className="sr-only">搜索章节</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="搜索章节标题或序号..."
-            className="h-12 w-full rounded-xl border border-zinc-200/80 bg-white/80 pl-11 pr-4 text-sm font-bold text-zinc-950 outline-none shadow-sm transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 dark:border-zinc-700/80 dark:bg-zinc-950/80 dark:text-white dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+            className="h-9.5 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] pl-9 pr-3 text-sm font-bold text-[var(--theme-text-primary)] outline-none shadow-sm transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-emerald-500/15"
           />
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-blue-500" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[var(--theme-brand-600)]" />
         </label>
+
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value as typeof status)}
           aria-label="按状态筛选章节"
-          className="h-12 appearance-none rounded-xl border border-zinc-200/80 bg-white/80 px-4 text-sm font-bold text-zinc-700 outline-none shadow-sm transition-all focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 dark:border-zinc-700/80 dark:bg-zinc-950/80 dark:text-zinc-300 dark:focus:border-blue-500 dark:focus:ring-blue-500/20"
+          className="h-9.5 appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-bold text-[var(--theme-text-primary)] outline-none shadow-sm transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-emerald-500/15"
         >
           <option value="all">全部章节</option>
           <option value="written">已写</option>
@@ -78,56 +99,56 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
         </select>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-[24px] border border-white/60 bg-white/50 shadow-inner dark:border-white/5 dark:bg-zinc-900/50">
-        <div className="overflow-x-auto">
-          <table className="min-w-[760px] w-full text-left text-sm">
-            <thead className="border-b border-zinc-200/50 bg-zinc-50/50 text-[11px] font-bold uppercase tracking-widest text-zinc-500 dark:border-zinc-800/50 dark:bg-zinc-950/50 dark:text-zinc-400">
+      <div className="mt-4 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-inner">
+        <div className="max-h-[calc(100dvh-22rem)] overflow-auto">
+          <table className="w-full table-fixed text-left text-sm">
+            <thead className="sticky top-0 z-10 border-b border-[var(--theme-border)] bg-stone-50/95 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)] backdrop-blur dark:bg-stone-950/95">
               <tr>
-                <th className="px-6 py-4 font-bold">章节</th>
-                <th className="px-6 py-4 font-bold">状态</th>
-                <th className="px-6 py-4 font-bold">字数</th>
-                <th className="px-6 py-4 font-bold">更新</th>
-                <th className="px-6 py-4 text-right font-bold">操作</th>
+                <th className="w-[38%] px-4 py-2.5 font-bold">章节</th>
+                <th className="w-[15%] px-3 py-2.5 font-bold">状态</th>
+                <th className="w-[15%] px-3 py-2.5 font-bold">字数</th>
+                <th className="w-[16%] px-3 py-2.5 font-bold">更新</th>
+                <th className="w-[16%] px-3 py-2.5 text-right font-bold">操作</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+            <tbody className="divide-y divide-[var(--theme-border)]">
               {filtered.length ? (
                 filtered.map((chapter) => (
                   <tr key={chapter.id} className="transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-800/30">
-                    <td className="px-6 py-4">
-                      <div className="flex min-w-0 items-center gap-4">
-                        <span className="inline-flex h-9 min-w-[72px] items-center justify-center rounded-xl border border-zinc-200/80 bg-white px-3 text-xs font-bold text-zinc-500 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300">
-                          第 {chapter.index} 章
+                    <td className="px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="inline-flex h-8 min-w-[62px] shrink-0 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] px-2 text-[11px] font-black text-[var(--theme-text-muted)] shadow-sm">
+                          第{chapter.index}章
                         </span>
-                        <span className="truncate font-black text-zinc-950 dark:text-white">
+                        <span className="truncate text-sm font-bold text-[var(--theme-text-strong)]">
                           {chapter.title || "未命名章节"}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3">
                       <span
                         className={
                           chapter.wordCount > 0
-                            ? "inline-flex rounded-xl border border-blue-200/80 bg-blue-50/80 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-blue-700 shadow-sm dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300"
-                            : "inline-flex rounded-xl border border-zinc-200/80 bg-zinc-50/80 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-900/80 dark:text-zinc-400"
+                            ? "inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700 shadow-sm dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200"
+                            : "inline-flex rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--theme-text-muted)] shadow-sm"
                         }
                       >
                         {chapter.wordCount > 0 ? "已写" : "未写"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm font-black tabular-nums text-zinc-600 dark:text-zinc-300">
+                    <td className="px-3 py-3 text-[13px] font-bold tabular-nums text-[var(--theme-text-secondary)]">
                       {chapter.wordCount.toLocaleString("zh-CN")} 字
                     </td>
-                    <td className="px-6 py-4 text-xs font-bold tabular-nums uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                      {formatRelativeTime(chapter.updatedAt)}
+                    <td className="px-3 py-3 text-[11px] font-bold tabular-nums text-[var(--theme-text-muted)]">
+                      <span className="line-clamp-1">{formatRelativeTime(chapter.updatedAt)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 py-3 text-right">
                       <button
                         type="button"
                         onClick={() => dashboard.goToChapter(chapter.index)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200/80 bg-white px-4 text-xs font-bold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-1 hover:ring-zinc-300 active:scale-[0.98] dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
+                        className="inline-flex h-8.5 items-center justify-center gap-1.5 rounded-xl border border-[var(--theme-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,247,250,0.92))] px-3 text-[11px] font-black text-[var(--theme-text-secondary)] shadow-[0_12px_24px_-20px_rgba(15,23,42,0.35),inset_0_1px_0_rgba(255,255,255,0.96)] transition-all hover:-translate-y-0.5 hover:text-[var(--theme-text-strong)] hover:shadow-[0_16px_28px_-18px_rgba(16,185,129,0.18),inset_0_1px_0_rgba(255,255,255,0.98)] active:scale-[0.98] dark:border-[var(--theme-border)] dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(18,18,20,0.92))] dark:text-zinc-300"
                       >
-                        <BookOpen className="h-4 w-4" />
+                        <BookOpen className="h-3.5 w-3.5" />
                         打开
                       </button>
                     </td>
@@ -135,8 +156,8 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                    <div className="mb-4 flex h-16 w-16 mx-auto items-center justify-center rounded-2xl bg-zinc-100/80 text-zinc-400 shadow-inner ring-1 ring-zinc-200/50 dark:bg-zinc-800/80 dark:text-zinc-500 dark:ring-zinc-700/50">
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm font-bold uppercase tracking-widest text-[var(--theme-text-muted)]">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100/80 text-zinc-400 shadow-inner ring-1 ring-[var(--theme-border)] dark:bg-zinc-800/80 dark:text-zinc-500 dark:ring-[var(--theme-border)]">
                       <FileText className="h-6 w-6" />
                     </div>
                     没有匹配的章节

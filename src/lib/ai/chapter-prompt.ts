@@ -1,5 +1,13 @@
 import type { StoryOutline, StoryOutlineRole } from "@/lib/create/outline-draft";
 
+function clampInline(value: string | null | undefined, maxChars: number) {
+  const normalized = (value ?? "").replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  return normalized.length > maxChars
+    ? `${normalized.slice(0, maxChars)}...`
+    : normalized;
+}
+
 function roleToChinese(role: StoryOutlineRole) {
   switch (role) {
     case "protagonist":
@@ -22,22 +30,101 @@ function formatChapterRange(startChapter?: number, endChapter?: number) {
     : `第${startChapter}-${endChapter}章`;
 }
 
-function formatOutlineVolume(volume: StoryOutline["volumes"][number], index: number) {
+function findFocusVolumeIndex(
+  volumes: StoryOutline["volumes"],
+  chapterIndex: number,
+) {
+  const exact = volumes.findIndex((volume) => {
+    if (
+      typeof volume.startChapter !== "number" ||
+      typeof volume.endChapter !== "number"
+    ) {
+      return false;
+    }
+
+    return chapterIndex >= volume.startChapter && chapterIndex <= volume.endChapter;
+  });
+
+  if (exact >= 0) return exact;
+
+  const planned = volumes.findIndex(
+    (volume) =>
+      volume.detailLevel === "detailed" ||
+      volume.status === "planned" ||
+      volume.status === "active",
+  );
+
+  return planned >= 0 ? planned : 0;
+}
+
+function getVisibleVolumes(
+  outline: StoryOutline,
+  chapterIndex: number,
+) {
+  const volumes = outline.volumes ?? [];
+  if (volumes.length <= 2) {
+    return volumes.map((volume, index) => ({ volume, outlineIndex: index }));
+  }
+
+  const focusIndex = findFocusVolumeIndex(volumes, chapterIndex);
+  const start = chapterIndex === 1 ? 0 : Math.max(0, focusIndex - 1);
+  const end =
+    chapterIndex === 1
+      ? Math.min(volumes.length - 1, 1)
+      : Math.min(volumes.length - 1, focusIndex + 1);
+
+  return volumes
+    .slice(start, end + 1)
+    .map((volume, offset) => ({ volume, outlineIndex: start + offset }));
+}
+
+function getVisibleSegments(
+  volume: StoryOutline["volumes"][number],
+  chapterIndex: number,
+) {
+  const segments = volume.segments ?? [];
+  if (segments.length <= 4) return segments;
+
+  const focusIndex = segments.findIndex((segment) => {
+    if (
+      typeof segment.startChapter !== "number" ||
+      typeof segment.endChapter !== "number"
+    ) {
+      return false;
+    }
+
+    return chapterIndex >= segment.startChapter && chapterIndex <= segment.endChapter;
+  });
+
+  if (focusIndex < 0) {
+    return segments.slice(0, 3);
+  }
+
+  const start = Math.max(0, focusIndex - 1);
+  return segments.slice(start, Math.min(segments.length, start + 3));
+}
+
+function formatOutlineVolume(params: {
+  volume: StoryOutline["volumes"][number];
+  outlineIndex: number;
+  chapterIndex: number;
+}) {
+  const { volume, outlineIndex, chapterIndex } = params;
   const range = formatChapterRange(volume.startChapter, volume.endChapter);
   const segments =
-    volume.segments
+    getVisibleSegments(volume, chapterIndex)
       ?.map((segment) => {
         const segmentRange = formatChapterRange(
           segment.startChapter,
           segment.endChapter,
         );
-        return `  - ${segment.title}${segmentRange ? `（${segmentRange}）` : ""}：${segment.desc}`;
+        return `  - ${segment.title}${segmentRange ? `（${segmentRange}）` : ""}：${clampInline(segment.desc, 72)}`;
       })
       .join("\n") ?? "";
 
   return [
-    `${index + 1}. ${volume.name}${range ? `（${range}）` : ""}`,
-    `概要：${volume.desc}`,
+    `${outlineIndex + 1}. ${volume.name}${range ? `（${range}）` : ""}`,
+    `概要：${clampInline(volume.desc, 96)}`,
     segments ? `章节小节：\n${segments}` : "",
   ]
     .filter(Boolean)
@@ -90,7 +177,7 @@ export function buildChapterUserPrompt(params: {
   };
   extraPrompt?: string | null;
 }) {
-  const tags = (params.work.tags ?? []).filter(Boolean).slice(0, 8);
+  const tags = (params.work.tags ?? []).filter(Boolean).slice(0, 5);
   const tagLine = tags.length ? `标签：${tags.join("、")}` : "";
   const extraPrompt = typeof params.extraPrompt === "string" ? params.extraPrompt.trim() : "";
 
@@ -102,42 +189,54 @@ export function buildChapterUserPrompt(params: {
     params.work.dnaBookTitle ? `参考书名：${params.work.dnaBookTitle}（只抽象写法与结构，不复刻原作剧情）` : "",
   ].filter(Boolean);
 
-  const volumes = params.outline.volumes.map(formatOutlineVolume).join("\n\n");
+  const volumes = getVisibleVolumes(params.outline, params.chapterIndex)
+    .map(({ volume, outlineIndex }) =>
+      formatOutlineVolume({
+        volume,
+        outlineIndex,
+        chapterIndex: params.chapterIndex,
+      }),
+    )
+    .join("\n\n");
 
   const characters = params.outline.characters
-    .map((c) => `${c.name}（${roleToChinese(c.role)}）：${c.desc}`)
+    .slice(0, 6)
+    .map((c) => `${c.name}（${roleToChinese(c.role)}）：${clampInline(c.desc, 72)}`)
     .join("\n");
 
   const chapterIndex = params.chapterIndex;
   const previousContext = [
     params.context?.previousSummary
-      ? `上一章摘要：${params.context.previousSummary}`
+      ? `上一章摘要：${clampInline(params.context.previousSummary, 220)}`
       : "",
     params.context?.previousEnding
-      ? `上一章结尾片段：${params.context.previousEnding}`
+      ? `上一章结尾片段：${clampInline(params.context.previousEnding, 320)}`
       : "",
   ].filter(Boolean);
   const recentSummaries = (params.context?.recentSummaries ?? [])
-    .slice(0, 5)
-    .map((item) => `第${item.index}章${item.title ? `《${item.title}》` : ""}：${item.summary}`)
+    .slice(0, 3)
+    .map(
+      (item) =>
+        `第${item.index}章${item.title ? `《${item.title}》` : ""}：${clampInline(item.summary, 120)}`,
+    )
     .join("\n");
   const writingMemories = (params.context?.writingMemories ?? [])
     .filter(Boolean)
-    .slice(0, 12)
-    .map((item) => `- ${item}`)
+    .slice(0, 6)
+    .map((item) => `- ${clampInline(item, 96)}`)
     .join("\n");
   const libraryContext = [
     (params.context?.characters ?? []).length
-      ? `角色库重点：\n${(params.context?.characters ?? []).slice(0, 12).map((item) => `- ${item}`).join("\n")}`
+      ? `角色库重点：\n${(params.context?.characters ?? []).slice(0, 6).map((item) => `- ${clampInline(item, 96)}`).join("\n")}`
       : "",
     (params.context?.worldSettings ?? []).length
-      ? `关键设定：\n${(params.context?.worldSettings ?? []).slice(0, 12).map((item) => `- ${item}`).join("\n")}`
+      ? `关键设定：\n${(params.context?.worldSettings ?? []).slice(0, 6).map((item) => `- ${clampInline(item, 96)}`).join("\n")}`
       : "",
     (params.context?.timelineEvents ?? []).length
-      ? `最近时间线：\n${(params.context?.timelineEvents ?? []).slice(0, 8).map((item) => `- ${item}`).join("\n")}`
+      ? `最近时间线：\n${(params.context?.timelineEvents ?? []).slice(0, 4).map((item) => `- ${clampInline(item, 108)}`).join("\n")}`
       : "",
     (params.context?.foreshadowings ?? []).length
-      ? `未回收伏笔：\n${(params.context?.foreshadowings ?? []).slice(0, 10).map((item) => `- ${item}`).join("\n")}`
+      ? `未回收伏笔：\n${(params.context?.foreshadowings ?? []).slice(0, 4).map((item) => `- ${clampInline(item, 108)}`).join("\n")}`
       : "",
   ].filter(Boolean).join("\n\n");
 
@@ -145,13 +244,13 @@ export function buildChapterUserPrompt(params: {
     `作品标题：${params.work.title || params.outline.title}`,
     ...metaLines,
     "",
-    `创意描述：${params.work.idea}`,
+    `创意：${clampInline(params.work.idea, 260)}`,
     "",
-    `作品简介：${params.work.synopsis}`,
+    `简介：${clampInline(params.work.synopsis, 320)}`,
     "",
-    `分卷结构：\n${volumes}`,
+    `相关卷纲：\n${volumes}`,
     "",
-    `主要角色：\n${characters}`,
+    `主要角色：\n${characters || "-"}`,
     "",
     previousContext.length
       ? [

@@ -2,6 +2,7 @@
 
 import { Key, Lock, PencilLine, Search, Shield, Trash2 } from "lucide-react";
 
+import { AppButton, AppCard, AppChip, AppInput } from "@/components/app-ui";
 import { formatDateTime } from "@/lib/admin/users-format";
 import type { AdminUsersController } from "@/lib/admin/use-admin-users";
 
@@ -11,60 +12,62 @@ type AdminUsersTableProps = {
 
 export function AdminUsersTable({ users }: AdminUsersTableProps) {
   return (
-    <section className="glass-panel rounded-lg p-5 shadow-sm">
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <AppCard className="overflow-hidden bg-[var(--theme-surface-strong)]">
+      <div className="flex flex-col gap-3 border-b border-[var(--theme-border)] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="theme-heading text-xl font-bold">账号列表</h2>
-          <p className="theme-muted mt-1 text-sm">支持搜索：编码 / id / 邮箱 / 昵称</p>
+          <h2 className="text-lg font-extrabold text-[var(--theme-text-strong)]">账号列表</h2>
+          <p className="mt-0.5 text-xs font-semibold text-[var(--theme-text-muted)]">
+            支持搜索：编码 / ID / 邮箱 / 昵称
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="group relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500 transition-colors group-focus-within:text-emerald-600" />
-            <input
+          <div className="group relative w-full sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)] transition-colors group-focus-within:text-[var(--theme-brand-600)]" />
+            <AppInput
               value={users.query}
               onChange={(event) => users.setQuery(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") void users.handleSearch();
               }}
               type="text"
-              placeholder="搜索 编码 / ID / 邮箱 / 昵称..."
-              className="theme-input w-full rounded-xl py-2.5 pl-9 pr-4 text-sm"
+              placeholder="搜索账号..."
+              className="w-full pl-9"
             />
           </div>
-          <button
+          <AppButton
             type="button"
             onClick={() => void users.handleSearch()}
-            disabled={users.loading}
-            className="theme-button-secondary inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold active:scale-95 disabled:opacity-70"
+            isDisabled={users.loading}
+            className="h-9 border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-primary)] hover:bg-[var(--theme-surface-hover)]"
           >
             搜索
-          </button>
+          </AppButton>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="theme-muted text-xs uppercase tracking-wider">
-              <th className="px-6 py-4 font-semibold">编号</th>
-              <th className="px-6 py-4 font-semibold">邮箱</th>
-              <th className="px-6 py-4 font-semibold">昵称</th>
-              <th className="px-6 py-4 font-semibold">用户组</th>
-              <th className="px-6 py-4 font-semibold">状态</th>
-              <th className="px-6 py-4 font-semibold">注册时间</th>
-              <th className="px-6 py-4 font-semibold">最后登录</th>
-              <th className="px-6 py-4 text-right font-semibold">操作</th>
+      <div className="max-h-[calc(100dvh-18rem)] min-h-[260px] overflow-auto">
+        <table className="w-full min-w-[1060px] border-collapse text-left">
+          <thead className="sticky top-0 z-10 bg-[var(--theme-surface-strong)]/95 text-[11px] uppercase tracking-[0.12em] text-[var(--theme-text-muted)] backdrop-blur">
+            <tr>
+              <th className="px-4 py-2.5 font-semibold">编号</th>
+              <th className="px-4 py-2.5 font-semibold">邮箱</th>
+              <th className="px-4 py-2.5 font-semibold">昵称</th>
+              <th className="px-4 py-2.5 font-semibold">用户组</th>
+              <th className="px-4 py-2.5 font-semibold">状态</th>
+              <th className="px-4 py-2.5 font-semibold">注册时间</th>
+              <th className="px-4 py-2.5 font-semibold">最后登录</th>
+              <th className="px-4 py-2.5 text-right font-semibold">操作</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/10">
+          <tbody className="divide-y divide-[var(--theme-border)]">
             {users.loading ? (
               <EmptyRow text="正在加载..." />
             ) : users.users.length ? (
               users.users.map((user) => (
-                <tr key={user.id} className="group transition-colors hover:bg-white/30 dark:hover:bg-white/5">
-                  <td className="theme-muted px-6 py-4 font-mono text-xs">{user.code}</td>
-                  <td className="px-6 py-4">
+                <tr key={user.id} className="group transition-colors hover:bg-[var(--theme-surface-overlay)]">
+                  <td className="px-4 py-2.5 font-mono text-xs font-semibold text-[var(--theme-text-muted)]">{user.code}</td>
+                  <td className="px-4 py-2.5">
                     <EditableValue
                       title="编辑邮箱"
                       value={user.email}
@@ -72,7 +75,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                       onClick={() => users.openUserEditor(user, "email")}
                     />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2.5">
                     <EditableValue
                       title="编辑昵称"
                       value={user.name?.trim() || "-"}
@@ -80,26 +83,25 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                       onClick={() => users.openUserEditor(user, "name")}
                     />
                   </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={[
-                        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold",
+                  <td className="px-4 py-2.5">
+                    <AppChip
+                      className={
                         user.isAdmin
-                          ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
-                          : "border-white/20 bg-white/30 text-stone-700 dark:text-stone-200",
-                      ].join(" ")}
+                          ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]"
+                          : "bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]"
+                      }
                     >
                       {user.isAdmin ? <Shield className="h-3 w-3" /> : null}
                       {user.displayGroup}
-                    </span>
+                    </AppChip>
                     {user.isRootAdmin ? (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-200">
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-md border border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--theme-warning-text)]">
                         <Lock className="h-3 w-3" />
                         根管理员
                       </span>
                     ) : null}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
@@ -107,15 +109,15 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                             className={[
                               "h-2 w-2 rounded-full",
                               user.emailVerified
-                                ? "bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.35)]"
-                                : "bg-amber-400",
+                                ? "bg-[var(--theme-brand-400)] shadow-[0_0_12px_rgba(16,185,129,0.35)]"
+                              : "bg-[var(--theme-warning-text)]",
                             ].join(" ")}
                           />
-                          <span className="theme-muted text-sm">
+                          <span className="text-xs font-semibold text-[var(--theme-text-muted)]">
                             {user.emailVerified ? "已验证" : "未验证"}
                           </span>
                         </div>
-                        <span className="theme-muted text-xs">
+                        <span className="text-[11px] font-semibold text-[var(--theme-text-muted)]">
                           {user.hasPassword ? "已设置密码" : "未设置密码"}
                         </span>
                       </div>
@@ -123,26 +125,26 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                         type="button"
                         onClick={() => users.openUserEditor(user)}
                         disabled={user.isRootAdmin && !users.isRootAdmin}
-                        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition-colors hover:bg-[var(--theme-brand-soft)] hover:text-[var(--theme-brand-600)] disabled:cursor-not-allowed disabled:opacity-40"
                         title="编辑状态"
                       >
                         <PencilLine className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
-                  <td className="theme-muted px-6 py-4 font-mono text-xs">
+                  <td className="px-4 py-2.5 font-mono text-xs font-semibold text-[var(--theme-text-muted)]">
                     {formatDateTime(user.createdAt)}
                   </td>
-                  <td className="theme-muted px-6 py-4 font-mono text-xs">
+                  <td className="px-4 py-2.5 font-mono text-xs font-semibold text-[var(--theme-text-muted)]">
                     {formatDateTime(user.lastLoginAt)}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="flex items-center justify-end gap-1.5 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100">
                       <button
                         type="button"
                         onClick={() => users.setPasswordEditor({ user, value: "" })}
                         disabled={user.isRootAdmin && !users.isRootAdmin}
-                        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-amber-500/10 hover:text-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition-colors hover:bg-[var(--theme-warning-soft)] hover:text-[var(--theme-warning-text)] disabled:cursor-not-allowed disabled:opacity-40"
                         title="修改密码"
                       >
                         <Key className="h-4 w-4" />
@@ -151,7 +153,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                         type="button"
                         onClick={() => void users.handleDeleteUser(user)}
                         disabled={user.isRootAdmin}
-                        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-red-500/10 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition-colors hover:bg-[var(--theme-danger-soft)] hover:text-[var(--theme-danger-text)] disabled:cursor-not-allowed disabled:opacity-40"
                         title={user.isRootAdmin ? "根管理员账号不能删除" : "删除用户"}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -167,38 +169,38 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
         </table>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="theme-muted text-sm">共找到 {users.total.toLocaleString()} 条数据</div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] px-4 py-3">
+        <div className="text-sm font-semibold text-[var(--theme-text-muted)]">共找到 {users.total.toLocaleString()} 条数据</div>
         <div className="flex items-center gap-2">
-          <button
+          <AppButton
             type="button"
-            disabled={users.loading || users.page <= 1}
+            isDisabled={users.loading || users.page <= 1}
             onClick={() => void users.goToPage(Math.max(1, users.page - 1))}
-            className="theme-button-secondary rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-60"
+            className="h-8 border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs text-[var(--theme-text-primary)]"
           >
             上一页
-          </button>
-          <span className="theme-muted font-mono text-sm">
+          </AppButton>
+          <span className="font-mono text-sm font-semibold text-[var(--theme-text-muted)]">
             {users.page}/{users.totalPages}
           </span>
-          <button
+          <AppButton
             type="button"
-            disabled={users.loading || users.page >= users.totalPages}
+            isDisabled={users.loading || users.page >= users.totalPages}
             onClick={() => void users.goToPage(Math.min(users.totalPages, users.page + 1))}
-            className="theme-button-secondary rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-60"
+            className="h-8 border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs text-[var(--theme-text-primary)]"
           >
             下一页
-          </button>
+          </AppButton>
         </div>
       </div>
-    </section>
+    </AppCard>
   );
 }
 
 function EmptyRow({ text }: { text: string }) {
   return (
     <tr>
-      <td colSpan={8} className="theme-muted px-6 py-10 text-center text-sm">
+      <td colSpan={8} className="px-6 py-10 text-center text-sm font-semibold text-[var(--theme-text-muted)]">
         {text}
       </td>
     </tr>
@@ -218,12 +220,14 @@ function EditableValue({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="theme-heading text-sm font-medium">{value}</span>
+      <span className="max-w-[18rem] truncate text-sm font-semibold text-[var(--theme-text-primary)]" title={value}>
+        {value}
+      </span>
       <button
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className="rounded-lg p-1.5 text-stone-500 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition-colors hover:bg-[var(--theme-brand-soft)] hover:text-[var(--theme-brand-600)] disabled:cursor-not-allowed disabled:opacity-40"
         title={title}
       >
         <PencilLine className="h-4 w-4" />

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { KeyRound, Lock, Mail } from "lucide-react";
 import { motion } from "framer-motion";
+import { InputGroupRoot, InputGroupPrefix, InputGroupInput, Button } from "@heroui/react";
 
 import { AuthShell } from "@/components/auth/auth-shell";
 import { PasswordVisibilityToggle } from "@/components/auth/password-visibility-toggle";
@@ -117,17 +118,17 @@ export function ForgotPasswordForm() {
 
   return (
     <AuthShell title="找回密码" subtitle="安全验证并重置访问密码" toast={toast}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6" autoComplete="off">
-        
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4" autoComplete="off">
+
         <div>
           <label htmlFor="forgot-email" className="mb-2 block pl-1 text-sm font-bold text-zinc-700 dark:text-zinc-300">
             邮箱地址
           </label>
-          <div className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-300 backdrop-blur-md">
-            <div className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+          <InputGroupRoot className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-emerald-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 backdrop-blur-md">
+            <InputGroupPrefix className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-emerald-500 transition-colors">
               <Mail className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <input
+            </InputGroupPrefix>
+            <InputGroupInput
               id="forgot-email"
               type="email"
               name="email"
@@ -137,10 +138,10 @@ export function ForgotPasswordForm() {
               required
               aria-invalid={!!fieldErrors.email}
               aria-describedby={fieldErrors.email ? "forgot-email-error" : undefined}
-              className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
-              placeholder="hello@example.com"
+              className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
+              placeholder="请输入邮箱地址"
             />
-          </div>
+          </InputGroupRoot>
           {fieldErrors.email ? (
             <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="forgot-email-error" className="mt-2 pl-1 text-sm font-semibold text-red-500" role="alert">
               {fieldErrors.email}
@@ -152,11 +153,11 @@ export function ForgotPasswordForm() {
           <label htmlFor="forgot-code" className="mb-2 block pl-1 text-sm font-bold text-zinc-700 dark:text-zinc-300">
             验证码
           </label>
-          <div className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-300 backdrop-blur-md">
-            <div className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+          <InputGroupRoot className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-emerald-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 backdrop-blur-md">
+            <InputGroupPrefix className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-emerald-500 transition-colors">
               <KeyRound className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <input
+            </InputGroupPrefix>
+            <InputGroupInput
               id="forgot-code"
               type="text"
               name="verificationCode"
@@ -169,20 +170,20 @@ export function ForgotPasswordForm() {
               required
               aria-invalid={!!fieldErrors.code}
               aria-describedby={fieldErrors.code ? "forgot-code-error" : undefined}
-              className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
+              className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
               placeholder="6位数字"
             />
             <div className="flex items-center pr-2">
-              <button
+              <Button
                 type="button"
-                disabled={isSendingCode || countdown > 0}
-                onClick={handleSendCode}
-                className="h-10 rounded-xl px-4 text-sm font-bold text-zinc-600 transition-colors hover:bg-zinc-200/50 disabled:pointer-events-none disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                isDisabled={isSendingCode || countdown > 0}
+                onPress={handleSendCode}
+                className="h-8 rounded-md px-3 text-xs font-bold text-zinc-600 transition-colors hover:bg-zinc-200/50 disabled:pointer-events-none disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 {isSendingCode ? "发送中..." : countdown > 0 ? `${countdown}s 后重发` : "获取验证码"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </InputGroupRoot>
           {fieldErrors.code ? (
             <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="forgot-code-error" className="mt-2 pl-1 text-sm font-semibold text-red-500" role="alert">
               {fieldErrors.code}
@@ -194,11 +195,11 @@ export function ForgotPasswordForm() {
           <label htmlFor="forgot-new-password" className="mb-2 block pl-1 text-sm font-bold text-zinc-700 dark:text-zinc-300">
             新密码
           </label>
-          <div className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-300 backdrop-blur-md">
-            <div className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+          <InputGroupRoot className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-emerald-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 backdrop-blur-md">
+            <InputGroupPrefix className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-emerald-500 transition-colors">
               <Lock className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <input
+            </InputGroupPrefix>
+            <InputGroupInput
               id="forgot-new-password"
               type={newPasswordVisible ? "text" : "password"}
               name="newPassword"
@@ -208,7 +209,7 @@ export function ForgotPasswordForm() {
               required
               aria-invalid={!!fieldErrors.newPassword}
               aria-describedby={fieldErrors.newPassword ? "forgot-new-password-error" : undefined}
-              className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white pr-12"
+              className="min-w-0 flex-1 bg-transparent px-3 py-3 pr-12 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
               placeholder="至少6位密码"
             />
             <div className="absolute right-2 top-0 h-full flex items-center">
@@ -217,7 +218,7 @@ export function ForgotPasswordForm() {
                 onToggle={() => setNewPasswordVisible((current) => !current)}
               />
             </div>
-          </div>
+          </InputGroupRoot>
           {fieldErrors.newPassword ? (
             <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="forgot-new-password-error" className="mt-2 pl-1 text-sm font-semibold text-red-500" role="alert">
               {fieldErrors.newPassword}
@@ -229,11 +230,11 @@ export function ForgotPasswordForm() {
           <label htmlFor="forgot-confirm-password" className="mb-2 block pl-1 text-sm font-bold text-zinc-700 dark:text-zinc-300">
             确认新密码
           </label>
-          <div className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all duration-300 backdrop-blur-md">
-            <div className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-blue-500 transition-colors">
+          <InputGroupRoot className="group relative flex w-full overflow-hidden rounded-2xl bg-zinc-100/80 dark:bg-black/40 border border-transparent focus-within:border-emerald-500/50 focus-within:bg-white dark:focus-within:bg-black/60 focus-within:ring-4 focus-within:ring-emerald-500/10 transition-all duration-300 backdrop-blur-md">
+            <InputGroupPrefix className="flex w-14 items-center justify-center text-zinc-400 group-focus-within:text-emerald-500 transition-colors">
               <Lock className="h-5 w-5" aria-hidden="true" />
-            </div>
-            <input
+            </InputGroupPrefix>
+            <InputGroupInput
               id="forgot-confirm-password"
               type={confirmPasswordVisible ? "text" : "password"}
               name="confirmNewPassword"
@@ -243,7 +244,7 @@ export function ForgotPasswordForm() {
               required
               aria-invalid={!!fieldErrors.confirmPassword}
               aria-describedby={fieldErrors.confirmPassword ? "forgot-confirm-password-error" : undefined}
-              className="min-w-0 flex-1 bg-transparent px-4 py-4 text-base font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white pr-12"
+              className="min-w-0 flex-1 bg-transparent px-3 py-3 pr-12 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
               placeholder="再次输入密码"
             />
             <div className="absolute right-2 top-0 h-full flex items-center">
@@ -252,7 +253,7 @@ export function ForgotPasswordForm() {
                 onToggle={() => setConfirmPasswordVisible((current) => !current)}
               />
             </div>
-          </div>
+          </InputGroupRoot>
           {fieldErrors.confirmPassword ? (
             <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} id="forgot-confirm-password-error" className="mt-2 pl-1 text-sm font-semibold text-red-500" role="alert">
               {fieldErrors.confirmPassword}
@@ -260,10 +261,10 @@ export function ForgotPasswordForm() {
           ) : null}
         </div>
 
-        <button
+        <Button
           type="submit"
-          disabled={isSubmitting}
-          className="mt-4 relative w-full overflow-hidden rounded-2xl bg-zinc-900 px-4 py-4 text-base font-bold text-white shadow-xl shadow-zinc-900/20 transition-all hover:scale-[1.02] hover:shadow-zinc-900/30 active:scale-95 disabled:pointer-events-none disabled:opacity-70 dark:bg-white dark:text-zinc-950 dark:shadow-white/10 dark:hover:shadow-white/20"
+          isDisabled={isSubmitting}
+          className="relative mt-2 w-full overflow-hidden rounded-lg bg-zinc-900 px-4 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-zinc-800 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 dark:bg-white dark:text-zinc-950"
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
@@ -273,11 +274,11 @@ export function ForgotPasswordForm() {
           ) : (
             "重 置 密 码"
           )}
-        </button>
+        </Button>
 
         <div className="mt-2 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
           记起密码了？{" "}
-          <Link href="/login" className="font-bold text-zinc-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400 transition-colors">
+          <Link href="/login" className="font-bold text-zinc-900 hover:text-emerald-600 dark:text-white dark:hover:text-emerald-400 transition-colors">
             返回登录
           </Link>
         </div>

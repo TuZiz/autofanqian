@@ -228,6 +228,7 @@ model AiUsageEvent {
   id           String   @id @default(cuid())
   userId       String?
   action       String
+  routeId      String?
   providerId   String?
   endpoint     String?
   modelUsed    String?
@@ -243,6 +244,7 @@ model AiUsageEvent {
 
   @@index([createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
+  @@index([routeId, createdAt(sort: Desc)])
   @@index([userId, createdAt(sort: Desc)])
 }
 
@@ -547,6 +549,7 @@ model GenerationJob {
   chapterId             String?
   action                String
   status                GenerationJobStatus @default(queued)
+  routeId               String?
   providerId            String?
   modelUsed             String?
   promptTemplateKey     String?
@@ -567,6 +570,7 @@ model GenerationJob {
 
   @@index([novelId, action, createdAt(sort: Desc)])
   @@index([chapterId])
+  @@index([routeId, createdAt(sort: Desc)])
   @@index([status, createdAt])
 }
 

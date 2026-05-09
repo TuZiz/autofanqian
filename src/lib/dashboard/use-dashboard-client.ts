@@ -34,6 +34,15 @@ function buildWorksUrl(nextFilters: DashboardFilters) {
   return query ? `/api/works?${query}` : "/api/works";
 }
 
+function normalizeDeleteConfirmationValue(value: string) {
+  const normalized = value.trim().replace(/[\s\u3000]+/g, " ");
+  if (normalized.startsWith("\u300a") && normalized.endsWith("\u300b") && normalized.length > 2) {
+    return normalized.slice(1, -1).trim().replace(/[\s\u3000]+/g, " ");
+  }
+
+  return normalized;
+}
+
 export function useDashboardClient() {
   const [loading, setLoading] = useState(true);
   const [overviewLoading, setOverviewLoading] = useState(false);
@@ -47,10 +56,25 @@ export function useDashboardClient() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  const deleteConfirmed = useMemo(() => {
+  const legacyDeleteConfirmed = useMemo(() => {
     const normalized = deleteConfirmInput.trim().toLowerCase();
     return normalized === "delete" || normalized === "删除" || normalized === "鍒犻櫎";
   }, [deleteConfirmInput]);
+
+  const deleteConfirmed = useMemo(() => {
+    if (!deleteTarget) return false;
+
+    const normalizedInput = normalizeDeleteConfirmationValue(deleteConfirmInput);
+    const normalizedTitle = normalizeDeleteConfirmationValue(deleteTarget.title);
+    const legacyKeyword = normalizedInput.toLowerCase();
+
+    return (
+      normalizedInput === normalizedTitle ||
+      legacyKeyword === "delete" ||
+      legacyKeyword === "\u5220\u9664" ||
+      legacyDeleteConfirmed
+    );
+  }, [deleteConfirmInput, deleteTarget, legacyDeleteConfirmed]);
 
   const bootstrapReadyRef = useRef(false);
   const overviewRequestIdRef = useRef(0);

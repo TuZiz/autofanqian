@@ -1,16 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
 import { getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 
-import {
-  clampProgress,
-  normalizeDetailLines,
-  splitPreviewLines,
-} from "./chapter-editor-format";
+import { clampProgress, normalizeDetailLines, splitPreviewLines } from "./chapter-editor-format";
 import type {
   ChapterBootstrap,
   ChapterDetail,
@@ -18,6 +14,11 @@ import type {
   MetaPatch,
   WorkLite,
 } from "./chapter-editor-types";
+import {
+  clearTimer,
+  useChapterMetaFeedback,
+  type MetaActionKind,
+} from "./use-chapter-meta-feedback";
 
 type UseChapterEditorMetaParams = {
   applyBootstrap: (payload: ChapterBootstrap) => void;
@@ -32,13 +33,6 @@ type UseChapterEditorMetaParams = {
 };
 
 type MetaGenerateKind = "summary" | "outline";
-type MetaActionKind = MetaGenerateKind | "details";
-
-function clearTimer(ref: MutableRefObject<number | null>) {
-  if (!ref.current) return;
-  window.clearTimeout(ref.current);
-  ref.current = null;
-}
 
 export function useChapterEditorMeta({
   applyBootstrap,
@@ -51,8 +45,7 @@ export function useChapterEditorMeta({
   work,
   workId,
 }: UseChapterEditorMetaParams) {
-  const [metaGenerateKind, setMetaGenerateKind] =
-    useState<MetaGenerateKind | null>(null);
+  const [metaGenerateKind, setMetaGenerateKind] = useState<MetaGenerateKind | null>(null);
   const [metaGeneratePrompt, setMetaGeneratePrompt] = useState("");
   const [metaEditorKind, setMetaEditorKind] = useState<MetaEditorKind | null>(null);
   const [metaEditorValue, setMetaEditorValue] = useState("");
@@ -73,34 +66,15 @@ export function useChapterEditorMeta({
   const summarySaveTimerRef = useRef<number | null>(null);
   const outlineSaveTimerRef = useRef<number | null>(null);
   const detailsSaveTimerRef = useRef<number | null>(null);
-  const metaActionErrorTimerRef = useRef<number | null>(null);
-  const progressTimersRef = useRef<number[]>([]);
   const pendingMetaPatchRef = useRef<MetaPatch | null>(null);
   const hasChapterContent = Boolean((content ?? "").trim());
 
-  useEffect(() => {
-    return () => {
-      [
-        summarySaveTimerRef,
-        outlineSaveTimerRef,
-        detailsSaveTimerRef,
-        metaActionErrorTimerRef,
-      ].forEach(clearTimer);
-      progressTimersRef.current.forEach((timer) => window.clearInterval(timer));
-      progressTimersRef.current = [];
-    };
-  }, []);
-
-  const showMetaActionError = useCallback((kind: MetaActionKind, message?: string) => {
-    const resolvedMessage =
-      message || (kind === "details" ? getAiMetaCopy("details").emptyBody : getAiMetaCopy(kind).emptyBody);
-    clearTimer(metaActionErrorTimerRef);
-    setMetaActionError({ kind, message: resolvedMessage });
-    metaActionErrorTimerRef.current = window.setTimeout(() => {
-      setMetaActionError((current) => (current?.kind === kind ? null : current));
-      metaActionErrorTimerRef.current = null;
-    }, 2400);
-  }, []);
+  const { showMetaActionError, startProgress } = useChapterMetaFeedback({
+    detailsSaveTimerRef,
+    outlineSaveTimerRef,
+    setMetaActionError,
+    summarySaveTimerRef,
+  });
 
   const applyMetaFromChapter = useCallback((chapter: ChapterDetail) => {
     const details = Array.isArray(chapter.details) ? chapter.details : [];
@@ -108,19 +82,6 @@ export function useChapterEditorMeta({
     setChapterOutlineText(chapter.chapterOutline ?? "");
     setChapterDetails(details);
     setDetailsText(details.join("\n"));
-  }, []);
-
-  const startProgress = useCallback((setter: (value: number) => void, step = 180) => {
-    setter(8);
-    const startedAt = Date.now();
-    const timer = window.setInterval(() => {
-      setter(Math.min(92, 8 + Math.floor((Date.now() - startedAt) / step)));
-    }, 260);
-    progressTimersRef.current.push(timer);
-    return () => {
-      window.clearInterval(timer);
-      progressTimersRef.current = progressTimersRef.current.filter((item) => item !== timer);
-    };
   }, []);
 
   const saveChapterMeta = useCallback(

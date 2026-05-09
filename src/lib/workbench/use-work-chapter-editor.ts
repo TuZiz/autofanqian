@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MutableRefObject } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
 
@@ -13,21 +12,16 @@ import {
 import type {
   ChapterBootstrap,
   ChapterDetail,
-  ChapterOverview,
-  ChapterSessionUser,
   WorkLite,
 } from "./chapter-editor-types";
 import { useChapterEditorAi } from "./use-chapter-editor-ai";
+import { useChapterEditorBootstrap } from "./use-chapter-editor-bootstrap";
 import { useChapterEditorClipboard } from "./use-chapter-editor-clipboard";
 import { useChapterEditorMeta } from "./use-chapter-editor-meta";
 import { useChapterEditorNavigation } from "./use-chapter-editor-navigation";
 import { useChapterEditorRewrite } from "./use-chapter-editor-rewrite";
-
-function clearTimer(ref: MutableRefObject<number | null>) {
-  if (!ref.current) return;
-  window.clearTimeout(ref.current);
-  ref.current = null;
-}
+import { useChapterEditorSave } from "./use-chapter-editor-save";
+import { useChapterEditorShortcuts } from "./use-chapter-editor-shortcuts";
 
 export function useWorkChapterEditor(params: {
   autoAi: boolean;
@@ -44,25 +38,11 @@ export function useWorkChapterEditor(params: {
   const [chapter, setChapter] = useState<ChapterDetail | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [dirty, setDirty] = useState(false);
-  const [draftUnsynced, setDraftUnsynced] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [draftSaving, setDraftSaving] = useState(false);
   const [error, setError] = useState("");
   const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
-  const saveTimerRef = useRef<number | null>(null);
-  const draftSavingRef = useRef(false);
+  const applyMetaFromChapterRef = useRef<((chapter: ChapterDetail) => void) | null>(null);
 
   const wordCount = useMemo(() => countWords(content), [content]);
-  const statusText = saving
-    ? "正式保存中..."
-    : draftSaving
-      ? "草稿保存中..."
-    : dirty
-      ? "草稿未保存"
-      : chapter?.updatedAt
-        ? `草稿已保存 · ${formatTime(chapter.updatedAt)}`
-        : "草稿已保存";
 
   const applyBootstrap = useCallback((payload: ChapterBootstrap) => {
     const normalized = normalizeChapterDraft(payload.chapter);
@@ -70,8 +50,6 @@ export function useWorkChapterEditor(params: {
     setChapter(payload.chapter);
     setTitle(normalized.title);
     setContent(normalized.content);
-    setDirty(false);
-    setDraftUnsynced(false);
   }, []);
 
   const navigation = useChapterEditorNavigation({
@@ -102,6 +80,43 @@ export function useWorkChapterEditor(params: {
     setCommandOpen,
     setCommandQuery,
   } = navigation;
+
+  const applySavedMetaFromChapter = useCallback((savedChapter: ChapterDetail) => {
+    applyMetaFromChapterRef.current?.(savedChapter);
+  }, []);
+
+  const {
+    dirty,
+    draftSaving,
+    draftUnsynced,
+    saveNow,
+    saving,
+    setDirty,
+    setDraftUnsynced,
+    updateContent,
+    updateTitle,
+  } = useChapterEditorSave({
+    applyBootstrap,
+    applyMetaFromChapter: applySavedMetaFromChapter,
+    chapterIndex,
+    content,
+    mergeChapterListItem,
+    setContent,
+    setError,
+    setTitle,
+    title,
+    workId,
+  });
+
+  const statusText = saving
+    ? "正式保存中..."
+    : draftSaving
+      ? "草稿保存中..."
+      : dirty
+        ? "草稿未保存"
+        : chapter?.updatedAt
+          ? `草稿已保存 · ${formatTime(chapter.updatedAt)}`
+          : "草稿已保存";
 
   const meta = useChapterEditorMeta({
     applyBootstrap,
@@ -154,6 +169,10 @@ export function useWorkChapterEditor(params: {
     visibleDetails,
   } = meta;
 
+  useEffect(() => {
+    applyMetaFromChapterRef.current = applyMetaFromChapter;
+  }, [applyMetaFromChapter]);
+
   const ai = useChapterEditorAi({
     applyBootstrap,
     applyMetaFromChapter,
@@ -183,183 +202,21 @@ export function useWorkChapterEditor(params: {
   } = ai;
   const { copiedTarget, handleCopy } = useChapterEditorClipboard();
 
-  useEffect(() => () => clearTimer(saveTimerRef), []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function bootstrap() {
-      if (!workId || !Number.isFinite(chapterIndex) || chapterIndex <= 0) {
-        setError("章节参数无效，请返回上一页重试。");
-        setBootstrapLoading(false);
-        return;
-      }
-
-      const [sessionRes, chapterRes, chaptersRes] = await Promise.all([
-        apiRequest<{ user: ChapterSessionUser }>("/api/auth/session"),
-        apiRequest<ChapterBootstrap>(
-          `/api/works/${encodeURIComponent(workId)}/chapters/${chapterIndex}`,
-          undefined,
-          { method: "GET" },
-        ),
-        apiRequest<ChapterOverview>(`/api/works/${encodeURIComponent(workId)}/chapters`),
-      ]);
-
-      if (cancelled) return;
-      if (!sessionRes.success || !sessionRes.data?.user?.email) {
-        window.location.href = "/login";
-        return;
-      }
-
-      setUserEmail(sessionRes.data.user.email);
-      setIsAdmin(Boolean(sessionRes.data.user.isAdmin));
-
-      if (chapterRes.success && chapterRes.data?.work && chapterRes.data?.chapter) {
-        applyBootstrap(chapterRes.data);
-        applyMetaFromChapter(chapterRes.data.chapter);
-        setError("");
-        const draftRes = await apiRequest<{
-          draft: {
-            title: string | null;
-            content: string;
-            summary: string | null;
-            chapterOutline: string | null;
-            details: string[] | null;
-            updatedAt: string;
-            isSynced: boolean;
-          } | null;
-        }>(
-          `/api/works/${encodeURIComponent(workId)}/chapters/${chapterIndex}/draft`,
-          undefined,
-          { method: "GET" },
-        );
-        if (!cancelled && draftRes.success && draftRes.data?.draft && !draftRes.data.draft.isSynced) {
-          const draftUpdatedAt = new Date(draftRes.data.draft.updatedAt).getTime();
-          const chapterUpdatedAt = new Date(chapterRes.data.chapter.updatedAt).getTime();
-          if (draftUpdatedAt > chapterUpdatedAt && window.confirm("检测到未提交草稿，是否恢复到编辑器？")) {
-            setTitle(draftRes.data.draft.title ?? "");
-            setContent(draftRes.data.draft.content ?? "");
-            setDirty(true);
-            setDraftUnsynced(true);
-          }
-        }
-      } else {
-        setError(chapterRes.message || "加载章节失败");
-      }
-
-      if (chaptersRes.success && chaptersRes.data?.chapters) {
-        applyChapterOverview(chaptersRes.data);
-      }
-
-      setBootstrapLoading(false);
-    }
-
-    void bootstrap();
-    return () => {
-      cancelled = true;
-    };
-  }, [applyBootstrap, applyChapterOverview, applyMetaFromChapter, chapterIndex, workId]);
-
-  const saveNow = useCallback(
-    async (next?: { title?: string; content?: string }) => {
-      if (!workId || !Number.isFinite(chapterIndex) || chapterIndex <= 0 || saving) return;
-
-      setSaving(true);
-      const res = await apiRequest<ChapterBootstrap>(
-        `/api/works/${encodeURIComponent(workId)}/chapters/${chapterIndex}`,
-        {
-          title: next?.title ?? title,
-          content: next?.content ?? content,
-        },
-        { method: "PUT" },
-      );
-      setSaving(false);
-
-      if (!res.success || !res.data?.chapter) {
-        setError(res.message || "保存失败");
-        return;
-      }
-
-      applyBootstrap(res.data);
-      applyMetaFromChapter(res.data.chapter);
-      mergeChapterListItem(res.data.chapter);
-      setDraftUnsynced(false);
-      await apiRequest(
-        `/api/works/${encodeURIComponent(workId)}/chapters/${chapterIndex}/draft`,
-        undefined,
-        { method: "DELETE" },
-      );
-    },
-    [
-      applyBootstrap,
-      applyMetaFromChapter,
-      chapterIndex,
-      content,
-      mergeChapterListItem,
-      saving,
-      title,
-      workId,
-    ],
-  );
-
-  const saveDraft = useCallback(
-    async (next?: { title?: string; content?: string }) => {
-      if (!workId || !Number.isFinite(chapterIndex) || chapterIndex <= 0 || draftSavingRef.current) return;
-
-      draftSavingRef.current = true;
-      setDraftSaving(true);
-      try {
-        const res = await apiRequest(
-          `/api/works/${encodeURIComponent(workId)}/chapters/${chapterIndex}/draft`,
-          {
-            title: next?.title ?? title,
-            content: next?.content ?? content,
-          },
-          { method: "PUT" },
-        );
-
-        if (!res.success) {
-          setError(res.message || "草稿保存失败");
-          return;
-        }
-
-        setDirty(false);
-        setDraftUnsynced(true);
-      } finally {
-        draftSavingRef.current = false;
-        setDraftSaving(false);
-      }
-    },
-    [chapterIndex, content, title, workId],
-  );
-
-  const scheduleSave = useCallback(
-    (next?: { title?: string; content?: string }) => {
-      clearTimer(saveTimerRef);
-      setDirty(true);
-      setDraftUnsynced(true);
-      saveTimerRef.current = window.setTimeout(() => void saveDraft(next), 850);
-    },
-    [saveDraft],
-  );
-
-  const updateTitle = useCallback(
-    (value: string) => {
-      const next = value.slice(0, 120);
-      setTitle(next);
-      scheduleSave({ title: next });
-    },
-    [scheduleSave],
-  );
-
-  const updateContent = useCallback(
-    (value: string) => {
-      const next = value.slice(0, 200_000);
-      setContent(next);
-      scheduleSave({ content: next });
-    },
-    [scheduleSave],
-  );
+  useChapterEditorBootstrap({
+    applyBootstrap,
+    applyChapterOverview,
+    applyMetaFromChapter,
+    chapterIndex,
+    setBootstrapLoading,
+    setContent,
+    setDirty,
+    setDraftUnsynced,
+    setError,
+    setIsAdmin,
+    setTitle,
+    setUserEmail,
+    workId,
+  });
 
   const handleRevisionRestored = useCallback(
     (restoredChapter: ChapterDetail) => {
@@ -373,7 +230,7 @@ export function useWorkChapterEditor(params: {
       mergeChapterListItem(restoredChapter);
       setError("");
     },
-    [applyMetaFromChapter, mergeChapterListItem],
+    [applyMetaFromChapter, mergeChapterListItem, setDirty, setDraftUnsynced],
   );
 
   const rewrite = useChapterEditorRewrite({
@@ -389,6 +246,19 @@ export function useWorkChapterEditor(params: {
     workId,
   });
   const { closeRewriteDialog } = rewrite;
+
+  useChapterEditorShortcuts({
+    closeRewriteDialog,
+    dirty,
+    requestChapterMenuSearchFocus,
+    setChapterMenuOpen,
+    setCommandOpen,
+    setCommandQuery,
+    setMetaEditorKind,
+    setMetaGenerateKind,
+    setMetaGeneratePrompt,
+    setRegenerateOpen,
+  });
 
   async function handleLogout() {
     if (logoutBusy) return;
@@ -423,48 +293,6 @@ export function useWorkChapterEditor(params: {
   const handleOutlineActionClick = useCallback(() => {
     requestOutlineAction();
   }, [requestOutlineAction]);
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setCommandQuery("");
-        requestChapterMenuSearchFocus();
-        setChapterMenuOpen(true);
-      }
-      if (event.key === "Escape") {
-        setChapterMenuOpen(false);
-        setCommandOpen(false);
-        setCommandQuery("");
-        setRegenerateOpen(false);
-        closeRewriteDialog();
-        setMetaGenerateKind(null);
-        setMetaGeneratePrompt("");
-        setMetaEditorKind(null);
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    requestChapterMenuSearchFocus,
-    setChapterMenuOpen,
-    setCommandOpen,
-    setCommandQuery,
-    setMetaGenerateKind,
-    setMetaGeneratePrompt,
-    setMetaEditorKind,
-    setRegenerateOpen,
-    closeRewriteDialog,
-  ]);
-
-  useEffect(() => {
-    if (!dirty) return;
-    const handler = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
 
   return {
     aiButtonLabel,

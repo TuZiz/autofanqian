@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   useActiveChapterGeneration,
@@ -16,11 +16,10 @@ import {
 
 import type {
   ChapterListItem,
-  ChaptersOverview,
   HeaderChip,
-  SessionUser,
   WorkDetail,
 } from "./work-dashboard-types";
+import { useWorkDashboardBootstrap } from "./use-work-dashboard-bootstrap";
 
 export function useWorkDashboard(workId: string) {
   const router = useRouter();
@@ -33,11 +32,12 @@ export function useWorkDashboard(workId: string) {
   const [chapters, setChapters] = useState<ChapterListItem[]>([]);
   const [nextChapterIndex, setNextChapterIndex] = useState(1);
   const [maxChapterIndex, setMaxChapterIndex] = useState(0);
+  const [addChapterBusy, setAddChapterBusy] = useState(false);
+  const [addChapterError, setAddChapterError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [workTitleSaving, setWorkTitleSaving] = useState(false);
   const [workTitleError, setWorkTitleError] = useState("");
-  const refreshAfterGenerationRef = useRef(false);
   const [openVolumeIndex, setOpenVolumeIndex] = useState<number | null>(0);
   const [outlineRefineBusy, setOutlineRefineBusy] = useState(false);
   const [outlineRefineError, setOutlineRefineError] = useState("");
@@ -55,6 +55,20 @@ export function useWorkDashboard(workId: string) {
   const generatingNextChapter =
     hasActiveGeneration && activeGeneration.index === orderedNextChapterIndex;
 
+  useWorkDashboardBootstrap({
+    hasActiveGeneration,
+    setBootstrapLoading,
+    setChapters,
+    setError,
+    setIsAdmin,
+    setLoading,
+    setMaxChapterIndex,
+    setNextChapterIndex,
+    setUserEmail,
+    setWork,
+    workId,
+  });
+
   function goToChapter(index: number, options?: { autoAi?: boolean }) {
     if (!workId) return;
     const base = `/dashboard/novel/${workId}/chapter/${index}`;
@@ -65,6 +79,60 @@ export function useWorkDashboard(workId: string) {
       const current = `${window.location.pathname}${window.location.search}`;
       if (current !== href) window.location.assign(href);
     }, 250);
+  }
+
+  async function handleAddChapter() {
+    if (!workId || !work || addChapterBusy) return;
+
+    const createIndex = Math.max(1, maxChapterIndex + 1);
+    const plannedLimit = Math.max(
+      work.plannedUntilChapter || 0,
+      work.outline?.plannedUntilChapter || 0,
+      maxChapterIndex,
+      chapters.length,
+    );
+
+    if (plannedLimit && createIndex > plannedLimit) {
+      setAddChapterError("请先规划下一段后再新增章节。");
+      return;
+    }
+
+    setAddChapterBusy(true);
+    setAddChapterError("");
+
+    const result = await apiRequest<{
+      work?: Pick<WorkDetail, "plannedUntilChapter" | "targetChapters">;
+      chapter?: ChapterListItem;
+    }>(`/api/works/${encodeURIComponent(workId)}/chapters/${createIndex}`);
+
+    setAddChapterBusy(false);
+
+    if (result.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const nextChapter = result.data?.chapter;
+    if (!result.success || !nextChapter) {
+      setAddChapterError(result.message || "新增章节失败，请稍后重试。");
+      return;
+    }
+
+    setChapters((current) =>
+      [...current.filter((chapter) => chapter.index !== nextChapter.index), nextChapter].sort(
+        (left, right) => left.index - right.index,
+      ),
+    );
+    setMaxChapterIndex((current) => Math.max(current, nextChapter.index));
+    setWork((current) =>
+      current
+        ? {
+            ...current,
+            plannedUntilChapter: result.data?.work?.plannedUntilChapter ?? current.plannedUntilChapter,
+            targetChapters: result.data?.work?.targetChapters ?? current.targetChapters,
+          }
+        : current,
+    );
   }
 
   function openOutlineRefineConfirm() {
@@ -213,95 +281,6 @@ export function useWorkDashboard(workId: string) {
     return chips;
   }, [work]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function bootstrap() {
-      if (!workId) {
-        setError("作品 ID 无效");
-        setBootstrapLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      const [sessionRes, workRes, chaptersRes] = await Promise.all([
-        apiRequest<{ user: SessionUser }>("/api/auth/session"),
-        apiRequest<{ work: WorkDetail }>(`/api/works/${encodeURIComponent(workId)}`),
-        apiRequest<ChaptersOverview>(`/api/works/${encodeURIComponent(workId)}/chapters`),
-      ]);
-
-      if (cancelled) return;
-
-      if (!sessionRes.success || !sessionRes.data?.user?.email) {
-        window.location.href = "/login";
-        return;
-      }
-
-      setUserEmail(sessionRes.data.user.email);
-      setIsAdmin(Boolean(sessionRes.data.user.isAdmin));
-
-      if (workRes.success && workRes.data?.work) {
-        setWork(workRes.data.work);
-        setError("");
-      } else {
-        setWork(null);
-        setError(workRes.message || "加载作品失败");
-      }
-
-      if (chaptersRes.success && chaptersRes.data?.chapters) {
-        setChapters(chaptersRes.data.chapters);
-        setNextChapterIndex(Math.max(1, chaptersRes.data.nextIndex || 1));
-        setMaxChapterIndex(Math.max(0, chaptersRes.data.maxIndex || 0));
-      } else {
-        setChapters([]);
-        setNextChapterIndex(1);
-        setMaxChapterIndex(0);
-      }
-
-      setLoading(false);
-      setBootstrapLoading(false);
-    }
-
-    void bootstrap();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [workId]);
-
-  useEffect(() => {
-    if (hasActiveGeneration) {
-      refreshAfterGenerationRef.current = true;
-      return;
-    }
-
-    if (!refreshAfterGenerationRef.current || !workId) return;
-    refreshAfterGenerationRef.current = false;
-
-    let cancelled = false;
-
-    async function refreshChapters() {
-      const chaptersRes = await apiRequest<ChaptersOverview>(
-        `/api/works/${encodeURIComponent(workId)}/chapters`,
-      );
-
-      if (cancelled) return;
-
-      if (chaptersRes.success && chaptersRes.data?.chapters) {
-        setChapters(chaptersRes.data.chapters);
-        setNextChapterIndex(Math.max(1, chaptersRes.data.nextIndex || 1));
-        setMaxChapterIndex(Math.max(0, chaptersRes.data.maxIndex || 0));
-      }
-    }
-
-    void refreshChapters();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [hasActiveGeneration, workId]);
-
   const editedChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
   const targetChapterCount =
     work?.targetChapters ||
@@ -362,8 +341,11 @@ export function useWorkDashboard(workId: string) {
     commandQuery,
     currentProgressChapter,
     error,
+    addChapterBusy,
+    addChapterError,
     generatingNextChapter,
     goToChapter,
+    handleAddChapter,
     handleLogout,
     handleRefineOutline,
     hasActiveGeneration,

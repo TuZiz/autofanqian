@@ -1,12 +1,10 @@
 ﻿"use client";
 
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
 import {
   AlertCircle,
   ArrowLeft,
   BookOpen,
-  ChevronDown,
   FileText,
   ListChecks,
   Maximize2,
@@ -14,14 +12,17 @@ import {
   Settings2,
   Sparkles,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { aiZhCN, getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 import { cn } from "@/lib/utils";
-
-type SidebarSectionKey = "target" | "summary" | "outline" | "details";
+import {
+  CollapsiblePanel,
+  formatChapterLabel,
+  MetaTextareaCard,
+  type SidebarSectionKey,
+} from "./chapter-editor-sidebar-panels";
 
 const rewriteQuickActions = [
   { action: "polish", label: aiZhCN.chapterRewrite.actions.polish.label },
@@ -82,16 +83,16 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
   };
 
   return (
-    <aside className="min-w-0 lg:col-span-4 lg:h-full lg:self-stretch xl:col-span-3">
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[32px] border border-white/60 bg-white/60 shadow-xl shadow-zinc-900/5 ring-1 ring-zinc-900/5 backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-950/60 dark:shadow-black/20 dark:ring-white/10 lg:min-h-[1180px] xl:min-h-[1320px]">
-        <div className="flex-1 space-y-4 p-4 sm:p-5">
-          <section className="rounded-3xl border border-zinc-200/50 bg-white/50 p-5 shadow-sm dark:border-zinc-800/50 dark:bg-zinc-900/50">
+    <aside className="min-w-0 lg:h-full lg:min-h-0 lg:self-stretch">
+      <div className="app-compact-panel flex h-full min-h-0 max-h-full flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-2.5 sm:p-3">
+          <section className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-3 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
                   上下文工具
                 </p>
-                <h2 className="mt-1 truncate text-lg font-black tracking-tight text-zinc-950 dark:text-white">
+                <h2 className="mt-1 truncate text-base font-bold tracking-tight text-[var(--theme-text-strong)]">
                   {currentChapterLabel}
                 </h2>
               </div>
@@ -106,24 +107,24 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
                 {currentChapterEdited ? "已写" : "待写"}
               </span>
             </div>
-            <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-zinc-500 dark:text-zinc-300">
+            <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--theme-text-secondary)]">
               {title || "未命名章节"} · 摘要、大纲与细节设定会作为本章写作上下文。
             </p>
           </section>
 
-          <section className="rounded-xl border border-zinc-100/[0.06] bg-white/86 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+          <section className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-3">
             <div className="flex items-start gap-2">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[var(--theme-text-muted)]" />
               <div className="min-w-0">
-                <h3 className="text-sm font-black text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-sm font-bold text-[var(--theme-text-strong)]">
                   AI 改写
                 </h3>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-secondary)]">
                   先预览，再应用；应用前自动保存历史版本。
                 </p>
               </div>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
               {rewriteQuickActions.map((item) => (
                 <button
                   key={item.action}
@@ -131,7 +132,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
                   onClick={() => openRewriteDialog(item.action)}
                   disabled={!work || rewriteBusy || rewriteApplying}
                   title={rewriteBlockedReason || undefined}
-                  className="inline-flex h-8 items-center justify-center rounded-lg border border-zinc-200 bg-white px-2 text-xs font-black text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/[0.05] dark:text-zinc-200 dark:hover:bg-white/[0.08]"
+                  className="inline-flex h-7 items-center justify-center rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-2 text-xs font-semibold text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {item.label}
                 </button>
@@ -149,8 +150,8 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
                 className={cn(
                   "inline-flex h-7 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                   outlineActionError
-                    ? "bg-red-50 text-red-700 ring-1 ring-red-200/70 hover:bg-red-100 dark:bg-red-400/10 dark:text-red-200 dark:ring-red-300/20 dark:hover:bg-red-400/15"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-white/[0.06] dark:text-zinc-300 dark:hover:bg-white/[0.1]",
+                    ? "bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)] ring-1 ring-[var(--theme-danger-border)] hover:bg-[var(--theme-danger-soft)]"
+                    : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)]",
                 )}
               >
                 {outlineActionError ? (
@@ -174,12 +175,12 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
               ).map((line, index) => (
                 <div
                   key={`${line}-${index}`}
-                  className="rounded-lg bg-zinc-50 px-3 py-2.5 ring-1 ring-zinc-200/70 dark:bg-white/[0.035] dark:ring-white/10"
+                  className="rounded-lg bg-[var(--theme-surface-overlay)] px-3 py-2.5 ring-1 ring-[var(--theme-border)]"
                 >
-                  <div className="mb-1 text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400">
+                  <div className="mb-1 text-[10px] font-bold uppercase text-[var(--theme-text-muted)]">
                     {["目标", "冲突", "信息点", "结尾钩子"][index] ?? `节点 ${index + 1}`}
                   </div>
-                  <p className="line-clamp-5 text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
+                  <p className="line-clamp-5 text-sm leading-relaxed text-[var(--theme-text-secondary)]">
                     {line}
                   </p>
                 </div>
@@ -242,8 +243,8 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
                   className={cn(
                     "inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                     detailsActionError
-                      ? "bg-red-50 text-red-700 ring-1 ring-red-200/70 hover:bg-red-100 dark:bg-red-400/10 dark:text-red-200 dark:ring-red-300/20 dark:hover:bg-red-400/15"
-                      : "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-400/10 dark:text-blue-300 dark:hover:bg-blue-400/15",
+                      ? "bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)] ring-1 ring-[var(--theme-danger-border)]"
+                      : "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-600)] hover:bg-[var(--theme-brand-subtle)]",
                   )}
                 >
                   {detailsActionError ? (
@@ -260,7 +261,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
                   type="button"
                   onClick={() => openMetaEditor("details")}
                   disabled={!work || metaSaving}
-                  className="inline-flex h-7 items-center gap-1 rounded-lg bg-zinc-100 px-2 text-xs font-bold text-zinc-600 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white/[0.06] dark:text-zinc-300 dark:hover:bg-white/[0.1]"
+                  className="inline-flex h-7 items-center gap-1 rounded-lg bg-[var(--theme-surface-overlay)] px-2 text-xs font-bold text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                   title="打开编辑窗口"
                 >
                   <Maximize2 className="h-3.5 w-3.5" />
@@ -280,181 +281,21 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
               rows={11}
               disabled={!work || detailsBusy || saving}
               placeholder="一行一条设定：人物关系、关键道具、时间线、能力规则... 用于防止前后矛盾。"
-              className="w-full resize-y rounded-lg bg-zinc-50 px-3 py-3 text-sm leading-7 text-zinc-600 outline-none ring-1 ring-zinc-200/70 transition focus:bg-white focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/[0.035] dark:text-zinc-300 dark:ring-white/10 dark:focus:bg-white/[0.06] dark:focus:ring-blue-300/30"
+              className="w-full resize-y rounded-lg bg-[var(--theme-surface-overlay)] px-3 py-3 text-sm leading-7 text-[var(--theme-text-primary)] outline-none ring-1 ring-[var(--theme-border)] transition focus:bg-[var(--theme-surface-solid)] focus:ring-[var(--theme-brand-border)] disabled:cursor-not-allowed disabled:opacity-60"
             />
           </CollapsiblePanel>
+        </div>
 
-          <div className="shrink-0 border-t border-zinc-100/[0.06] bg-white/82 p-2.5 dark:border-white/10 dark:bg-zinc-950/35">
-            <Link
-              href={workId ? `/dashboard/work/${workId}` : "/dashboard"}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-100/[0.08] bg-white px-3 py-2.5 text-sm font-black text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-950 active:scale-[0.98] dark:border-white/10 dark:bg-white/[0.05] dark:text-zinc-300 dark:hover:bg-white/[0.08] dark:hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              返回作品看板
-            </Link>
-          </div>
+        <div className="shrink-0 border-t border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-2">
+          <Link
+            href={workId ? `/dashboard/work/${workId}` : "/dashboard"}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 py-2 text-sm font-semibold text-[var(--theme-text-secondary)] shadow-sm transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)] active:scale-[0.98]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回作品看板
+          </Link>
         </div>
       </div>
     </aside>
   );
-}
-
-function CollapsiblePanel({
-  action,
-  children,
-  expanded,
-  icon: Icon,
-  onToggle,
-  subtitle,
-  title,
-}: {
-  action?: ReactNode;
-  children: ReactNode;
-  expanded: boolean;
-  icon: LucideIcon;
-  onToggle: () => void;
-  subtitle?: string;
-  title: string;
-}) {
-  return (
-    <section className="rounded-xl border border-zinc-100/[0.06] bg-white/86 p-4 dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="flex items-start justify-between gap-3">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={expanded}
-          className="group flex min-w-0 flex-1 items-start gap-2 text-left"
-        >
-          <Icon className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-600 dark:group-hover:text-zinc-50/80" />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-black text-zinc-900 dark:text-zinc-100">
-              {title}
-            </span>
-            {subtitle ? (
-              <span className="mt-1 block truncate text-xs text-zinc-500 dark:text-zinc-400">
-                {subtitle}
-              </span>
-            ) : null}
-          </span>
-          <ChevronDown
-            className={cn(
-              "mt-0.5 h-4 w-4 shrink-0 text-zinc-500 transition-transform",
-              expanded && "rotate-180",
-            )}
-          />
-        </button>
-        {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
-      </div>
-      {expanded ? <div className="mt-3">{children}</div> : null}
-    </section>
-  );
-}
-
-function MetaTextareaCard({
-  actionIcon: ActionIcon,
-  actionError,
-  actionLabel,
-  disabled,
-  expanded,
-  icon: Icon,
-  onAction,
-  onExpand,
-  onToggle,
-  onValueChange,
-  placeholder,
-  rows,
-  subtitle,
-  title,
-  value,
-}: {
-  actionIcon: LucideIcon;
-  actionError?: string;
-  actionLabel: string;
-  disabled: boolean;
-  expanded: boolean;
-  icon: LucideIcon;
-  onAction: () => void;
-  onExpand: () => void;
-  onToggle: () => void;
-  onValueChange: (value: string) => void;
-  placeholder: string;
-  rows: number;
-  subtitle?: string;
-  title: string;
-  value: string;
-}) {
-  return (
-    <section className="rounded-xl border border-zinc-100/[0.06] bg-white/86 p-4 dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="flex items-start justify-between gap-3">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={expanded}
-          className="group flex min-w-0 flex-1 items-start gap-2 text-left"
-        >
-          <Icon className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-600 dark:group-hover:text-zinc-50/80" />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-black text-zinc-900 dark:text-zinc-100">
-              {title}
-            </span>
-            {subtitle ? (
-              <span className="mt-1 block truncate text-xs text-zinc-500 dark:text-zinc-400">
-                {subtitle}
-              </span>
-            ) : null}
-          </span>
-          <ChevronDown
-            className={cn(
-              "mt-0.5 h-4 w-4 shrink-0 text-zinc-500 transition-transform",
-              expanded && "rotate-180",
-            )}
-          />
-        </button>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={onAction}
-            disabled={disabled}
-            title={actionError || undefined}
-            className={cn(
-              "inline-flex h-7 items-center gap-1 rounded-lg px-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-              actionError
-                ? "bg-red-50 text-red-700 ring-1 ring-red-200/70 hover:bg-red-100 dark:bg-red-400/10 dark:text-red-200 dark:ring-red-300/20 dark:hover:bg-red-400/15"
-                : "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-400/10 dark:text-blue-300 dark:hover:bg-blue-400/15",
-            )}
-          >
-            {actionError ? (
-              <AlertCircle className="h-3.5 w-3.5" />
-            ) : (
-              <ActionIcon className="h-3.5 w-3.5" />
-            )}
-            <span className="max-w-[5.5rem] truncate">{actionError || actionLabel}</span>
-          </button>
-          <button
-            type="button"
-            onClick={onExpand}
-            className="inline-flex h-7 items-center gap-1 rounded-lg bg-zinc-100 px-2 text-xs font-bold text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-white/[0.06] dark:text-zinc-300 dark:hover:bg-white/[0.1]"
-            title="打开编辑窗口"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-            编辑
-          </button>
-        </div>
-      </div>
-      {expanded ? (
-        <textarea
-          value={value}
-          onChange={(event) => onValueChange(event.target.value)}
-          rows={rows}
-          disabled={disabled}
-          placeholder={placeholder}
-          className="mt-3 w-full resize-y rounded-lg bg-zinc-50 px-3 py-3 text-sm leading-7 text-zinc-600 outline-none ring-1 ring-zinc-200/70 transition focus:bg-white focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/[0.035] dark:text-zinc-300 dark:ring-white/10 dark:focus:bg-white/[0.06] dark:focus:ring-blue-300/30"
-        />
-      ) : null}
-    </section>
-  );
-}
-
-function formatChapterLabel(index: number) {
-  return `第${Math.max(1, index)}章`;
 }

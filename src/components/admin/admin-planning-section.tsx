@@ -56,7 +56,7 @@ export function AdminPlanningSection({ admin }: { admin: DashboardAdminControlle
             <SlidersHorizontal className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-stone-950 dark:text-white">规划参数配置</h2>
+            <h2 className="text-lg font-extrabold text-stone-950 dark:text-white">规划参数配置</h2>
             <p className="mt-1 text-sm font-semibold text-stone-500 dark:text-stone-400">
               控制初始可写窗口、单次延展上限和开放阈值；修改后自动保存。
             </p>
@@ -90,7 +90,7 @@ export function AdminPlanningSection({ admin }: { admin: DashboardAdminControlle
             const preset = currentConfig.presets[key];
             return (
               <div key={key} className="rounded-lg border border-stone-200 bg-stone-50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
-                <div className="mb-3 text-sm font-black text-stone-950 dark:text-white">{preset.label}</div>
+                <div className="mb-3 text-sm font-bold text-stone-950 dark:text-white">{preset.label}</div>
                 <div className="grid grid-cols-2 gap-2">
                   <NumberField
                     label="最少"
@@ -135,7 +135,7 @@ function NumberField({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] font-black text-stone-500 dark:text-stone-400">{label}</span>
+      <span className="mb-1 block text-[11px] font-bold text-stone-500 dark:text-stone-400">{label}</span>
       <span className="flex h-10 items-center overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm dark:border-white/10 dark:bg-stone-950">
         <input
           type="number"
@@ -143,7 +143,7 @@ function NumberField({
           max={max}
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
-          className="min-w-0 flex-1 bg-transparent px-3 text-sm font-black text-stone-950 outline-none dark:text-white"
+          className="min-w-0 flex-1 bg-transparent px-3 text-sm font-medium text-stone-950 outline-none dark:text-white"
         />
         <span className="shrink-0 border-l border-stone-200 px-2 text-xs font-bold text-stone-500 dark:border-white/10">
           {suffix}
@@ -174,7 +174,7 @@ function SaveBadge({
             : "等待加载";
 
   return (
-    <div className="inline-flex h-8 max-w-full items-center rounded-full border border-stone-200 bg-white px-3 text-xs font-black text-emerald-700 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-emerald-200">
+    <div className="inline-flex h-8 max-w-full items-center rounded-full border border-stone-200 bg-white px-3 text-xs font-semibold text-emerald-700 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-emerald-200">
       <span className="truncate">{text}</span>
       {time ? (
         <span className="ml-2 hidden text-[11px] font-bold text-stone-500 sm:inline">

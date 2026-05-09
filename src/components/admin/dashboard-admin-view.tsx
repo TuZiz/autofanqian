@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { AppCard } from "@/components/app-ui";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 import type { DashboardAdminController } from "@/lib/admin/use-dashboard-admin";
 
@@ -35,11 +36,8 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
     (admin.config?.wordOptions.length ?? 0);
 
   return (
-    <main className="theme-page relative min-h-screen overflow-x-hidden pb-10 font-sans transition-[background-color,color]">
+    <main className="app-work-surface relative min-h-dvh overflow-x-hidden pb-6 font-sans transition-[background-color,color]">
       <div className="pointer-events-none fixed inset-0 theme-app-surface" />
-      <div className="pointer-events-none fixed inset-0 theme-app-grid opacity-70" />
-      <div className="pointer-events-none fixed inset-0 theme-app-vignette" />
-      <div className="pointer-events-none fixed inset-0 app-noise theme-app-noise" />
 
       <DashboardTopbar
         className="relative z-40"
@@ -49,21 +47,21 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
         showBackToDashboard
         showAdminLink={false}
         logoutLabel="退出"
-        maxWidthClassName="max-w-[1540px]"
+        maxWidthClassName="max-w-[1320px]"
       />
 
-      <div className="relative z-10 mx-auto max-w-[1540px] px-4 pt-4 sm:px-5 lg:px-6">
-        <section className="mb-4 overflow-hidden rounded-lg border border-stone-200/80 bg-white/95 shadow-sm backdrop-blur dark:border-white/8 dark:bg-stone-950">
+      <div className="relative z-10 mx-auto max-w-[1320px] px-4 pt-4 sm:px-5 lg:px-6">
+        <AppCard className="mb-3 overflow-hidden bg-[var(--theme-surface-strong)]">
           <div className="grid gap-4 border-b border-stone-100 p-4 dark:border-white/8 xl:grid-cols-[minmax(0,1fr)_minmax(480px,0.72fr)] xl:items-center">
             <div className="min-w-0 text-stone-900 dark:text-stone-100">
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-300">
+              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
                 管理控制台
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-3">
-                <h1 className="font-serif-display text-2xl font-black leading-tight tracking-tight md:text-3xl">总览与配置</h1>
+                <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-[var(--theme-text-strong)]">总览与配置</h1>
                 <AdminAutoSaveStatus admin={admin} />
               </div>
-              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-stone-600 dark:text-stone-300">
+              <p className="mt-1 max-w-3xl truncate text-sm font-semibold text-[var(--theme-text-secondary)]">
                 核心数据、创作入口参数、AI 模板学习和后台入口集中管理。重要状态保留在首屏，保存动作交给自动保存。
               </p>
             </div>
@@ -86,7 +84,7 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
               预览创作页
             </AdminLink>
           </div>
-        </section>
+        </AppCard>
 
         <AdminStatsSection admin={admin} />
         <AdminAuditSection admin={admin} />
@@ -110,10 +108,10 @@ function AdminSummary({
   return (
     <div className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-stone-100 bg-stone-50/70 px-3 py-2.5 dark:border-white/8 dark:bg-white/4">
       <div className="min-w-0">
-        <div className="truncate text-xs font-black text-stone-500 dark:text-stone-400">{label}</div>
+        <div className="truncate text-xs font-bold text-stone-500 dark:text-stone-400">{label}</div>
         <div className="mt-0.5 truncate text-[11px] font-bold text-stone-500 dark:text-stone-400">{detail}</div>
       </div>
-      <div className="shrink-0 text-2xl font-black text-stone-900 dark:text-stone-100">{value}</div>
+      <div className="shrink-0 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{value}</div>
     </div>
   );
 }
@@ -130,7 +128,7 @@ function AdminLink({
   return (
     <Link
       href={href}
-      className="theme-button-secondary inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-black active:scale-95"
+      className="theme-button-secondary inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold active:scale-95"
     >
       <Icon className="h-4 w-4" />
       {children}
@@ -170,7 +168,7 @@ function AdminAutoSaveStatus({ admin }: { admin: DashboardAdminController }) {
 
   return (
     <div
-      className={`inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-stone-200 bg-white px-2.5 text-xs font-black shadow-sm dark:border-white/8 dark:bg-white/4 ${stateMeta.className}`}
+      className={`inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-stone-200 bg-white px-2.5 text-xs font-semibold shadow-sm dark:border-white/8 dark:bg-white/4 ${stateMeta.className}`}
     >
       <Icon className={admin.configSaveState === "saving" ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
       <span className="truncate">{stateMeta.text}</span>

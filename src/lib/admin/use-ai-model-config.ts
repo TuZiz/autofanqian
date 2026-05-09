@@ -8,6 +8,7 @@ import type {
   AiModelConfig,
   AiModelConfigResponse,
   AiModelSessionUser,
+  PhysicalProviderOption,
   ProviderOption,
 } from "./ai-model-types";
 import { getDefaultAiModelConfig } from "./ai-model-utils";
@@ -16,6 +17,7 @@ export function useAiModelConfig() {
   const [bootstrapLoading, setBootstrapLoading] = useState(true);
   const [user, setUser] = useState<AiModelSessionUser | null>(null);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
+  const [physicalProviders, setPhysicalProviders] = useState<PhysicalProviderOption[]>([]);
   const [config, setConfig] = useState<AiModelConfig | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -43,9 +45,11 @@ export function useAiModelConfig() {
 
       if (res.success && res.data?.config) {
         setProviders(res.data.providers ?? []);
+        setPhysicalProviders(res.data.physicalProviders ?? []);
         setConfig(res.data.config);
       } else {
         setProviders([]);
+        setPhysicalProviders([]);
         setConfig(getDefaultAiModelConfig());
         window.alert(res.message || "加载 AI 模型配置失败");
       }
@@ -83,6 +87,7 @@ export function useAiModelConfig() {
     bootstrapLoading,
     config,
     handleSave,
+    physicalProviders,
     providers,
     saving,
     setConfig,

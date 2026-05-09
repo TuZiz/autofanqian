@@ -31,7 +31,7 @@ export function AdminTemplateSection({ admin }: AdminTemplateSectionProps) {
             <BrainCircuit className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-black text-stone-950 dark:text-stone-50">
+            <h2 className="text-lg font-extrabold text-stone-950 dark:text-stone-50">
               预设模板库
             </h2>
             <p className="truncate text-xs font-semibold text-stone-500 dark:text-stone-400">
@@ -44,7 +44,7 @@ export function AdminTemplateSection({ admin }: AdminTemplateSectionProps) {
           <select
             value={genreForTemplates}
             onChange={(event) => setGenreForTemplates(event.target.value)}
-            className="theme-select h-9 rounded-lg px-3 text-sm font-black"
+            className="theme-select h-9 rounded-lg px-3 text-sm font-semibold"
           >
             {genreOptions.map((genre) => (
               <option key={genre.id} value={genre.id}>
@@ -56,7 +56,7 @@ export function AdminTemplateSection({ admin }: AdminTemplateSectionProps) {
           <button
             type="button"
             onClick={handleCreateTemplate}
-            className="theme-button-secondary inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-black active:scale-95"
+            className="theme-button-secondary inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold active:scale-95"
           >
             <Plus className="h-4 w-4" />
             新增模板
@@ -66,7 +66,7 @@ export function AdminTemplateSection({ admin }: AdminTemplateSectionProps) {
             type="button"
             onClick={handleLearnTemplates}
             disabled={learning}
-            className="theme-button-primary inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-black active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
+            className="theme-button-primary inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
           >
             <BrainCircuit className={learning ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
             {learning ? "学习中..." : "AI 学习生成"}
@@ -76,7 +76,7 @@ export function AdminTemplateSection({ admin }: AdminTemplateSectionProps) {
 
       <div className="p-4">
         {templatesLoading ? (
-          <div className="rounded-lg border border-dashed border-stone-200 py-10 text-center text-sm font-black text-stone-500 dark:border-white/10">
+          <div className="rounded-lg border border-dashed border-stone-200 py-10 text-center text-sm font-bold text-stone-500 dark:border-white/10">
             正在加载 {genreForTemplates} 的模板库...
           </div>
         ) : templates.length ? (
@@ -94,7 +94,7 @@ export function AdminTemplateSection({ admin }: AdminTemplateSectionProps) {
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-stone-200 py-10 text-center dark:border-white/10">
-            <div className="text-base font-black text-stone-950 dark:text-stone-50">
+            <div className="text-base font-bold text-stone-950 dark:text-stone-50">
               当前类型暂无模板
             </div>
             <div className="mt-1 text-sm font-semibold text-stone-500 dark:text-stone-400">
@@ -131,14 +131,14 @@ function TemplateCard({
     <article className="rounded-lg border border-stone-200 bg-stone-50/70 p-3 dark:border-white/10 dark:bg-white/[0.03]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-black uppercase ${sourceClass}`}>
+          <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase ${sourceClass}`}>
             {template.source}
           </span>
           <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
             调用 {template.usageCount} 次
           </span>
         </div>
-        <label className="flex cursor-pointer items-center gap-1.5 text-xs font-black text-stone-500 dark:text-stone-400">
+        <label className="flex cursor-pointer items-center gap-1.5 text-xs font-bold text-stone-500 dark:text-stone-400">
           <input
             type="checkbox"
             checked={template.isActive}
@@ -173,7 +173,7 @@ function TemplateCard({
           onClick={() => {
             if (window.confirm("确定要删除该模板吗？")) void handleDeleteTemplate(template.id);
           }}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-black text-red-500 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-400/10"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-red-500 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-400/10"
         >
           <Trash2 className="h-3.5 w-3.5" />
           删除
@@ -186,7 +186,7 @@ function TemplateCard({
               isActive: template.isActive,
             })
           }
-          className="theme-button-primary inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-black active:scale-95"
+          className="theme-button-primary inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold active:scale-95"
         >
           <Save className="h-3.5 w-3.5" />
           保存修改

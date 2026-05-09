@@ -10,6 +10,16 @@ This version has breaking changes - APIs, conventions, and file structure may al
 
 默认中文回复，先给结论，再给执行路径。用户通常要的是实际落地：改代码、修 UI、同步远端、验证页面，而不是只给建议。
 
+## 前后端边界
+
+- `src/app/` 只作为 Next.js 路由入口；`page.tsx` 和 `route.ts` 保持薄层。
+- `src/frontend/` 放浏览器端 feature、API client、前端 hooks 和纯 UI 组合。
+- `src/backend/` 放 Prisma、鉴权、AI、统计、邮件、service、repository 和上游 provider。
+- `src/shared/` 放 DTO、zod schema、共享类型和共享常量。
+- HTTP API 路径默认不改；迁移时优先保留旧路径兼容导出，避免一次性破坏调用方。
+- 普通业务 TS/TSX 文件尽量控制在 300-400 行；`route.ts` 尽量控制在 80-150 行。超限时按容器、service、repository、schema、formatter、dialog/section 拆分。
+- 前端代码不能直接 import `src/backend/*`；后端代码不能 import React 组件或浏览器 UI 模块。
+
 ## 快速工作契约
 
 - 先看 `git status --short`，保护用户和上一轮留下的改动。

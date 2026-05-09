@@ -15,6 +15,7 @@ export async function logAiUsage(params: {
       data: {
         userId: params.userId ?? null,
         action: params.action,
+        routeId: result.routeId ?? null,
         providerId: result.providerId ?? null,
         endpoint: result.endpoint ?? null,
         modelUsed: result.modelUsed ?? null,

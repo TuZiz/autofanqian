@@ -67,16 +67,52 @@ export type AiStats = {
   successCalls: number;
   failedCalls: number;
   avgDurationMs: number | null;
+  fallbackCount: number;
+  probeCount: number;
+  avgProbeDurationMs: number | null;
+  chapterSmartRoute: {
+    primaryLabel: string;
+    fallbackLabel: string;
+    rescueLabel: string;
+    today: {
+      totalCalls: number;
+      successCalls: number;
+      avgDurationMs: number | null;
+      primaryHits: number;
+      primaryHitRate: number;
+      fallbackHits: number;
+      rescueHits: number;
+    };
+    allTime: {
+      totalCalls: number;
+      successCalls: number;
+      avgDurationMs: number | null;
+      primaryHits: number;
+      primaryHitRate: number;
+      fallbackHits: number;
+      rescueHits: number;
+    };
+  };
   allTime: {
     totalCalls: number;
     successCalls: number;
     failedCalls: number;
     avgDurationMs: number | null;
+    fallbackCount: number;
+    probeCount: number;
+    avgProbeDurationMs: number | null;
     tokens: {
       input: number;
       output: number;
       total: number;
     };
+    byRoute: Array<{
+      routeId: string;
+      routeLabel?: string;
+      calls: number;
+      avgDurationMs: number | null;
+      tokens: { input: number; output: number; total: number };
+    }>;
     byModel: Array<{
       modelUsed: string;
       calls: number;
@@ -89,6 +125,13 @@ export type AiStats = {
     output: number;
     total: number;
   };
+  byRoute: Array<{
+    routeId: string;
+    routeLabel?: string;
+    calls: number;
+    avgDurationMs: number | null;
+    tokens: { input: number; output: number; total: number };
+  }>;
   byModel: Array<{
     modelUsed: string;
     calls: number;
@@ -100,6 +143,9 @@ export type AiStats = {
     providerLabel?: string;
     calls: number;
     avgDurationMs: number | null;
+    probeCount?: number;
+    avgProbeDurationMs?: number | null;
+    fallbackCount?: number;
     tokens: { input: number; output: number; total: number };
   }>;
   byAction: Array<{

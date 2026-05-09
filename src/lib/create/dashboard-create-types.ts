@@ -32,6 +32,15 @@ export type HotTemplate = {
   content: string;
 };
 
+export type TemplateShowcaseCard = {
+  id: string;
+  genreId: string;
+  genreLabel: string;
+  label: string;
+  content: string;
+  summary: string;
+};
+
 export type IdeaAnalysis = {
   oneLinePitch: string;
   recommendedTitles: string[];

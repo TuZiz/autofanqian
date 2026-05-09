@@ -179,16 +179,16 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
         type="button"
         aria-label="关闭历史版本弹窗"
         disabled={restoring}
-        className="absolute inset-0 cursor-pointer bg-zinc-950/40 backdrop-blur-md disabled:cursor-wait"
+        className="absolute inset-0 cursor-pointer bg-black/30 backdrop-blur-sm disabled:cursor-wait"
         onClick={closeDialog}
       />
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="chapter-revisions-title"
-        className="relative z-10 flex max-h-[88vh] w-full max-w-5xl animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-[32px] border border-white/60 bg-white/90 shadow-2xl shadow-zinc-900/20 ring-1 ring-zinc-900/10 backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-950/90 dark:shadow-black/30 dark:ring-white/10"
+        className="relative z-10 flex max-h-[88vh] w-full max-w-5xl animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-xl dark:border-[var(--theme-border)] dark:bg-[var(--theme-surface-solid)]"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-zinc-200/50 bg-white/50 px-6 py-5 dark:border-zinc-800/50 dark:bg-zinc-900/50">
+        <header className="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] bg-white/50 px-6 py-5 dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
           <div className="flex min-w-0 gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 shadow-inner ring-1 ring-emerald-500/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-300/20">
               <History className="h-5 w-5" />
@@ -199,7 +199,7 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
               </p>
               <h3
                 id="chapter-revisions-title"
-                className="mt-1 truncate text-xl font-black tracking-tight text-zinc-950 dark:text-white"
+                className="mt-1 truncate text-xl font-extrabold tracking-tight text-zinc-950 dark:text-white"
               >
                 第{chapterIndex}章修订历史
               </h3>
@@ -213,7 +213,7 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
             aria-label="关闭"
             disabled={restoring}
             onClick={closeDialog}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200/80 bg-white text-zinc-500 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-zinc-300 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-white text-zinc-500 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-[var(--theme-border)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-[var(--theme-border)]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -227,7 +227,7 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
         ) : null}
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden md:grid-cols-[18rem_minmax(0,1fr)]">
-          <aside className="min-h-0 border-b border-zinc-200/50 p-5 dark:border-zinc-800/50 md:border-b-0 md:border-r sm:p-6">
+          <aside className="min-h-0 border-b border-[var(--theme-border)] p-5 dark:border-[var(--theme-border)] md:border-b-0 md:border-r sm:p-6">
             <div className="mb-4 flex items-center justify-between gap-2">
               <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
                 版本列表
@@ -250,11 +250,11 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
                       "w-full rounded-2xl border px-4 py-4 text-left transition-all",
                       selectedRevision?.id === revision.id
                         ? "border-emerald-300/80 bg-emerald-50/80 text-zinc-950 shadow-md ring-1 ring-emerald-300/50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-zinc-50 dark:ring-emerald-500/20"
-                        : "border-zinc-200/80 bg-white/80 text-zinc-700 shadow-sm hover:border-zinc-300 hover:bg-zinc-50/80 hover:shadow dark:border-zinc-800/80 dark:bg-zinc-950/80 dark:text-zinc-300 dark:hover:border-zinc-700",
+                        : "border-[var(--theme-border)] bg-white/80 text-zinc-700 shadow-sm hover:border-[var(--theme-border)] hover:bg-zinc-50/80 hover:shadow dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-zinc-300 dark:hover:border-[var(--theme-border)]",
                     )}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <span className="truncate text-sm font-black">
+                      <span className="truncate text-sm font-semibold">
                         {sourceLabel(revision.source)}
                       </span>
                       <span className="shrink-0 text-[11px] font-bold tabular-nums text-zinc-500 dark:text-zinc-400">
@@ -278,14 +278,14 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
 
           <div className="flex min-h-0 flex-col p-5 sm:p-6">
             {loadingDetail ? (
-              <div className="flex min-h-[22rem] items-center justify-center rounded-2xl border border-zinc-200/50 bg-white/50 shadow-inner dark:border-zinc-800/50 dark:bg-zinc-900/50">
+              <div className="flex min-h-[22rem] items-center justify-center rounded-2xl border border-[var(--theme-border)] bg-white/50 shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
                 <LoadingState label="正在载入版本内容..." />
               </div>
             ) : selectedRevision ? (
               <>
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <h4 className="truncate text-xl font-black text-zinc-950 dark:text-white">
+                    <h4 className="truncate text-xl font-extrabold text-zinc-950 dark:text-white">
                       {selectedRevision.title || `第${selectedRevision.index}章`}
                     </h4>
                     <p className="mt-1 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
@@ -296,7 +296,7 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
                     type="button"
                     disabled={restoring}
                     onClick={() => void restoreRevision()}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 dark:bg-blue-500 dark:hover:bg-blue-400"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-bold text-white shadow-md transition-all hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                   >
                     {restoring ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -308,8 +308,8 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
                 </div>
 
                 {selectedSummary ? (
-                  <div className="mb-4 rounded-2xl border border-zinc-200/50 bg-zinc-50/80 px-5 py-4 text-sm font-medium leading-relaxed text-zinc-600 shadow-inner dark:border-zinc-800/50 dark:bg-zinc-900/80 dark:text-zinc-300">
-                    <div className="mb-2 flex items-center gap-2 font-black text-zinc-950 dark:text-white">
+                  <div className="mb-4 rounded-2xl border border-[var(--theme-border)] bg-zinc-50/80 px-5 py-4 text-sm font-medium leading-relaxed text-zinc-600 shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-900/80 dark:text-zinc-300">
+                    <div className="mb-2 flex items-center gap-2 font-bold text-zinc-950 dark:text-white">
                       <FileText className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
                       摘要 / 大纲 / 细节
                     </div>
@@ -317,7 +317,7 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
                   </div>
                 ) : null}
 
-                <div className="min-h-0 flex-1 overflow-y-auto rounded-3xl border border-zinc-200/80 bg-white/80 px-6 py-6 shadow-inner dark:border-zinc-700/80 dark:bg-zinc-950/80">
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-3xl border border-[var(--theme-border)] bg-white/80 px-6 py-6 shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-950/80">
                   {selectedRevision.content.trim() ? (
                     <div className="whitespace-pre-wrap break-words text-[15px] font-medium leading-8 text-zinc-800 dark:text-zinc-100">
                       {selectedRevision.content}
@@ -330,7 +330,7 @@ export function ChapterRevisionDialog({ editor }: { editor: WorkChapterEditorCon
                 </div>
               </>
             ) : (
-              <div className="flex min-h-[22rem] items-center justify-center rounded-3xl border border-dashed border-zinc-300/80 bg-zinc-50/50 text-sm font-bold text-zinc-500 dark:border-zinc-700/80 dark:bg-zinc-900/50 dark:text-zinc-400">
+              <div className="flex min-h-[22rem] items-center justify-center rounded-3xl border border-dashed border-[var(--theme-border)] bg-zinc-50/50 text-sm font-bold text-zinc-500 dark:border-[var(--theme-border)] dark:bg-zinc-900/50 dark:text-zinc-400">
                 选择左侧历史版本后查看正文。
               </div>
             )}
@@ -374,9 +374,9 @@ function LoadingState({ label }: { label: string }) {
 
 function EmptyState() {
   return (
-    <div className="rounded-3xl border border-dashed border-zinc-300/80 bg-zinc-50/50 px-5 py-10 text-center dark:border-zinc-700/80 dark:bg-zinc-900/50">
+    <div className="rounded-3xl border border-dashed border-[var(--theme-border)] bg-zinc-50/50 px-5 py-10 text-center dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
       <History className="mx-auto mb-4 h-6 w-6 text-zinc-400 dark:text-zinc-500" />
-      <p className="text-sm font-black text-zinc-950 dark:text-white">还没有历史版本</p>
+      <p className="text-sm font-bold text-zinc-950 dark:text-white">还没有历史版本</p>
       <p className="mt-2 text-xs font-bold leading-relaxed text-zinc-500 dark:text-zinc-400">
         第二次正式保存、AI 覆盖或恢复前，系统会自动记录上一版。
       </p>

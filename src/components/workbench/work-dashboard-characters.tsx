@@ -3,8 +3,8 @@
 import { Check, Copy, Search, Settings2, UserRound, Users, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { roleToDisplay } from "@/lib/workbench/work-dashboard-format";
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
+import { roleToDisplay } from "@/lib/workbench/work-dashboard-format";
 import { cn } from "@/lib/utils";
 
 export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardController }) {
@@ -13,25 +13,26 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
   const [managerOpen, setManagerOpen] = useState(false);
 
   return (
-    <section className="rounded-3xl border border-zinc-200/50 bg-white/60 p-6 shadow-sm backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-900/60 md:p-8">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+    <section className="app-compact-panel p-4 sm:p-5">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 shadow-inner ring-1 ring-emerald-500/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-300/20">
             <Users className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-zinc-950 dark:text-white">主要角色</h2>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              角色矩阵 · {charCount}份档案
-            </p>
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+              Characters
+            </div>
+            <h2 className="mt-1 text-[1.45rem] font-extrabold tracking-tight text-zinc-950 dark:text-white">主要角色</h2>
           </div>
         </div>
+
         <button
           type="button"
           disabled={!charCount}
           onClick={() => setManagerOpen(true)}
           title={charCount ? "打开角色管理" : "暂无角色档案"}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-200/80 bg-white px-5 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-1 hover:ring-emerald-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/40"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-4 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-1 hover:ring-[var(--theme-border)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-[var(--theme-border)]"
         >
           <Settings2 className="h-4 w-4" />
           <span>管理角色</span>
@@ -52,40 +53,40 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
               <article
                 key={index}
                 className={cn(
-                  "group flex h-full min-h-[160px] flex-col rounded-2xl border bg-white/80 p-5 shadow-sm backdrop-blur-sm transition-all hover:shadow-md dark:bg-zinc-900/80",
+                  "group flex h-full min-h-[168px] flex-col rounded-xl border bg-white/50 p-5 shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:shadow-lg dark:bg-zinc-900/50",
                   isMain
-                    ? "border-emerald-200/80 ring-1 ring-emerald-200/50 hover:ring-emerald-300 dark:border-emerald-500/30 dark:ring-emerald-500/20 dark:hover:ring-emerald-500/40"
-                    : "border-zinc-200/80 hover:ring-1 hover:ring-zinc-300 dark:border-zinc-800/80 dark:hover:ring-zinc-700",
+                    ? "border-emerald-200/80 ring-1 ring-emerald-200/50 hover:border-emerald-300 hover:ring-emerald-300/50 dark:border-emerald-500/30 dark:ring-emerald-500/20 dark:hover:border-emerald-400 dark:hover:ring-emerald-400/30"
+                    : "border-[var(--theme-border)] hover:border-[var(--theme-border)] hover:ring-1 hover:ring-[var(--theme-border)]/50 dark:border-[var(--theme-border)] dark:hover:border-[var(--theme-border)] dark:hover:ring-[var(--theme-border)]",
                 )}
               >
                 <div className="mb-4 flex items-start gap-4">
                   <div
                     className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border text-xl font-black shadow-sm",
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border text-xl font-extrabold shadow-inner",
                       isMain
-                        ? "border-emerald-400 bg-emerald-500 text-white dark:border-emerald-500 dark:bg-emerald-600 dark:text-zinc-50"
-                        : "border-zinc-200/80 bg-zinc-50 text-zinc-600 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-300",
+                        ? "border-emerald-400 bg-emerald-500 text-white dark:border-emerald-500 dark:bg-emerald-600"
+                        : "border-[var(--theme-border)] bg-zinc-100 text-zinc-600 dark:border-[var(--theme-border)] dark:bg-zinc-800 dark:text-zinc-300",
                     )}
                   >
                     {(char.name ?? "?").trim().slice(0, 1) || "?"}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-lg font-black text-zinc-950 dark:text-white">
+                    <h3 className="truncate text-[1rem] font-bold tracking-tight text-zinc-950 dark:text-white">
                       {char.name}
                     </h3>
                     <span
                       className={cn(
-                        "mt-2 inline-flex rounded-lg border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm",
+                        "mt-2 inline-flex rounded-xl border px-3 py-1 text-[11px] font-bold uppercase tracking-widest shadow-sm",
                         isMain
                           ? "border-emerald-200/80 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
-                          : "border-zinc-200/80 bg-zinc-50/80 text-zinc-500 dark:border-zinc-700/80 dark:bg-zinc-950 dark:text-zinc-400",
+                          : "border-[var(--theme-border)] bg-zinc-50/80 text-zinc-500 dark:border-[var(--theme-border)] dark:bg-zinc-900/80 dark:text-zinc-400",
                       )}
                     >
                       {displayRole}
                     </span>
                   </div>
                 </div>
-                <p className="line-clamp-4 text-sm font-medium leading-relaxed text-zinc-600 dark:text-zinc-300">
+                <p className="line-clamp-4 text-sm font-medium leading-7 text-zinc-500 dark:text-zinc-400">
                   {char.desc || "暂无人物小传。"}
                 </p>
               </article>
@@ -93,16 +94,20 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
           })}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed border-zinc-300/80 p-12 text-center text-sm font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-700/80 dark:text-zinc-400">
-          暂无角色档案数据
+        <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-dashed border-[var(--theme-border)] bg-zinc-50/50 p-8 text-center shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
+          <div className="flex flex-col items-center justify-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-100/80 text-zinc-400 shadow-inner ring-1 ring-[var(--theme-border)] dark:bg-zinc-800/80 dark:text-zinc-500 dark:ring-[var(--theme-border)]">
+              <UserRound className="h-6 w-6" aria-hidden />
+            </div>
+            <p className="text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+              暂无角色档案数据
+            </p>
+          </div>
         </div>
       )}
 
       {managerOpen && outline ? (
-        <CharacterManagerDialog
-          characters={outline.characters}
-          onClose={() => setManagerOpen(false)}
-        />
+        <CharacterManagerDialog characters={outline.characters} onClose={() => setManagerOpen(false)} />
       ) : null}
     </section>
   );
@@ -131,9 +136,7 @@ function CharacterManagerDialog({
     return characters.filter((char) => {
       const role = roleToDisplay(char.role);
       const matchesRole = roleFilter === "全部" || role === roleFilter;
-      const matchesQuery =
-        !normalized ||
-        [char.name, role, char.desc].join(" ").toLowerCase().includes(normalized);
+      const matchesQuery = !normalized || [char.name, role, char.desc].join(" ").toLowerCase().includes(normalized);
       return matchesRole && matchesQuery;
     });
   }, [characters, query, roleFilter]);
@@ -141,7 +144,7 @@ function CharacterManagerDialog({
 
   async function handleCopy() {
     const content = characters
-      .map((char, index) => `${index + 1}. ${char.name}｜${roleToDisplay(char.role)}\n${char.desc}`)
+      .map((char, index) => `${index + 1}. ${char.name} - ${roleToDisplay(char.role)}\n${char.desc}`)
       .join("\n\n");
     await navigator.clipboard?.writeText(content);
     setCopied(true);
@@ -157,30 +160,30 @@ function CharacterManagerDialog({
         onClick={onClose}
       />
 
-      <div className="relative grid max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-zinc-200/50 bg-white/90 shadow-2xl shadow-zinc-950/20 backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/90 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="flex min-h-0 flex-col border-b border-zinc-200/50 bg-white/50 dark:border-zinc-800/50 dark:bg-zinc-900/50 lg:border-b-0 lg:border-r">
-          <div className="flex items-start justify-between gap-4 border-b border-zinc-200/50 p-6 dark:border-zinc-800/50">
+      <div className="relative grid max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-white/90 shadow-lg shadow-zinc-950/20 backdrop-blur-xl dark:border-[var(--theme-border)] dark:bg-zinc-950/90 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="flex min-h-0 flex-col border-b border-[var(--theme-border)] bg-white/50 dark:border-[var(--theme-border)] dark:bg-zinc-900/50 lg:border-b-0 lg:border-r">
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] p-5 dark:border-[var(--theme-border)]">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
                 Character Matrix
               </p>
-              <h3 className="mt-1 text-2xl font-black text-zinc-950 dark:text-white">角色管理</h3>
+              <h3 className="mt-1 text-2xl font-extrabold text-zinc-950 dark:text-white">角色管理</h3>
               <p className="mt-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400">
-                {characters.length}份角色档案，可搜索、筛选和复制。
+                {characters.length} 份角色档案，可搜索、筛选和复制。
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200/80 bg-white text-zinc-500 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-zinc-300 dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-white text-zinc-500 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-[var(--theme-border)] dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-[var(--theme-border)]"
               aria-label="关闭"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="space-y-4 border-b border-zinc-200/50 p-6 dark:border-zinc-800/50">
-            <div className="flex items-center gap-3 rounded-xl border border-zinc-200/80 bg-white/80 px-4 py-3 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-950/80">
+          <div className="space-y-4 border-b border-[var(--theme-border)] p-5 dark:border-[var(--theme-border)]">
+            <div className="flex items-center gap-3 rounded-xl border border-[var(--theme-border)] bg-white/80 px-4 py-3 shadow-sm dark:border-[var(--theme-border)] dark:bg-zinc-950/80">
               <Search className="h-4 w-4 shrink-0 text-zinc-500" />
               <input
                 value={query}
@@ -205,7 +208,7 @@ function CharacterManagerDialog({
                     "rounded-xl border px-3 py-2 text-xs font-bold transition-all active:scale-[0.98]",
                     roleFilter === role
                       ? "border-zinc-950 bg-zinc-950 text-white shadow-md dark:border-white dark:bg-white dark:text-zinc-950"
-                      : "border-zinc-200/80 bg-white/80 text-zinc-600 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 hover:shadow dark:border-zinc-800/80 dark:bg-zinc-950/80 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white",
+                      : "border-[var(--theme-border)] bg-white/80 text-zinc-600 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 hover:shadow dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white",
                   )}
                 >
                   {role}
@@ -227,14 +230,14 @@ function CharacterManagerDialog({
                       "mb-3 flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all",
                       selected
                         ? "border-emerald-300/80 bg-emerald-50/80 shadow-md ring-1 ring-emerald-300/50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:ring-emerald-500/20"
-                        : "border-zinc-200/80 bg-white/80 shadow-sm hover:border-zinc-300 hover:bg-zinc-50/80 hover:shadow dark:border-zinc-800/80 dark:bg-zinc-950/80 dark:hover:border-zinc-700",
+                        : "border-[var(--theme-border)] bg-white/80 shadow-sm hover:border-[var(--theme-border)] hover:bg-zinc-50/80 hover:shadow dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:hover:border-[var(--theme-border)]",
                     )}
                   >
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-950 text-base font-black text-white shadow-sm dark:bg-white dark:text-zinc-950">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-950 text-base font-semibold text-white shadow-sm dark:bg-white dark:text-zinc-950">
                       {(char.name ?? "?").trim().slice(0, 1) || "?"}
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate text-base font-black text-zinc-950 dark:text-white">
+                      <span className="block truncate text-base font-bold text-zinc-950 dark:text-white">
                         {char.name}
                       </span>
                       <span className="mt-1 block truncate text-xs font-bold text-zinc-500 dark:text-zinc-400">
@@ -245,26 +248,26 @@ function CharacterManagerDialog({
                 );
               })
             ) : (
-              <div className="rounded-2xl border border-dashed border-zinc-300/80 p-8 text-center text-sm font-bold text-zinc-500 dark:border-zinc-700/80 dark:text-zinc-400">
+              <div className="rounded-2xl border border-dashed border-[var(--theme-border)] p-8 text-center text-sm font-bold text-zinc-500 dark:border-[var(--theme-border)] dark:text-zinc-400">
                 没有匹配的角色。
               </div>
             )}
           </div>
         </div>
 
-        <div className="min-h-0 overflow-y-auto p-6 dark:bg-zinc-950/50">
+        <div className="min-h-0 overflow-y-auto p-5 dark:bg-zinc-950/50">
           {selected ? (
             <div className="mx-auto max-w-2xl">
               <div className="flex flex-wrap items-start justify-between gap-5">
                 <div className="flex min-w-0 items-center gap-5">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-zinc-200/50 bg-zinc-950 text-3xl font-black text-white shadow-lg dark:border-zinc-800/50 dark:bg-white dark:text-zinc-950">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-[var(--theme-border)] bg-zinc-950 text-3xl font-extrabold text-white shadow-lg dark:border-[var(--theme-border)] dark:bg-white dark:text-zinc-950">
                     {(selected.name ?? "?").trim().slice(0, 1) || "?"}
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-zinc-500">
                       Selected Role
                     </p>
-                    <h4 className="mt-1 truncate text-4xl font-black text-zinc-950 dark:text-white">
+                    <h4 className="mt-1 truncate text-4xl font-extrabold text-zinc-950 dark:text-white">
                       {selected.name}
                     </h4>
                     <span className="mt-3 inline-flex rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
@@ -275,15 +278,15 @@ function CharacterManagerDialog({
                 <button
                   type="button"
                   onClick={() => void handleCopy()}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-200/80 bg-white px-5 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-1 hover:ring-zinc-300 active:scale-[0.98] dark:border-zinc-800/80 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-zinc-700"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-5 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-1 hover:ring-[var(--theme-border)] active:scale-[0.98] dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-[var(--theme-border)]"
                 >
                   {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                   {copied ? "已复制" : "复制全部"}
                 </button>
               </div>
 
-              <div className="mt-8 rounded-2xl border border-zinc-200/50 bg-white/50 p-6 shadow-inner dark:border-zinc-800/50 dark:bg-zinc-900/50">
-                <div className="mb-4 flex items-center gap-3 text-base font-black text-zinc-950 dark:text-white">
+              <div className="mt-8 rounded-2xl border border-[var(--theme-border)] bg-white/50 p-6 shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
+                <div className="mb-4 flex items-center gap-3 text-base font-bold text-zinc-950 dark:text-white">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
                     <UserRound className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
@@ -317,11 +320,11 @@ function InfoTile({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/80">
+    <div className="rounded-2xl border border-[var(--theme-border)] bg-white/80 p-4 shadow-sm dark:border-[var(--theme-border)] dark:bg-zinc-900/80">
       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{label}</p>
       <p
         className={cn(
-          "mt-2 truncate text-base font-black text-zinc-950 dark:text-white",
+          "mt-2 truncate text-base font-bold text-zinc-950 dark:text-white",
           accent === "emerald" && "text-emerald-700 dark:text-emerald-300",
         )}
       >

@@ -67,7 +67,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
       <button
         type="button"
         aria-label="关闭章节命令面板"
-        className="absolute inset-0 cursor-pointer bg-stone-950/30 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 cursor-pointer bg-black/30 backdrop-blur-sm transition-opacity"
         onClick={closeDialog}
       />
 
@@ -75,7 +75,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
         role="dialog"
         aria-modal="true"
         aria-labelledby="chapter-command-title"
-        className="glass-panel relative flex max-h-[78vh] w-full max-w-2xl animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-[32px]"
+        className="relative flex max-h-[78vh] w-full max-w-2xl animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-xl dark:border-[var(--theme-border)] dark:bg-[var(--theme-surface-solid)]"
       >
         <div className="flex items-center gap-4 border-b border-[var(--theme-divider)] px-5 py-4 sm:px-6">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-600)] ring-1 ring-[var(--theme-brand-border)]">
@@ -84,7 +84,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
           <div className="min-w-0 flex-1">
             <p
               id="chapter-command-title"
-              className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--theme-text-weak)]"
+              className="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--theme-text-muted)]"
             >
               章节导航
             </p>
@@ -92,11 +92,11 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
               autoFocus
               value={commandQuery}
               onChange={(event) => setCommandQuery(event.target.value)}
-              className="mt-1 w-full bg-transparent text-lg font-black tracking-tight text-[var(--theme-text-strong)] outline-none placeholder:text-[var(--theme-text-weak)]"
+              className="mt-1 w-full bg-transparent text-lg font-medium tracking-tight text-[var(--theme-text-strong)] outline-none placeholder:text-[var(--theme-text-muted)]"
               placeholder="搜索章节标题、作品名或第1章"
             />
           </div>
-          <kbd className="hidden rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-2 py-1 font-mono text-[10px] font-black uppercase tracking-wide text-[var(--theme-text-muted)] shadow-sm sm:block">
+          <kbd className="hidden rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-text-muted)] shadow-sm sm:block">
             Esc
           </kbd>
         </div>
@@ -109,7 +109,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="px-3 py-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--theme-text-weak)]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--theme-text-muted)]">
               {commandQuery.trim() ? "匹配章节" : "按章节顺序"}
               {work?.title ? ` · ${work.title}` : ""}
             </span>
@@ -145,7 +145,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
                   <div className="flex min-w-0 items-center gap-4">
                     <span
                       className={cn(
-                        "flex h-10 min-w-16 shrink-0 items-center justify-center rounded-2xl px-3 text-xs font-black tabular-nums ring-1 transition-all",
+                        "flex h-10 min-w-16 shrink-0 items-center justify-center rounded-2xl px-3 text-xs font-semibold tabular-nums ring-1 transition-all",
                         active
                           ? "bg-[var(--theme-surface-hover)] text-[var(--theme-brand-600)] ring-[var(--theme-brand-border)]"
                           : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] ring-[var(--theme-border)] group-hover:text-[var(--theme-brand-600)]",
@@ -167,13 +167,13 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
 
                   <div className="ml-2 flex shrink-0 items-center gap-2">
                     {active ? (
-                      <span className="rounded-full bg-[var(--theme-brand-subtle)] px-2.5 py-1 text-[10px] font-black text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]">
+                      <span className="rounded-full bg-[var(--theme-brand-subtle)] px-2.5 py-1 text-[10px] font-semibold text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]">
                         当前
                       </span>
                     ) : (
                       <span
                         className={cn(
-                          "rounded-full px-2.5 py-1 text-[10px] font-black ring-1",
+                          "rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1",
                           edited
                             ? "bg-[var(--theme-success-soft)] text-[var(--theme-success-text)] ring-[var(--theme-success-border)]"
                             : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] ring-[var(--theme-border)]",

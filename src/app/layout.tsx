@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 
 import "./globals.css";
-import { FluentThemeProvider } from "@/components/theme/fluent-theme-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import {
   THEME_INIT_SCRIPT,
@@ -39,7 +38,7 @@ export default async function RootLayout({
       </head>
       <body className="theme-page transition-[background-color,color] duration-300">
         <ThemeProvider initialTheme={initialTheme}>
-          <FluentThemeProvider>{children}</FluentThemeProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>

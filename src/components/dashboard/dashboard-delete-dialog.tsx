@@ -43,7 +43,7 @@ export function DashboardDeleteDialog({ dashboard }: DashboardDeleteDialogProps)
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={!deleteBusy ? closeDeleteDialog : undefined}
-          className="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm dark:bg-black/60"
+          className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         />
 
         {/* Dialog */}
@@ -51,13 +51,13 @@ export function DashboardDeleteDialog({ dashboard }: DashboardDeleteDialogProps)
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-lg overflow-hidden rounded-[32px] bg-white p-8 shadow-2xl ring-1 ring-zinc-900/5 dark:bg-zinc-900 dark:ring-white/10"
+          className="relative w-full max-w-lg overflow-hidden rounded-xl bg-[var(--theme-surface-solid)] p-8 shadow-xl dark:bg-[var(--theme-surface-solid)]"
         >
-          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-[20px] bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400">
+          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400">
             <AlertTriangle className="h-8 w-8" />
           </div>
 
-          <h2 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+          <h2 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
             彻底删除《{deleteTarget.title}》？
           </h2>
           
@@ -76,7 +76,7 @@ export function DashboardDeleteDialog({ dashboard }: DashboardDeleteDialogProps)
               onChange={(e) => setDeleteConfirmInput(e.target.value)}
               placeholder={deleteTarget.title}
               disabled={deleteBusy}
-              className="h-14 w-full rounded-2xl border-none bg-zinc-50 px-4 text-base font-bold text-zinc-900 ring-1 ring-zinc-200 outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 dark:bg-black/20 dark:text-white dark:ring-white/10"
+              className="h-14 w-full rounded-2xl border-none bg-zinc-50 px-4 text-base font-bold text-zinc-900 ring-1 ring-[var(--theme-border)] outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 dark:bg-black/20 dark:text-white dark:ring-[var(--theme-border)]"
             />
             {deleteError && (
               <p className="pl-2 text-sm font-bold text-red-500">

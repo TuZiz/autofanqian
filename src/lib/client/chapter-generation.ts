@@ -3,51 +3,21 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
+import type {
+  ChapterGenerationResult,
+  ChapterGenerationSnapshot,
+  ChapterGenerationStage,
+} from "@/lib/client/chapter-generation-types";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 
 export const CHAPTER_AI_THINKING_COPY = aiZhCN.chapterGenerate.thinking;
 
-export type ChapterGenerationStatus = "running" | "done" | "error";
-export type ChapterGenerationStage =
-  | "prepare"
-  | "context"
-  | "draft"
-  | "polish"
-  | "finalize";
-
-export type ChapterGenerationResult = {
-  work: {
-    id: string;
-    title: string;
-    tag: string;
-  };
-  chapter: {
-    id: string;
-    index: number;
-    title: string | null;
-    content: string;
-    wordCount: number;
-    summary?: string | null;
-    chapterOutline?: string | null;
-    details?: string[];
-    updatedAt: string;
-    createdAt: string;
-  };
-};
-
-export type ChapterGenerationSnapshot = {
-  key: string;
-  workId: string;
-  index: number;
-  status: ChapterGenerationStatus;
-  stage?: ChapterGenerationStage;
-  progress: number;
-  startedAt: number;
-  updatedAt: number;
-  message?: string;
-  error?: string;
-  result?: ChapterGenerationResult;
-};
+export type {
+  ChapterGenerationResult,
+  ChapterGenerationSnapshot,
+  ChapterGenerationStage,
+  ChapterGenerationStatus,
+} from "@/lib/client/chapter-generation-types";
 
 type ChapterGenerationStore = Record<string, ChapterGenerationSnapshot>;
 

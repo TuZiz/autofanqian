@@ -2,6 +2,7 @@
 
 import { CheckCircle2, FileText, Lightbulb } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 const createSteps: Array<{
@@ -14,42 +15,88 @@ const createSteps: Array<{
   { title: "创建成功", icon: CheckCircle2 },
 ];
 
-export function CreateSteps() {
+type CreateStepsProps = {
+  compact?: boolean;
+};
+
+export function CreateSteps({ compact = false }: CreateStepsProps) {
+  if (compact) {
+    return (
+      <section className="w-full">
+        <div className="flex items-center justify-between gap-2">
+          {createSteps.map((step, index) => {
+            const Icon = step.icon;
+            const isActive = step.active;
+
+            return (
+              <div key={step.title} className="flex min-w-0 flex-1 items-center gap-2">
+                <div
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-300",
+                    isActive
+                      ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/25"
+                      : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]",
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </div>
+
+                <div className="min-w-0">
+                  <div
+                    className={cn(
+                      "text-xs font-bold",
+                      isActive ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--theme-text-muted)]",
+                    )}
+                  >
+                    {step.title}
+                  </div>
+                </div>
+
+                {index < createSteps.length - 1 ? (
+                  <div className="hidden h-px flex-1 bg-[var(--theme-divider)] sm:block" />
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="relative mx-auto w-full max-w-3xl">
-      <div className="absolute left-[10%] right-[10%] top-[28px] h-[2px] -translate-y-1/2 bg-zinc-200 dark:bg-zinc-800 sm:top-[32px]" />
-      
-      <div className="relative flex justify-between">
-        {createSteps.map((step) => {
+    <section className="mx-auto w-full max-w-2xl">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-4 py-3 shadow-sm">
+        {createSteps.map((step, index) => {
           const Icon = step.icon;
           const isActive = step.active;
 
           return (
-            <div
-              key={step.title}
-              className="flex w-1/3 flex-col items-center justify-center gap-3 relative z-10"
-            >
+            <div key={step.title} className="flex min-w-0 flex-1 items-center gap-3">
               <div
                 className={cn(
-                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-sm transition-all duration-500 sm:h-16 sm:w-16",
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300",
                   isActive
-                    ? "bg-blue-600 text-white shadow-blue-500/30 ring-4 ring-white dark:ring-black scale-110"
-                    : "bg-white text-zinc-400 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800"
+                    ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/25"
+                    : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]",
                 )}
               >
-                <Icon className={cn("h-6 w-6 sm:h-7 sm:w-7", isActive && "animate-pulse")} />
+                <Icon className="h-4 w-4" />
               </div>
 
-              <div
-                className={cn(
-                  "text-center text-sm font-black tracking-tight sm:text-base",
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-zinc-400 dark:text-zinc-600"
-                )}
-              >
-                {step.title}
+              <div className="min-w-0">
+                <div
+                  className={cn(
+                    "text-sm font-bold",
+                    isActive ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--theme-text-muted)]",
+                  )}
+                >
+                  {step.title}
+                </div>
               </div>
+
+              {index < createSteps.length - 1 ? (
+                <div className="hidden h-px flex-1 bg-[var(--theme-divider)] md:block" />
+              ) : null}
             </div>
           );
         })}

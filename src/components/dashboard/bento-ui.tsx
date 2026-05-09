@@ -20,7 +20,7 @@ export function IconBox({
   return (
     <div
       className={cn(
-        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 shadow-inner ring-1 ring-blue-500/20 dark:bg-blue-400/10 dark:text-blue-300 dark:ring-blue-300/20",
+        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-600)] shadow-inner ring-1 ring-[var(--theme-brand-border)]",
         className,
       )}
     >
@@ -43,13 +43,13 @@ export function BentoCard({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[24px] border border-white/60 bg-white/70 p-6 shadow-sm ring-1 ring-zinc-900/5 backdrop-blur-xl transition-all duration-300 ease-out dark:border-white/10 dark:bg-zinc-900/60 dark:ring-white/10",
-        hover && "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-zinc-900/5 dark:hover:bg-zinc-900/80 dark:hover:shadow-black/30",
+        "relative overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-6 shadow-sm ring-1 ring-[var(--theme-border)] backdrop-blur-xl transition-all duration-300 ease-out",
+        hover && "hover:-translate-y-0.5 hover:shadow-lg hover:bg-[var(--theme-surface-hover)]",
         className,
       )}
     >
       {noise ? (
-        <div className="pointer-events-none absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay dark:opacity-[0.05]" />
+        <div className="pointer-events-none absolute inset-0 app-noise opacity-[0.03] mix-blend-overlay" />
       ) : null}
       <div className="relative z-10">{children}</div>
     </section>
@@ -67,15 +67,15 @@ export function StatusBadge({
 }) {
   const toneClass = {
     brand:
-      "bg-blue-50/80 text-blue-700 border border-blue-200/80 shadow-sm dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20",
+      "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] border border-[var(--theme-brand-border)] shadow-sm",
     muted:
-      "bg-zinc-50/80 text-zinc-600 border border-zinc-200/80 shadow-sm dark:bg-zinc-900/80 dark:text-zinc-300 dark:border-zinc-700/80",
+      "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)] border border-[var(--theme-border)] shadow-sm",
     success:
-      "bg-emerald-50/80 text-emerald-700 border border-emerald-200/80 shadow-sm dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20",
+      "bg-[var(--theme-success-soft)] text-[var(--theme-success-text)] border border-[var(--theme-success-border)] shadow-sm",
     warning:
-      "bg-amber-50/80 text-amber-700 border border-amber-200/80 shadow-sm dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20",
+      "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] border border-[var(--theme-warning-border)] shadow-sm",
     danger:
-      "bg-red-50/80 text-red-700 border border-red-200/80 shadow-sm dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/20",
+      "bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)] border border-[var(--theme-danger-border)] shadow-sm",
   }[tone];
 
   return (
@@ -112,15 +112,15 @@ export function SectionHeader({
         {icon ? <IconBox icon={icon} /> : null}
         <div className="min-w-0">
           {kicker ? (
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--theme-text-muted)]">
               {kicker}
             </div>
           ) : null}
-          <h2 className="mt-1.5 truncate text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
+          <h2 className="mt-1.5 truncate text-2xl font-extrabold tracking-tight text-[var(--theme-text-strong)]">
             {title}
           </h2>
           {description ? (
-            <p className="mt-2.5 max-w-2xl text-sm font-medium leading-relaxed text-zinc-500 dark:text-zinc-400">
+            <p className="mt-2.5 max-w-2xl text-sm font-medium leading-relaxed text-[var(--theme-text-secondary)]">
               {description}
             </p>
           ) : null}
@@ -147,17 +147,17 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex min-h-[280px] flex-col items-center justify-center rounded-[32px] border border-dashed border-zinc-300/80 bg-zinc-50/50 p-10 text-center shadow-inner dark:border-zinc-700/80 dark:bg-zinc-900/50",
+        "flex min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] p-10 text-center shadow-inner",
         className,
       )}
     >
-      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-100/80 text-zinc-400 shadow-inner ring-1 ring-zinc-200/50 dark:bg-zinc-800/80 dark:text-zinc-500 dark:ring-zinc-700/50">
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] shadow-inner ring-1 ring-[var(--theme-border)]">
         <Icon className="h-6 w-6" aria-hidden />
       </div>
-      <p className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">
+      <p className="text-lg font-extrabold tracking-tight text-[var(--theme-text-strong)]">
         {title}
       </p>
-      <p className="mt-3 max-w-sm text-sm font-bold leading-relaxed text-zinc-500 dark:text-zinc-400">
+      <p className="mt-3 max-w-sm text-sm font-bold leading-relaxed text-[var(--theme-text-secondary)]">
         {description}
       </p>
     </div>

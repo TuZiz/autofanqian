@@ -5,9 +5,13 @@ export type AiModelSessionUser = SessionAccessFields & {
   email: string;
 };
 
-export const AI_MODEL_PROVIDER_IDS = ["primary", "ark", "anthropic"] as const;
+export const AI_MODEL_PROVIDER_IDS = ["gpt", "ark"] as const;
 export type AiModelProviderId = (typeof AI_MODEL_PROVIDER_IDS)[number];
-export type AiModelProviderProtocol = "chat" | "responses" | "anthropic";
+export type AiModelProviderProtocol = "route";
+
+export const AI_PHYSICAL_PROVIDER_IDS = ["gpt_primary", "gpt_fallback", "ark"] as const;
+export type AiPhysicalProviderId = (typeof AI_PHYSICAL_PROVIDER_IDS)[number];
+export type AiPhysicalProviderProtocol = "chat" | "responses";
 
 export const AI_MODEL_CONFIG_KEYS = [
   "ideaGenerate",
@@ -28,12 +32,24 @@ export type ProviderOption = {
   id: AiModelProviderId;
   label: string;
   configured: boolean;
+  routeChain: string[];
+  envSummary: string[];
+  model: string;
+  modelOptions: string[];
+  baseUrl: string;
+  prefer: AiModelProviderProtocol;
+};
+
+export type PhysicalProviderOption = {
+  id: AiPhysicalProviderId;
+  label: string;
+  configured: boolean;
   apiKeyEnvKey: string;
   envModelKey: string;
   model: string;
   modelOptions: string[];
   baseUrl: string;
-  prefer: AiModelProviderProtocol;
+  prefer: AiPhysicalProviderProtocol;
 };
 
 export type AiModelTarget = {
@@ -48,4 +64,5 @@ export type AiModelConfig = Record<AiModelConfigKey, AiModelTarget> & {
 export type AiModelConfigResponse = {
   config: AiModelConfig;
   providers: ProviderOption[];
+  physicalProviders: PhysicalProviderOption[];
 };
