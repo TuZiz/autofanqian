@@ -28,12 +28,12 @@ export function SubmitOutlineButton({
       disabled={disabled}
       title={title}
       className={cn(
-        "group relative flex shrink-0 items-center justify-center overflow-hidden border px-4 text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70",
-        sidebar ? "h-11 w-full" : "h-10",
+        "group relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl border px-4 text-sm font-bold shadow-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70",
+        sidebar ? "h-12 w-full" : "h-11",
         compact ? "hidden min-[480px]:flex" : "flex flex-[1.5]",
         create.canSubmitOutline
-          ? "border-zinc-900 bg-[linear-gradient(180deg,#171717,#050505)] text-white shadow-[0_18px_36px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] hover:-translate-y-0.5 hover:shadow-[0_22px_40px_-24px_rgba(16,185,129,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] dark:border-white/10 dark:bg-[linear-gradient(180deg,#ffffff,#e9edf1)] dark:text-zinc-950"
-          : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)]",
+          ? "border-emerald-600 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-500/30 dark:border-emerald-400 dark:from-emerald-400 dark:to-emerald-500"
+          : "border-[var(--theme-border)]/60 bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)]",
       )}
     >
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100 group-hover:animate-[rewrite-button-shine_1.5s_ease-in-out_infinite]" />
