@@ -77,12 +77,12 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1496px] flex-1 px-4 pb-24 pt-8 sm:px-6 lg:px-8">
+        <main className="mx-auto w-full max-w-[1496px] flex-1 px-4 pb-24 pt-6 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20, filter: "blur(4px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ delay: 0.05, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="grid gap-6 min-[1040px]:grid-cols-[220px_minmax(0,1fr)] min-[1040px]:items-start min-[1240px]:grid-cols-[220px_minmax(0,1fr)_340px] min-[1420px]:grid-cols-[240px_minmax(0,1fr)_360px]"
+            className="grid gap-5 min-[1040px]:grid-cols-[220px_minmax(0,1fr)] min-[1040px]:items-start min-[1240px]:grid-cols-[220px_minmax(0,1fr)_340px] min-[1420px]:grid-cols-[240px_minmax(0,1fr)_360px]"
           >
             <CreateSectionNav
               create={create}
@@ -91,7 +91,7 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
 
             <form
               id="dashboard-create-form"
-              className="min-w-0 space-y-8"
+              className="min-w-0 space-y-6"
               onSubmit={create.handleSubmit}
               noValidate
             >
