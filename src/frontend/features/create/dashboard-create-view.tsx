@@ -61,15 +61,7 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
               </Link>
 
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
-                    创建流程
-                  </p>
-                  <span className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-2.5 py-1 text-[10px] font-semibold text-[var(--theme-text-secondary)]">
-                    当前步骤 1 / 3
-                  </span>
-                </div>
-                <h1 className="mt-0.5 text-base font-bold tracking-tight text-[var(--theme-text-strong)] sm:text-lg">
+                <h1 className="text-base font-bold tracking-tight text-[var(--theme-text-strong)] sm:text-lg">
                   开始创作
                 </h1>
                 <p className="mt-0.5 max-w-2xl text-xs leading-5 text-[var(--theme-text-secondary)]">
