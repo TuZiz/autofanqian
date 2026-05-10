@@ -1,9 +1,10 @@
 "use client";
 
-import { RefreshCcw, Sparkles, Star, Zap } from "lucide-react";
+import { Gauge, RefreshCcw, Sparkles, Wand2, Zap } from "lucide-react";
 
 import type { DashboardCreateController } from "@/lib/create/use-dashboard-create";
 import { cn } from "@/lib/utils";
+
 import { IdeaAnalysisPanel } from "./idea-analysis-panel";
 
 type CreateIdeaComposerProps = {
@@ -12,7 +13,6 @@ type CreateIdeaComposerProps = {
   helperTitle: string;
   inlineIdeaError: string;
   placeholder: string;
-  readinessText: string;
 };
 
 export function CreateIdeaComposer({
@@ -21,7 +21,6 @@ export function CreateIdeaComposer({
   helperTitle,
   inlineIdeaError,
   placeholder,
-  readinessText,
 }: CreateIdeaComposerProps) {
   const {
     aiBusy,
@@ -35,7 +34,6 @@ export function CreateIdeaComposer({
     analyzeBlockedByAiThinking,
     canAnalyzeIdea,
     canGenerateAi,
-    canSubmitOutline,
     handleAnalyzeIdea,
     handleGenerateAi,
     idea,
@@ -52,62 +50,75 @@ export function CreateIdeaComposer({
 
   return (
     <div id="create-idea-section">
-      <div className="flex flex-col gap-2 border-b border-[var(--theme-border)]/40 bg-gradient-to-r from-emerald-500/5 to-transparent px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-        <label className="flex items-center gap-3 text-lg font-extrabold tracking-tight text-[var(--theme-text-strong)]">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-sm font-black text-white shadow-md shadow-emerald-500/25">
-            2
-          </span>
-          故事简介
-        </label>
+      <div className="border-b border-[var(--theme-border)] px-4 py-3">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-[11px] text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300">
+                2
+              </span>
+              输入故事创意
+            </div>
+            <h2 className="mt-1.5 text-base font-semibold text-[var(--theme-text-strong)]">
+              专业编辑输入区
+            </h2>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="inline-flex rounded-lg bg-[var(--theme-surface-overlay)] px-3 py-1.5 text-xs font-semibold text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]/60">
-            {helperTitle}
-          </span>
-          <span
-            className={cn(
-              "inline-flex rounded-lg px-3 py-1.5 text-xs font-bold ring-1",
-              canSubmitOutline
-                ? "bg-emerald-50 text-emerald-700 ring-emerald-200/60 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20"
-                : "bg-amber-50 text-amber-700 ring-amber-200/60 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20",
-            )}
-          >
-            {readinessText}
-          </span>
+          <MetaChip label="工作模式" value={helperTitle} />
         </div>
       </div>
 
       {showAiProgress ? (
         <div
           role="progressbar"
-          aria-label="AI 生成进度"
+          aria-label="AI 正在分析创意"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={aiProgressPercent}
-          className="px-5 pt-4"
+          className="border-b border-[var(--theme-border)] px-4 py-3"
         >
-          <div className="relative">
-            <div className="h-2 overflow-hidden rounded-full bg-[var(--theme-surface-overlay)]">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-[width] duration-300 ease-linear animate-[ai-progress-shimmer_1.2s_linear_infinite] motion-reduce:animate-none"
-                style={{
-                  width: `${aiProgressValue}%`,
-                  backgroundSize: "200% 100%",
-                }}
-              />
+          <div className="flex flex-col gap-3 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-[var(--theme-text-strong)]">
+                  正在分析创意
+                </p>
+                <p className="mt-1 text-xs text-[var(--theme-text-secondary)]">
+                  系统正在补全结构、判断题材并准备生成大纲。
+                </p>
+              </div>
+              <span className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-2.5 py-1 text-xs font-semibold text-[var(--theme-text-strong)]">
+                {aiProgressPercent}%
+              </span>
             </div>
-            <div
-              className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[var(--theme-border)]/60 bg-[var(--theme-surface-solid)] px-2.5 py-1 text-[11px] font-bold text-[var(--theme-text-strong)] shadow-sm transition-[left] duration-300 ease-linear"
-              style={{ left: `${aiProgressLabelLeft}%` }}
-            >
-              {aiProgressPercent}%
+
+            <div className="relative">
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--theme-surface-solid)]">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-[width] duration-300 ease-linear"
+                  style={{ width: `${aiProgressValue}%` }}
+                />
+              </div>
+              <div
+                className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm transition-[left] duration-300 ease-linear"
+                style={{ left: `${aiProgressLabelLeft}%` }}
+              >
+                {aiProgressPercent}%
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+              <span key={aiThinkingCopyIndex} className="animate-[ai-copy-swap_220ms_ease-out]">
+                {aiThinkingCopy}
+              </span>
             </div>
           </div>
         </div>
       ) : null}
 
       <div
-        className="px-5 py-4"
+        className="px-4 py-3"
         onMouseEnter={() => setAnalysisOpen(true)}
         onMouseLeave={() => setAnalysisOpen(false)}
         onFocusCapture={() => setAnalysisOpen(true)}
@@ -118,56 +129,70 @@ export function CreateIdeaComposer({
         }}
       >
         {inlineIdeaError ? (
-          <p className="mb-3 text-xs font-bold tracking-wide text-[var(--theme-danger-text)]">
+          <p className="mb-3 text-sm font-medium text-red-600 dark:text-red-400">
             {inlineIdeaError}
           </p>
         ) : null}
 
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-medium text-[var(--theme-text-secondary)]">
-            {isCustomGenre
-              ? "填好题材、标签和一句话创意后，点 AI 生成；也可以直接自己写。"
-              : "模板已经落到简介里，继续改成你的主角、冲突和爽点。"}
-          </p>
+        <div className="mb-2.5 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--theme-text-strong)]">
+              输入你的故事创意
+            </p>
+          </div>
 
-          <button
-            type="button"
-            disabled={aiBusy || !canGenerateAi}
-            onClick={handleGenerateAi}
-            title={canGenerateAi ? "让 AI 根据题材、标签和一句话创意生成完整简介" : "请先填写题材、标签和一句话创意"}
-            aria-label={canGenerateAi ? "AI 生成创意" : "请先填写题材、标签和一句话创意"}
-            className="group relative inline-flex shrink-0 cursor-pointer items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-500/25 transition-all hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 dark:from-emerald-400 dark:to-emerald-500 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-md"
-          >
-            {aiBusy ? (
-              <>
-                <span className="pointer-events-none absolute left-0 top-0 h-full w-1.5 bg-white/20" />
-                <span className="pointer-events-none absolute left-0 top-0 h-[45%] w-1.5 bg-white/40 animate-[ai-progress-sweep_1.2s_ease-in-out_infinite] motion-reduce:animate-none" />
-              </>
+          <div className="flex flex-wrap gap-2">
+            {isCustomGenre ? (
+              <button
+                type="button"
+                disabled={aiBusy || !canGenerateAi}
+                onClick={handleGenerateAi}
+                title={canGenerateAi ? "根据当前设定生成完整简介" : "请先补充题材、标签和故事创意"}
+                aria-label={canGenerateAi ? "AI 生成创意" : "请先补充题材、标签和故事创意"}
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+              >
+                {aiBusy ? <Sparkles className="h-4 w-4 animate-pulse" /> : <Zap className="h-4 w-4" />}
+                {aiBusy ? (
+                  <span key={aiThinkingCopyIndex} className="animate-[ai-copy-swap_220ms_ease-out]">
+                    {aiThinkingCopy}
+                  </span>
+                ) : !canGenerateAi ? (
+                  "先补充设定"
+                ) : (
+                  "生成创意"
+                )}
+              </button>
             ) : null}
 
-            <span className="relative z-10 inline-flex items-center gap-2">
-              {aiBusy ? (
-                <Sparkles className="h-4 w-4 animate-pulse" />
-              ) : (
-                <Zap className="h-4 w-4 transition-transform group-hover:scale-110" />
-              )}
-              {aiBusy ? (
-                <span
-                  key={aiThinkingCopyIndex}
-                  className="animate-[ai-copy-swap_220ms_ease-out] motion-reduce:animate-none"
-                >
-                  {aiThinkingCopy}
-                </span>
-              ) : !canGenerateAi ? (
-                "先补创意"
-              ) : (
-                "AI 生成创意"
-              )}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => void handleAnalyzeIdea(idea)}
+              disabled={analyzeBlockedByAiThinking || analysisBusy || !canAnalyzeIdea}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3.5 text-sm font-semibold text-[var(--theme-text-secondary)] shadow-sm transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Wand2 className={cn("h-4 w-4", (analyzeBlockedByAiThinking || analysisBusy) && "animate-pulse")} />
+              {analyzeBlockedByAiThinking
+                ? "等待当前任务完成"
+                : analysisBusy
+                  ? "正在分析"
+                  : ideaAnalysis
+                    ? "重新分析"
+                    : "分析创意"}
+            </button>
+          </div>
         </div>
 
-        <div className="relative">
+        <div className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+          <div className="flex items-center justify-between border-b border-[var(--theme-divider)] px-4 py-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--theme-text-secondary)]">
+              <Gauge className="h-3.5 w-3.5" />
+              编辑区
+            </div>
+            <div className="text-xs text-[var(--theme-text-muted)]">
+              建议至少 {MIN_IDEA_LENGTH_FOR_OUTLINE} 字
+            </div>
+          </div>
+
           <textarea
             id="create-idea-input"
             value={idea}
@@ -175,100 +200,108 @@ export function CreateIdeaComposer({
               updateIdea(event.target.value);
               setIdeaAnalysis(null);
             }}
-            rows={6}
+            rows={7}
             aria-invalid={hasIdeaError}
             aria-describedby={hasIdeaError ? "create-form-error" : undefined}
             className={cn(
-              "min-h-[180px] w-full resize-y rounded-xl bg-[var(--theme-surface-overlay)] p-4 pr-16 text-[15px] font-medium leading-relaxed text-[var(--theme-text-strong)] ring-1 ring-[var(--theme-border)]/60 outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:ring-2 focus:ring-emerald-500/40 focus:shadow-sm",
-              hasIdeaError && "ring-2 ring-red-400 focus:ring-red-400",
+              "min-h-[190px] w-full resize-y border-0 bg-transparent px-4 py-3 text-[15px] leading-7 text-[var(--theme-text-strong)] outline-none transition-colors placeholder:text-[var(--theme-text-muted)] focus:bg-[var(--theme-surface-solid)]",
+              hasIdeaError && "bg-red-50/30 dark:bg-red-500/5",
             )}
             placeholder={placeholder}
           />
 
-          <div className="pointer-events-none absolute bottom-4 right-5 flex items-center gap-2 text-xs font-bold text-[var(--theme-text-muted)]">
-            <span
-              className={cn(
-                wordCount > 2000
-                  ? "text-[var(--theme-danger-text)]"
-                  : wordCount >= MIN_IDEA_LENGTH_FOR_OUTLINE
-                    ? "text-[var(--theme-brand-text)]"
-                    : "text-[var(--theme-text-primary)]",
-              )}
-            >
-              {wordCount}
-            </span>
-            / 2000
+          <div className="flex flex-col gap-2 border-t border-[var(--theme-divider)] px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs leading-5 text-[var(--theme-text-secondary)]">
+              {submitBlockedReason || "信息已完整，可以直接生成大纲。"}
+            </p>
+            <div className="text-xs font-semibold text-[var(--theme-text-muted)]">
+              <span
+                className={cn(
+                  wordCount >= MIN_IDEA_LENGTH_FOR_OUTLINE && "text-emerald-600 dark:text-emerald-400",
+                )}
+              >
+                {wordCount}
+              </span>
+              <span> / 2000</span>
+            </div>
           </div>
         </div>
 
-        <div className="mt-3 rounded-xl border border-dashed border-[var(--theme-border)]/60 bg-[var(--theme-surface-overlay)] px-4 py-3 text-xs font-medium text-[var(--theme-text-secondary)]">
-          {submitBlockedReason || "当前信息已经足够，可以直接创建大纲。"}
-        </div>
+        <div className="mt-3">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-3 py-2.5">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--theme-text-strong)]">
+                创意分析面板
+              </h3>
+              <p className="mt-0.5 text-xs text-[var(--theme-text-secondary)]">
+                {ideaAnalysis ? "已生成分析结果" : "可选功能，补充创意后再分析。"}
+              </p>
+            </div>
 
-        {analysisPanelVisible ? (
-          <div className="mt-4 overflow-hidden rounded-xl border border-emerald-200/60 bg-gradient-to-b from-emerald-50/50 to-[var(--theme-surface-solid)] shadow-sm dark:border-emerald-500/15 dark:from-emerald-500/5">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-emerald-100/80 px-5 py-4 dark:border-emerald-500/10">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 text-sm font-bold text-[var(--theme-text-strong)]">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/15">
-                    <Star className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  AI 看法
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => void handleAnalyzeIdea(idea)}
-                  disabled={analyzeBlockedByAiThinking || analysisBusy || !canAnalyzeIdea}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[var(--theme-surface-solid)] px-3 py-1.5 text-xs font-bold text-[var(--theme-text-primary)] shadow-sm ring-1 ring-[var(--theme-border)]/60 transition-all hover:bg-[var(--theme-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Sparkles
-                    className={cn(
-                      "h-3 w-3",
-                      analyzeBlockedByAiThinking || analysisBusy ? "animate-pulse" : "",
-                      analyzeBlockedByAiThinking
-                        ? "text-[var(--theme-text-muted)]"
-                        : "text-emerald-500",
-                    )}
-                  />
-                  {analyzeBlockedByAiThinking
-                    ? "请等 AI 写完"
-                    : analysisBusy
-                      ? "分析中"
-                      : ideaAnalysis
-                        ? "重新分析"
-                        : "分析简介"}
-                </button>
-              </div>
-
+            {isCustomGenre ? (
               <button
                 type="button"
                 onClick={handleGenerateAi}
                 disabled={aiBusy || analysisBusy || !canGenerateAi}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[var(--theme-text-strong)] px-4 py-2 text-xs font-bold text-[var(--theme-bg)] transition-all hover:bg-[var(--theme-text-primary)] hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs font-semibold text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCcw className={cn("h-3.5 w-3.5", aiBusy && "animate-spin")} />
-                换一版
+                重新生成创意
               </button>
+            ) : null}
+          </div>
+
+          {analysisPanelVisible && (analysisBusy || ideaAnalysis) ? (
+          <div className="mt-3 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)]">
+            <div className="border-b border-[var(--theme-divider)] px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-2.5 py-1 text-[11px] font-medium text-[var(--theme-text-secondary)]">
+                  AI 辅助分析
+                </span>
+                <span className="text-xs text-[var(--theme-text-muted)]">
+                  {analysisPanelVisible ? "面板已展开" : "聚焦编辑区或点击分析后查看"}
+                </span>
+              </div>
             </div>
 
-            <div className="p-5">
+            <div className="p-4">
               {analysisBusy ? (
-                <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                <div className="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-300">
                   <Sparkles className="h-4 w-4 animate-pulse" />
-                  正在拆解简介亮点
+                  正在分析创意亮点、卖点与目标读者。
                 </div>
               ) : ideaAnalysis ? (
                 <IdeaAnalysisPanel analysis={ideaAnalysis} />
-              ) : (
-                <p className="text-sm font-medium text-[var(--theme-text-secondary)]">
-                  鼠标停在简介区域，或点击分析，就能看到 AI 对这个创意的判断。
-                </p>
-              )}
+              ) : null}
             </div>
           </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function MetaChip({
+  label,
+  tone = "neutral",
+  value,
+}: {
+  label: string;
+  tone?: "neutral" | "success";
+  value: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border px-2.5 py-1.5 text-xs font-medium",
+        tone === "success"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300"
+          : "border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)]",
+      )}
+    >
+      <span className="text-[var(--theme-text-muted)]">{label}</span>
+      <span className="ml-1.5 font-semibold text-current">{value}</span>
     </div>
   );
 }

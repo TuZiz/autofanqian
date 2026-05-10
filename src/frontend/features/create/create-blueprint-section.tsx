@@ -1,10 +1,14 @@
-﻿"use client";
+"use client";
+
+import type { ComponentType, ReactNode } from "react";
+import { BookType, Library, Tags } from "lucide-react";
 
 import type { DashboardCreateController } from "@/lib/create/use-dashboard-create";
 import { cn } from "@/lib/utils";
+
 import { CreateIdeaComposer } from "./create-idea-composer";
 
-const TAG_SUGGESTIONS = ["群像", "升级", "经营", "悬疑", "权谋", "爽文", "轻松", "反套路"];
+const TAG_SUGGESTIONS = ["群像", "升级", "经营", "悬疑", "权谋", "感情", "轻松", "反套路"];
 
 export function CreateBlueprintSection({
   create,
@@ -21,31 +25,24 @@ export function CreateBlueprintSection({
     formError,
     formErrorTarget,
     isCustomGenre,
-    outlineIdeaRemaining,
     selectedGenre,
     selectedTags,
     setCustomGenreLabel,
     setCustomTagsInput,
     setCustomWorldDetails,
-    wordCount,
-    MIN_IDEA_LENGTH_FOR_OUTLINE,
   } = create;
 
   const hasGenreError = formErrorTarget === "genre";
   const hasIdeaError = formErrorTarget === "idea" || formErrorTarget === "ai";
   const inlineIdeaError = formErrorTarget === "idea" ? formError : "";
-  const readinessText =
-    wordCount >= MIN_IDEA_LENGTH_FOR_OUTLINE
-      ? "已达到创建门槛"
-      : `还差 ${outlineIdeaRemaining} 字可创建大纲`;
   const helperTitle = !selectedGenre
-    ? "先选创作方式"
+    ? "先选择创作方向"
     : isCustomGenre
-      ? "自定义蓝图"
-      : `模板起步 · ${effectiveGenreLabel ?? "随机题材"}`;
+      ? "自定义创作设定"
+      : `模板起步 · ${effectiveGenreLabel ?? "未命名题材"}`;
   const placeholder = isCustomGenre
-    ? "点击 AI 生成创意后，这里会自动扩写；也可以直接自己填写完整故事简介。"
-    : "模板已经落到这里。继续改成你的主角、你的冲突和你的爽点。";
+    ? "例如：主角继承了一家濒临倒闭的异能侦探事务所，在解决案件时逐渐发现自己才是被追捕的目标。"
+    : "在模板基础上补充你的主角、冲突、目标和关键反转，让这部小说真正属于你。";
 
   function handleTagSuggestionClick(tag: string) {
     if (!isCustomGenre) return;
@@ -60,89 +57,96 @@ export function CreateBlueprintSection({
       role="group"
       aria-describedby={hasGenreError || hasIdeaError ? "create-form-error" : undefined}
       data-invalid={hasGenreError || hasIdeaError ? "true" : undefined}
-      className="app-compact-panel overflow-hidden rounded-2xl border border-[var(--theme-border)]/60 bg-[var(--theme-bg)]/80 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)]"
+      className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-sm"
     >
-      <div className="border-b border-[var(--theme-border)]/40 bg-gradient-to-r from-emerald-500/8 to-transparent px-5 py-4">
-        <h2 className="flex items-center gap-3 text-lg font-extrabold tracking-tight text-[var(--theme-text-strong)]">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-sm font-black text-white shadow-md shadow-emerald-500/25">
-            1
-          </span>
-          故事蓝图
-        </h2>
+      <div className="border-b border-[var(--theme-border)] px-4 py-3">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-[11px] text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300">
+                1
+              </span>
+              选择创作方向
+            </div>
+            <h2 className="mt-1.5 text-base font-semibold text-[var(--theme-text-strong)]">
+              完善基础设定
+            </h2>
+          </div>
+
+          <InfoBadge
+            label="当前模式"
+            value={isCustomGenre ? "自定义" : "模板创作"}
+          />
+        </div>
 
         {hasGenreError ? (
-          <p className="mt-2.5 text-xs font-bold tracking-wide text-red-600 dark:text-red-400">
+          <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-400">
             {create.formError}
           </p>
         ) : null}
       </div>
 
-      <div className="border-b border-[var(--theme-border)]/40 px-5 py-4">
-        <div
-          className={cn(
-            "grid gap-4",
-            isCustomGenre
-              ? "xl:grid-cols-[minmax(180px,0.7fr)_minmax(260px,1fr)_minmax(320px,1.5fr)]"
-              : "xl:grid-cols-[minmax(180px,0.85fr)_minmax(260px,1.25fr)]",
-          )}
+      <div className="grid gap-3 border-b border-[var(--theme-border)] px-4 py-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <FieldBlock
+          icon={BookType}
+          label="题材"
+          hint={isCustomGenre ? "输入你要创作的题材名称" : "当前模板已为你选定题材"}
         >
-          <label className="block">
-            <span className="mb-2 block text-sm font-bold text-[var(--theme-text-primary)]">题材</span>
-            <input
-              value={isCustomGenre ? customGenreLabel : effectiveGenreLabel ?? ""}
-              onChange={(event) => setCustomGenreLabel(event.target.value)}
-              disabled={!isCustomGenre}
-              placeholder="例如：赛博修仙"
-              className="h-12 w-full rounded-xl border border-[var(--theme-border)]/60 bg-[var(--theme-surface-overlay)] px-4 text-sm font-bold text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-70"
-            />
-          </label>
+          <input
+            value={isCustomGenre ? customGenreLabel : effectiveGenreLabel ?? ""}
+            onChange={(event) => setCustomGenreLabel(event.target.value)}
+            disabled={!isCustomGenre}
+            placeholder="例如：赛博修仙、古风悬疑、都市经营"
+            className="h-10 w-full rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 text-sm font-medium text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/12 disabled:cursor-not-allowed disabled:bg-[var(--theme-surface-overlay)] disabled:text-[var(--theme-text-secondary)]"
+          />
+        </FieldBlock>
 
-          <div>
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-[var(--theme-text-primary)]">
-                标签
-                <span className="ml-2 text-xs font-medium text-[var(--theme-text-muted)]">空格或逗号分隔</span>
-              </span>
-              <input
-                value={isCustomGenre ? customTagsInput : selectedTags.join(" ")}
-                onChange={(event) => setCustomTagsInput(event.target.value)}
+        <FieldBlock
+          icon={Tags}
+          label="核心标签"
+          hint={isCustomGenre ? "至少填写两个标签，帮助系统判断类型与卖点" : "模板自带标签，可直接沿用"}
+        >
+          <input
+            value={isCustomGenre ? customTagsInput : selectedTags.join(" ")}
+            onChange={(event) => setCustomTagsInput(event.target.value)}
+            disabled={!isCustomGenre}
+            placeholder="例如：群像 经营 反套路"
+            className="h-10 w-full rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 text-sm font-medium text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/12 disabled:cursor-not-allowed disabled:bg-[var(--theme-surface-overlay)] disabled:text-[var(--theme-text-secondary)]"
+          />
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {TAG_SUGGESTIONS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleTagSuggestionClick(tag)}
                 disabled={!isCustomGenre}
-                placeholder="例如：宗门经营 群像 反套路"
-                className="h-12 w-full rounded-xl border border-[var(--theme-border)]/60 bg-[var(--theme-surface-overlay)] px-4 text-sm font-bold text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-70"
-              />
-            </label>
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {TAG_SUGGESTIONS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleTagSuggestionClick(tag)}
-                  disabled={!isCustomGenre}
-                  className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-100 hover:shadow-sm disabled:cursor-not-allowed disabled:border-[var(--theme-border)] disabled:bg-[var(--theme-surface-overlay)] disabled:text-[var(--theme-text-muted)] dark:border-emerald-500/15 dark:bg-emerald-500/10 dark:text-emerald-300"
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
+                className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-2.5 py-1 text-[11px] font-medium text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {tag}
+              </button>
+            ))}
           </div>
+        </FieldBlock>
 
-          {isCustomGenre ? (
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-[var(--theme-text-primary)]">一句话创意</span>
-              <input
-                value={customWorldDetails}
-                onChange={(event) => setCustomWorldDetails(event.target.value)}
-                placeholder="例如：修仙靠债务评级，宗门越穷越强"
-                className="h-12 w-full rounded-xl border border-[var(--theme-border)]/60 bg-[var(--theme-surface-overlay)] px-4 text-sm font-bold text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20"
-              />
-            </label>
-          ) : null}
+        <div className={cn("xl:col-span-2", !isCustomGenre && "hidden")}>
+          <FieldBlock
+            icon={Library}
+            label="一句话设定"
+            hint="用一句话说清主角、处境和故事引擎"
+          >
+            <input
+              value={customWorldDetails}
+              onChange={(event) => setCustomWorldDetails(event.target.value)}
+              placeholder="例如：一名被逐出门派的炼器师，为了还债只能靠修复上古法器重建宗门。"
+              className="h-10 w-full rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 text-sm font-medium text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/12"
+            />
+          </FieldBlock>
         </div>
 
         {customGenreValidationMessage ? (
-          <p className="mt-2.5 text-xs font-bold tracking-wide text-red-600 dark:text-red-400">
+          <div className="xl:col-span-2 rounded-xl border border-red-200 bg-red-50/80 px-3.5 py-3 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
             {customGenreValidationMessage}
-          </p>
+          </div>
         ) : null}
       </div>
 
@@ -152,10 +156,56 @@ export function CreateBlueprintSection({
         helperTitle={helperTitle}
         inlineIdeaError={inlineIdeaError}
         placeholder={placeholder}
-        readinessText={readinessText}
       />
     </section>
   );
 }
 
+function FieldBlock({
+  children,
+  hint,
+  icon: Icon,
+  label,
+}: {
+  children: ReactNode;
+  hint: string;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-[var(--theme-text-strong)]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)]">
+          <Icon className="h-4 w-4" />
+        </span>
+        {label}
+      </span>
+      <span className="mb-1.5 block text-xs leading-5 text-[var(--theme-text-muted)]">{hint}</span>
+      {children}
+    </label>
+  );
+}
 
+function InfoBadge({
+  label,
+  tone = "neutral",
+  value,
+}: {
+  label: string;
+  tone?: "neutral" | "success";
+  value: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border px-2.5 py-1.5 text-xs font-medium",
+        tone === "success"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300"
+          : "border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)]",
+      )}
+    >
+      <span className="text-[var(--theme-text-muted)]">{label}</span>
+      <span className="ml-1.5 font-semibold text-current">{value}</span>
+    </div>
+  );
+}
