@@ -7,10 +7,8 @@ import { cn } from "@/lib/utils";
 
 export function CreateSectionNav({
   create,
-  onJumpToIdea,
 }: {
   create: DashboardCreateController;
-  onJumpToIdea: () => void;
 }) {
   const customReadyCount = [
     create.customGenreLabel.trim().length >= 2,
@@ -33,15 +31,6 @@ export function CreateSectionNav({
               {create.templateShowcaseBusy ? "刷新中" : "刷新模板"}
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={onJumpToIdea}
-            className="mt-2 inline-flex w-full items-center justify-between rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-2.5 py-1.5 text-left text-xs font-medium text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]"
-          >
-            <span>直接跳到创意输入</span>
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
         </div>
 
         <nav className="p-2.5">

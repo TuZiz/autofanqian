@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   CheckCircle2,
-  ClipboardList,
   FileText,
   ShieldCheck,
   Sparkles,
@@ -47,17 +46,6 @@ const CREATE_STEPS = [
 ];
 
 export function DashboardCreateView({ create }: DashboardCreateViewProps) {
-  function handleJumpToIdea() {
-    const element = document.getElementById("create-idea-section");
-    element?.scrollIntoView({ behavior: "smooth", block: "start" });
-
-    window.requestAnimationFrame(() => {
-      document.querySelector<HTMLTextAreaElement>("#create-idea-input")?.focus({
-        preventScroll: true,
-      });
-    });
-  }
-
   return (
     <main className="min-h-dvh w-full overflow-x-clip bg-[var(--theme-bg)] font-sans antialiased">
       <div className="relative mx-auto flex min-h-dvh w-full max-w-[1480px] flex-col">
@@ -109,39 +97,13 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
         </header>
 
         <div className="flex-1 px-4 pb-20 pt-3 sm:px-6 lg:px-8">
-          <section className="mb-3 border-b border-[var(--theme-divider)] pb-3">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-[var(--theme-text-strong)]">
-                  专业小说创作工作台
-                </h2>
-                <p className="mt-0.5 text-xs leading-5 text-[var(--theme-text-secondary)]">
-                  先梳理创意，再确认题材与参数，最后生成可继续扩写的创作大纲。
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <SummaryPill label="创意输入" value={create.wordCount > 0 ? `${create.wordCount} 字` : "待填写"} />
-                <SummaryPill
-                  label="创作方向"
-                  value={create.effectiveGenreLabel || (create.isCustomGenre ? "自定义" : "待选择")}
-                />
-                <SummaryPill
-                  label="当前状态"
-                  value={create.canSubmitOutline ? "可生成大纲" : "待补充信息"}
-                  tone={create.canSubmitOutline ? "success" : "neutral"}
-                />
-              </div>
-            </div>
-          </section>
-
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
             className="grid gap-4 min-[1040px]:grid-cols-[216px_minmax(0,1fr)] min-[1040px]:items-start min-[1260px]:grid-cols-[216px_minmax(0,1fr)_300px]"
           >
-            <CreateSectionNav create={create} onJumpToIdea={handleJumpToIdea} />
+            <CreateSectionNav create={create} />
 
             <form
               id="dashboard-create-form"
@@ -206,31 +168,6 @@ function CreateStepIndicator() {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function SummaryPill({
-  label,
-  tone = "neutral",
-  value,
-}: {
-  label: string;
-  tone?: "neutral" | "success";
-  value: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-medium",
-        tone === "success"
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300"
-          : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]",
-      )}
-    >
-      <ClipboardList className="h-3.5 w-3.5" />
-      <span className="text-[var(--theme-text-muted)]">{label}</span>
-      <span className="font-semibold text-current">{value}</span>
     </div>
   );
 }

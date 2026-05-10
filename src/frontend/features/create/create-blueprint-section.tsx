@@ -25,7 +25,6 @@ export function CreateBlueprintSection({
     formError,
     formErrorTarget,
     isCustomGenre,
-    selectedGenre,
     selectedTags,
     setCustomGenreLabel,
     setCustomTagsInput,
@@ -35,11 +34,9 @@ export function CreateBlueprintSection({
   const hasGenreError = formErrorTarget === "genre";
   const hasIdeaError = formErrorTarget === "idea" || formErrorTarget === "ai";
   const inlineIdeaError = formErrorTarget === "idea" ? formError : "";
-  const helperTitle = !selectedGenre
-    ? "先选择创作方向"
-    : isCustomGenre
-      ? "自定义创作设定"
-      : `模板起步 · ${effectiveGenreLabel ?? "未命名题材"}`;
+  const helperTitle = isCustomGenre
+    ? "自定义创作设定"
+    : `模板起步 · ${effectiveGenreLabel ?? "未命名题材"}`;
   const placeholder = isCustomGenre
     ? "例如：主角继承了一家濒临倒闭的异能侦探事务所，在解决案件时逐渐发现自己才是被追捕的目标。"
     : "在模板基础上补充你的主角、冲突、目标和关键反转，让这部小说真正属于你。";
@@ -61,18 +58,9 @@ export function CreateBlueprintSection({
     >
       <div className="border-b border-[var(--theme-border)] px-4 py-3">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-[11px] text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300">
-                1
-              </span>
-              选择创作方向
-            </div>
-            <h2 className="mt-1.5 text-base font-semibold text-[var(--theme-text-strong)]">
-              完善基础设定
-            </h2>
-          </div>
-
+          <h2 className="text-base font-semibold text-[var(--theme-text-strong)]">
+            完善基础设定
+          </h2>
           <InfoBadge
             label="当前模式"
             value={isCustomGenre ? "自定义" : "模板创作"}

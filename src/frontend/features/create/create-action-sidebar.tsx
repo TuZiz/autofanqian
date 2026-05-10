@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Gauge, Settings2 } from "lucide-react";
+import { FileText, Settings2 } from "lucide-react";
 
 import { extractBookName } from "@/lib/create/dashboard-create-utils";
 import type { DashboardCreateController } from "@/lib/create/use-dashboard-create";
@@ -28,21 +28,7 @@ export function CreateActionSidebar({
       <div className="space-y-3">
         <section className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-sm">
           <div className="border-b border-[var(--theme-border)] px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
-                  <Gauge className="h-3.5 w-3.5" />
-                  操作栏
-                </div>
-                <h2 className="mt-1.5 text-base font-semibold text-[var(--theme-text-strong)]">
-                  生成大纲
-                </h2>
-              </div>
-            </div>
-
-            <div className="mt-2.5">
-              <SubmitOutlineButton create={create} sidebar />
-            </div>
+            <SubmitOutlineButton create={create} sidebar />
           </div>
         </section>
 
@@ -129,9 +115,6 @@ function CompactCreateOptions({ create }: { create: DashboardCreateController })
           </datalist>
         </label>
 
-        <div className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-3 py-2 text-xs leading-5 text-[var(--theme-text-secondary)]">
-          DNA 只提取结构与写法偏好，不会复制原作剧情。
-        </div>
       </div>
     </section>
   );

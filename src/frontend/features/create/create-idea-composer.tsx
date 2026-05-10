@@ -52,17 +52,9 @@ export function CreateIdeaComposer({
     <div id="create-idea-section">
       <div className="border-b border-[var(--theme-border)] px-4 py-3">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-[11px] text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300">
-                2
-              </span>
-              输入故事创意
-            </div>
-            <h2 className="mt-1.5 text-base font-semibold text-[var(--theme-text-strong)]">
-              专业编辑输入区
-            </h2>
-          </div>
+          <h2 className="text-base font-semibold text-[var(--theme-text-strong)]">
+            专业编辑输入区
+          </h2>
 
           <MetaChip label="工作模式" value={helperTitle} />
         </div>
