@@ -9,9 +9,10 @@ import {
   CREATE_OUTLINE_RESULT_CACHE_KEY,
   type CreateOutlineDraft,
 } from "@/lib/create/outline-draft";
-import { CUSTOM_GENRE_ID } from "./dashboard-create-utils";
+
 import { MIN_IDEA_LENGTH_FOR_OUTLINE } from "./dashboard-create-rules";
 import type { GenreId } from "./dashboard-create-types";
+import { CUSTOM_GENRE_ID } from "./dashboard-create-utils";
 
 export function useCreateSubmit({
   customDetails,
@@ -50,7 +51,7 @@ export function useCreateSubmit({
     if (submitBusy) return;
 
     if (!selectedGenre) {
-      showFormError("必须选择一个小说类型。", "genre");
+      showFormError("请先选择一个创作方向。", "genre");
       return;
     }
 
@@ -61,7 +62,10 @@ export function useCreateSubmit({
 
     const trimmed = idea.trim();
     if (trimmed.length < MIN_IDEA_LENGTH_FOR_OUTLINE) {
-      showFormError(`请先填写至少 ${MIN_IDEA_LENGTH_FOR_OUTLINE} 个字的创意简介，再创建大纲。`, "idea");
+      showFormError(
+        `请补充至少 ${MIN_IDEA_LENGTH_FOR_OUTLINE} 个字的故事创意，再生成大纲。`,
+        "idea",
+      );
       return;
     }
 
@@ -88,7 +92,7 @@ export function useCreateSubmit({
     } catch {
       setSubmitBusy(false);
       showFormError(
-        "浏览器存储不可用，无法进入生成页。请检查隐私模式或存储权限后重试。",
+        "当前浏览器存储不可用，无法进入大纲生成页。请检查隐私模式或存储权限后重试。",
         "storage",
       );
       return;

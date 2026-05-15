@@ -17,15 +17,15 @@ export function getCustomGenreValidationMessage(params: {
   if (!params.isCustomGenre) return "";
 
   if (params.normalizedCustomGenreLabel.length < MIN_CUSTOM_GENRE_NAME) {
-    return "请先写清楚自定义题材名称。";
+    return "请先写清自定义题材名称。";
   }
 
   if (params.customTags.length < MIN_CUSTOM_TAG_COUNT) {
-    return `自定义模式至少补充 ${MIN_CUSTOM_TAG_COUNT} 个核心标签。`;
+    return `自定义模式至少需要 ${MIN_CUSTOM_TAG_COUNT} 个核心标签。`;
   }
 
   if (params.trimmedCustomWorldDetails.length < MIN_CUSTOM_DETAIL_LENGTH) {
-    return "请再补充一句话创意，让 AI 更懂你要写的故事。";
+    return "请再补充一句话设定，让系统更准确理解你的故事方向。";
   }
 
   return "";
@@ -69,7 +69,7 @@ export function getCustomDetails(params: {
       : "",
     params.customTags.length ? `核心标签：${params.customTags.join("、")}` : "",
     params.trimmedCustomWorldDetails
-      ? `一句话创意：${params.trimmedCustomWorldDetails}`
+      ? `一句话设定：${params.trimmedCustomWorldDetails}`
       : "",
   ]
     .filter(Boolean)
@@ -104,11 +104,11 @@ export function getSubmitBlockedReason(params: {
   trimmedIdeaLength: number;
 }) {
   if (!params.selectedGenre) {
-    return "请先选择小说类型，再创建大纲。";
+    return "请先选择创作方向，再生成大纲。";
   }
 
   if (params.trimmedIdeaLength < MIN_IDEA_LENGTH_FOR_OUTLINE) {
-    return `创意简介至少填写 ${MIN_IDEA_LENGTH_FOR_OUTLINE} 字后，才能创建大纲。`;
+    return `请补充至少 ${MIN_IDEA_LENGTH_FOR_OUTLINE} 个字的故事创意。`;
   }
 
   return params.customGenreValidationMessage;

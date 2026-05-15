@@ -5,6 +5,7 @@ type OutlinePromptInput = {
   dna?: string;
   words?: string;
   idea: string;
+  variationSeed?: string;
   webSources?: Array<{ url: string; snippet: string }>;
 };
 
@@ -53,6 +54,9 @@ export function buildOutlineUserPrompt(input: OutlinePromptInput) {
     "",
     "用户创意（核心素材）：",
     input.idea.trim(),
+    input.variationSeed?.trim()
+      ? ["", "本次生成差异化约束：", input.variationSeed.trim()].join("\n")
+      : "",
     webBlock,
     "",
     "请只输出一个 JSON 对象，schema 如下（字段必须齐全，字符串不要带多余引号/括号）：",

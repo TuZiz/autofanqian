@@ -23,9 +23,9 @@ export function shuffleItems<T>(items: T[]) {
 }
 
 export function summarizeTemplatePreview(text: string) {
-  const normalized = text.replace(/\s+/g, " ").replace(/^【[^】]+】\s*/, "").trim();
+  const normalized = text.replace(/\s+/g, " ").replace(/^[【\[]?[^\n:：]{0,20}[\]】]?[:：]\s*/, "").trim();
   if (!normalized) {
-    return "模板简介生成中";
+    return "模板摘要生成中";
   }
   return normalized.length > 42 ? `${normalized.slice(0, 42)}…` : normalized;
 }

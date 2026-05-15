@@ -12,7 +12,7 @@ export default function DashboardCreatePage() {
   }
 
   if (!create.config) {
-    return <CreateStateScreen message="创作配置加载失败，请刷新重试。" />;
+    return <CreateStateScreen message="创作配置加载失败，请刷新后重试。" />;
   }
 
   return <DashboardCreateView create={create} />;

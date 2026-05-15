@@ -3,8 +3,8 @@
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  CheckCircle2,
   FileText,
+  PenLine,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -25,81 +25,69 @@ type DashboardCreateViewProps = {
 };
 
 const CREATE_STEPS = [
-  {
-    icon: Sparkles,
-    label: "输入创意",
-    description: "明确故事核心与创作方向",
-    status: "current" as const,
-  },
-  {
-    icon: FileText,
-    label: "确认大纲",
-    description: "整理可写的结构与节奏",
-    status: "upcoming" as const,
-  },
-  {
-    icon: CheckCircle2,
-    label: "开始创作",
-    description: "进入工作台继续扩写",
-    status: "upcoming" as const,
-  },
+  { icon: Sparkles, label: "创意", description: "明确方向" },
+  { icon: FileText, label: "大纲", description: "整理结构" },
+  { icon: PenLine, label: "创作", description: "开始写作" },
 ];
 
 export function DashboardCreateView({ create }: DashboardCreateViewProps) {
   return (
-    <main className="min-h-dvh w-full overflow-x-clip bg-[var(--theme-bg)] font-sans antialiased">
+    <main className="min-h-dvh w-full overflow-x-clip bg-[var(--theme-bg)]">
       <div className="relative mx-auto flex min-h-dvh w-full max-w-[1480px] flex-col">
+        {/* ── 顶部栏 ── */}
         <header className="sticky top-0 z-50 border-b border-[var(--theme-border)] bg-[var(--theme-bg)]/95 backdrop-blur-xl">
-          <div className="grid gap-2 px-4 py-2 sm:px-6 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center lg:px-8">
-            <div className="flex min-w-0 items-start gap-3">
+          <div className="flex items-center gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
+            {/* 左：返回 + 标题 */}
+            <div className="flex min-w-0 items-center gap-3">
               <Link
                 href="/dashboard"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)] shadow-sm transition-all hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/15"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]"
                 title="返回控制台"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Link>
-
               <div className="min-w-0">
-                <h1 className="text-base font-bold tracking-tight text-[var(--theme-text-strong)] sm:text-lg">
+                <h1 className="text-sm font-bold tracking-tight text-[var(--theme-text-strong)] sm:text-base">
                   开始创作
                 </h1>
-                <p className="mt-0.5 max-w-2xl text-xs leading-5 text-[var(--theme-text-secondary)]">
-                  输入故事创意，选择创作方向与基础设定，再生成第一版大纲。
+                <p className="hidden text-xs text-[var(--theme-text-muted)] sm:block">
+                  输入创意，选择方向，生成大纲
                 </p>
               </div>
             </div>
 
+            {/* 中：步骤条 */}
             <CreateStepIndicator />
 
-            <div className="flex items-center justify-end gap-2">
+            {/* 右：操作 */}
+            <div className="ml-auto flex items-center gap-1.5">
               {create.isAdmin ? (
                 <Link
                   href="/dashboard/admin"
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs font-semibold text-[var(--theme-text-secondary)] shadow-sm transition-all hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/15"
-                  title="进入管理员后台"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]"
                 >
-                  <ShieldCheck className="h-4 w-4" />
-                  <span className="hidden sm:inline">管理员入口</span>
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">管理</span>
                 </Link>
               ) : null}
-              <ThemeToggle className="h-9 w-9 shrink-0 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)] shadow-sm transition-all hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]" />
+              <ThemeToggle className="h-8 w-8 rounded-lg text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]" />
             </div>
           </div>
         </header>
 
-        <div className="flex-1 px-4 pb-20 pt-3 sm:px-6 lg:px-8">
+        {/* ── 主体 ── */}
+        <div className="flex-1 px-4 pb-20 pt-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-            className="grid gap-4 min-[1040px]:grid-cols-[216px_minmax(0,1fr)] min-[1040px]:items-start min-[1260px]:grid-cols-[216px_minmax(0,1fr)_300px]"
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="grid gap-5 min-[1040px]:grid-cols-[200px_minmax(0,1fr)] min-[1040px]:items-start min-[1260px]:grid-cols-[200px_minmax(0,1fr)_280px]"
           >
             <CreateSectionNav create={create} />
 
             <form
               id="dashboard-create-form"
-              className="min-w-0 space-y-3"
+              className="min-w-0 space-y-4"
               onSubmit={create.handleSubmit}
               noValidate
             >
@@ -113,17 +101,18 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
         </div>
       </div>
 
+      {/* ── 移动端底部栏 ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--theme-border)] bg-[var(--theme-bg)]/96 px-4 py-3 backdrop-blur-xl sm:hidden">
         <div className="mx-auto max-w-[1480px]">
-          <p className="mb-2 truncate text-xs font-medium text-[var(--theme-text-secondary)]">
-            {create.submitBlockedReason || "已准备完成，可以生成大纲"}
+          <p className="mb-2 truncate text-xs text-[var(--theme-text-muted)]">
+            {create.submitBlockedReason || "已准备完成"}
           </p>
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-sm font-semibold text-[var(--theme-text-secondary)] shadow-sm transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]"
+              className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[var(--theme-border)] text-sm font-medium text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)]"
             >
-              返回控制台
+              返回
             </Link>
             <SubmitOutlineButton create={create} />
           </div>
@@ -134,28 +123,29 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
 }
 
 function CreateStepIndicator() {
+  const currentStep = 0;
   return (
-    <div className="hidden items-center gap-2 lg:flex">
+    <div className="ml-auto hidden items-center gap-1 lg:flex">
       {CREATE_STEPS.map((step, index) => {
         const Icon = step.icon;
-        const isCurrent = step.status === "current";
+        const isDone = index < currentStep;
+        const isCurrent = index === currentStep;
 
         return (
-          <div key={step.label} className="flex items-center gap-2">
-            {index > 0 ? <div className="h-px w-5 bg-[var(--theme-divider)]" /> : null}
+          <div key={step.label} className="flex items-center gap-1">
+            {index > 0 && <div className="mx-1 h-px w-4 bg-[var(--theme-divider)]" />}
             <div
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-all",
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all",
                 isCurrent
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300"
-                  : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]",
+                  ? "bg-[var(--theme-text-strong)] text-[var(--theme-bg)] font-semibold"
+                  : isDone
+                    ? "text-[var(--theme-text-secondary)]"
+                    : "text-[var(--theme-text-muted)]",
               )}
             >
               <Icon className="h-3.5 w-3.5" />
-              <div className="min-w-0">
-                <div className="text-[11px] font-semibold leading-none">{step.label}</div>
-                <div className="mt-0.5 text-[10px] leading-none opacity-80">{step.description}</div>
-              </div>
+              <span>{step.label}</span>
             </div>
           </div>
         );

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomInt, randomUUID } from "crypto";
 import { z } from "zod";
 
 import { assertAiQuotaAvailable } from "@/lib/ai/quota";
@@ -39,6 +40,79 @@ const requestSchema = z.object({
   dnaBookTitle: z.string().max(120).optional(),
   words: z.string().optional(),
 });
+
+const POV_VARIANTS = [
+  "主角从底层误入核心局，先靠一次小胜打开局面，再逐步卷入更大的势力棋局。",
+  "主角一开始拥有局部优势，但这个优势伴随明显代价，必须在收益和反噬之间做选择。",
+  "主角被迫背锅或顶替身份，开局目标不是变强，而是先活下来并洗清关键误会。",
+  "主角掌握一条别人不重视的信息差，前期爽点来自低成本反杀和反向布局。",
+  "主角和关键女主/搭档从互相利用开始，关系推进必须服务主线冲突。",
+  "主角的初始目标很小，但每次解决问题都会暴露更深层规则，形成滚雪球式升级。",
+] as const;
+
+const CONFLICT_VARIANTS = [
+  "核心矛盾优先落在资源分配和规则漏洞上，不要只写单纯打脸。",
+  "核心矛盾优先落在身份秘密和阵营站队上，让敌我关系有反转空间。",
+  "核心矛盾优先落在旧制度与新打法冲突上，主角用非常规方案破局。",
+  "核心矛盾优先落在亲密关系、利益绑定和背叛风险上，让情绪线参与推进。",
+  "核心矛盾优先落在限时任务和公开竞争上，开局就给出清晰倒计时压力。",
+  "核心矛盾优先落在认知差上，读者比部分角色更早知道危险，但不知道代价。",
+] as const;
+
+const OPENING_VARIANTS = [
+  "开局事件用一场失败、处罚或被逐出作为触发点，随后给出反转机会。",
+  "开局事件用一次公开考核、招募、拍卖或试炼作为触发点，冲突当场爆发。",
+  "开局事件用一桩看似小事的委托/案件作为触发点，牵出第一层主线。",
+  "开局事件用主角发现系统/规则漏洞作为触发点，但不能让能力无代价无上限。",
+  "开局事件用关键人物求助或威胁作为触发点，让主角被迫进入局中。",
+  "开局事件用主角主动设局作为触发点，第一卷要展示他方法论的独特性。",
+] as const;
+
+const PLEASURE_VARIANTS = [
+  "爽点以反向预判、信息差和局中局为主，少写机械升级。",
+  "爽点以资源经营、滚雪球收益和公开验收为主，每一段都要有可见成果。",
+  "爽点以身份揭露、误会反转和群体态度变化为主，打脸要有铺垫。",
+  "爽点以强敌压迫下的极限翻盘为主，但每次翻盘必须付出代价或埋新问题。",
+  "爽点以人物羁绊、搭档配合和情绪回收为主，不要只有主角单刷。",
+  "爽点以规则创新和体系改造为主，让读者看到主角改变玩法。",
+] as const;
+
+const STRUCTURE_VARIANTS = [
+  "第一卷结构：危机入局 -> 小胜立足 -> 更大敌人现身 -> 阶段性胜利但留下隐患。",
+  "第一卷结构：误判开局 -> 发现漏洞 -> 反向利用 -> 公开验证 -> 敌人改变打法。",
+  "第一卷结构：被动求生 -> 组建临时同盟 -> 夺取关键资源 -> 关系破裂或升级。",
+  "第一卷结构：隐藏身份 -> 连续试探 -> 局部曝光 -> 借曝光完成反杀。",
+  "第一卷结构：接到任务 -> 调查真相 -> 发现幕后规则 -> 用规则反制规则。",
+  "第一卷结构：主动创业/建势力 -> 首次失败 -> 调整模式 -> 打出样板案例。",
+] as const;
+
+function pickVariant(list: readonly string[]) {
+  return list[randomInt(list.length)];
+}
+
+function buildOutlineVariationSeed(params: {
+  genreLabel: string;
+  tags: string[];
+  idea: string;
+}) {
+  const nonce = randomUUID().slice(0, 8);
+  const tagHint = params.tags.length ? `题材标签参考：${params.tags.join("、")}` : "";
+
+  return [
+    `差异化编号：${nonce}`,
+    "即使用户创意来自常用模板，也必须生成一套新的作品方案，避免与同模板其他作品在标题、主角身份、关键人物关系、开局事件、第一卷主线和反派动机上高度相似。",
+    `类型锚点：${params.genreLabel}`,
+    tagHint,
+    `主角切入角度：${pickVariant(POV_VARIANTS)}`,
+    `核心矛盾角度：${pickVariant(CONFLICT_VARIANTS)}`,
+    `开局触发事件：${pickVariant(OPENING_VARIANTS)}`,
+    `主要爽点结构：${pickVariant(PLEASURE_VARIANTS)}`,
+    `第一卷节奏骨架：${pickVariant(STRUCTURE_VARIANTS)}`,
+    "生成要求：保留用户创意的核心卖点，但必须重新设计人物姓名、势力名称、第一卷事件链、阶段目标和关键反转；不要照抄模板句式，不要沿用模板里暗示的固定桥段顺序。",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 function extractJson(text: string) {
   const trimmed = text.trim();
@@ -244,6 +318,11 @@ export async function POST(request: Request) {
   const wordsText = wordsMeta ? wordsMeta.label : wordsId;
 
   const webSources = dnaBookTitle && isAdmin ? await researchBookFromWeb(dnaBookTitle) : [];
+  const variationSeed = buildOutlineVariationSeed({
+    genreLabel,
+    tags: effectiveTags,
+    idea: effectiveIdea,
+  });
 
   const systemPrompt = [
     buildOutlineSystemPrompt(),
@@ -261,6 +340,7 @@ export async function POST(request: Request) {
       genreMeta.id === "custom" && customDetails
         ? `${effectiveIdea}\n\n【自定义补充设定】\n${customDetails}`
         : effectiveIdea,
+    variationSeed,
     webSources,
   });
 
@@ -273,7 +353,7 @@ export async function POST(request: Request) {
   const first = await callAiText({
     providers,
     messages,
-    temperature: 0.78,
+    temperature: 0.86,
     maxTokens: 4200,
     attempts: 1,
     preferredProviderId: target.providerId,
