@@ -3,6 +3,7 @@ import { requireAdminUser } from "@/lib/auth/admin";
 import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { updateCreateUiConfig, getCreateUiConfig } from "@/lib/config/create-ui";
 import { z } from "zod";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const adminUser = await requireAdminUser();
     const before = await getCreateUiConfig();

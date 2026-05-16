@@ -3,10 +3,12 @@ import { getRequestMeta } from "@/lib/auth/request";
 import { sendCodeSchema } from "@/lib/auth/schemas";
 import { zhCN } from "@/lib/copy/zh-cn";
 import { sendRegisterCode } from "@/lib/auth/service";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const { email } = await parseJsonBody(request, sendCodeSchema);
     const data = await sendRegisterCode(email, getRequestMeta(request));

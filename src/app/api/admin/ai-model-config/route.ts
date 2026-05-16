@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 import type {
   AiModelConfigResponse,
@@ -13,6 +13,7 @@ import {
   getAiRouteConfigsFromEnv,
 } from "@/lib/ai/upstream-text";
 import { getAiModelConfig, updateAiModelConfig } from "@/lib/config/ai-model";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const adminUser = await requireAdminUser();
     const before = await getAiModelConfig();

@@ -4,6 +4,7 @@ import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,7 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
+  assertSameOriginRequest(request);
   try {
     const adminUser = await requireAdminUser();
 
@@ -70,6 +72,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
+  assertSameOriginRequest(_request);
   try {
     const adminUser = await requireAdminUser();
 

@@ -7,10 +7,12 @@ import { getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import { generateChapterForUser } from "./generate-service";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { getPlanningConfig, updatePlanningConfig } from "@/lib/config/planning";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,7 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  assertSameOriginRequest(request);
   try {
     await requireAdminUser();
     const body = await parseJsonBody(request, bodySchema);

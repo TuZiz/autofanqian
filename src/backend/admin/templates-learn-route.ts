@@ -13,6 +13,7 @@ import { requireAdminUser } from "@/lib/auth/admin";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -141,6 +142,7 @@ function sanitizeTemplateText(raw: string, fallbackTitle: string) {
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   const adminUser = await requireAdminUser();
 
   const providersFromEnv = getAiProvidersFromEnv();

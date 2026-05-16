@@ -15,6 +15,7 @@ import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { revokeUserSessions } from "@/lib/auth/session";
 import { membershipTierValues } from "@/lib/auth/user-groups";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,7 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
+  assertSameOriginRequest(request);
   try {
     const adminUser = await requireAdminUser();
 
@@ -190,6 +192,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
+  assertSameOriginRequest(_request);
   try {
     const adminUser = await requireAdminUser();
 

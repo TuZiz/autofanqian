@@ -16,6 +16,7 @@ import { getAiModelConfig } from "@/lib/config/ai-model";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { requireWorkAccess } from "@/lib/works/access";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -96,6 +97,7 @@ function buildRewritePrompt(params: {
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const raw = await request.json().catch(() => null as unknown);
     const parsed = bodySchema.safeParse(raw);

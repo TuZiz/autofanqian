@@ -5,10 +5,12 @@ import { zhCN } from "@/lib/copy/zh-cn";
 import { createSessionCookie } from "@/lib/auth/session";
 import { resetPasswordWithCode } from "@/lib/auth/service";
 import { getUserAccessSnapshot } from "@/lib/auth/admin";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const { email, code, newPassword } = await parseJsonBody(
       request,

@@ -17,6 +17,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { getUniqueConstraintTargets } from "@/lib/auth/user-code";
 import { membershipTierValues } from "@/lib/auth/user-groups";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -144,6 +145,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const adminUser = await requireAdminUser();
 

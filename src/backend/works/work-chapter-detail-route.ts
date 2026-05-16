@@ -10,6 +10,7 @@ import type { StoryOutline } from "@/lib/create/outline-draft";
 import { getEffectivePlannedUntil, isChapterWithinPlanning } from "@/lib/create/progressive-planning";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -170,6 +171,7 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id?: string; index?: string }> },
 ) {
+  assertSameOriginRequest(request);
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -323,6 +325,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string; index?: string }> },
 ) {
+  assertSameOriginRequest(_request);
   try {
     const user = await getCurrentUser();
     if (!user) {

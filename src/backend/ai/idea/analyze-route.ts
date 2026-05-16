@@ -19,6 +19,7 @@ import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -61,6 +62,7 @@ function extractJson(text: string) {
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   let body: unknown = null;
 
   try {

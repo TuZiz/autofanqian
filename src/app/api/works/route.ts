@@ -10,6 +10,7 @@ import {
   workCreateBodySchema,
   workListQuerySchema,
 } from "@/shared/schemas/work-api";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const user = await getCurrentUser();
     if (!user) {

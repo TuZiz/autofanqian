@@ -5,6 +5,7 @@ import { AuthApiError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { requireWorkAccess } from "@/lib/works/access";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,7 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ id?: string; index?: string; revisionId?: string }> },
 ) {
+  assertSameOriginRequest(_request);
   try {
     const rawParams = await context.params;
     const params = paramsSchema.parse({

@@ -5,6 +5,7 @@ import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/prisma";
 import { requireWorkAccess } from "@/lib/works/access";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id?: string; characterId?: string }> },
 ) {
+  assertSameOriginRequest(request);
   try {
     const rawParams = await context.params;
     const params = paramsSchema.parse({
@@ -93,6 +95,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string; characterId?: string }> },
 ) {
+  assertSameOriginRequest(_request);
   try {
     const rawParams = await context.params;
     const params = paramsSchema.parse({

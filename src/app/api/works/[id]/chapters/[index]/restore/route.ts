@@ -5,6 +5,7 @@ import { errorResponse, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,7 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ id?: string; index?: string }> },
 ) {
+  assertSameOriginRequest(_request);
   try {
     const user = await getCurrentUser();
     if (!user) {

@@ -4,6 +4,7 @@ import { AuthApiError } from "@/lib/auth/errors";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { getCurrentUser } from "@/lib/auth/service";
 import { recordTemplateUsage } from "@/lib/create/templates";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const user = await getCurrentUser();
     if (!user) {

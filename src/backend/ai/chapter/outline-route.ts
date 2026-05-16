@@ -19,6 +19,7 @@ import { getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import type { StoryOutline } from "@/lib/create/outline-draft";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,7 @@ function formatOutlineVolume(volume: StoryOutline["volumes"][number], index: num
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

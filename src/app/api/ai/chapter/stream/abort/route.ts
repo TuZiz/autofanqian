@@ -8,10 +8,12 @@ import {
   requestChapterGenerationAbort,
 } from "@/lib/ai/chapter-generation-lock";
 import { getCurrentUser } from "@/lib/auth/service";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

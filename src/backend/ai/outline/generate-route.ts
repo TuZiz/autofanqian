@@ -26,6 +26,7 @@ import {
   storyOutlineSchema,
 } from "@/lib/create/outline-schema";
 import { normalizeProgressiveOutline } from "@/lib/create/progressive-planning";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -210,6 +211,7 @@ async function researchBookFromWeb(title: string) {
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   let body: unknown = null;
 
   try {

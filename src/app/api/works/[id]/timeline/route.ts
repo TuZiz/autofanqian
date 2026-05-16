@@ -3,6 +3,7 @@ import { z } from "zod";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { prisma } from "@/lib/prisma";
 import { requireWorkAccess } from "@/lib/works/access";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,7 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
+  assertSameOriginRequest(request);
   try {
     const rawParams = await context.params;
     const params = paramsSchema.parse({ id: rawParams.id ?? "" });

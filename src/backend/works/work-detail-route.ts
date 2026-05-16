@@ -12,6 +12,7 @@ import {
 } from "@/lib/create/progressive-planning";
 import { getPlanningConfig } from "@/lib/config/planning";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -147,6 +148,7 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
+  assertSameOriginRequest(request);
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -226,6 +228,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
+  assertSameOriginRequest(_request);
   try {
     const user = await getCurrentUser();
     if (!user) {

@@ -10,10 +10,12 @@ import { createSessionCookie } from "@/lib/auth/session";
 import { loginWithPassword } from "@/lib/auth/service";
 import { getUserAccessSnapshot } from "@/lib/auth/admin";
 import { zhCN } from "@/lib/copy/zh-cn";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   const meta = getRequestMeta(request);
   let body: unknown;
 

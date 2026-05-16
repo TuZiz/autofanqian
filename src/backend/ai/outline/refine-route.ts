@@ -29,6 +29,7 @@ import {
   type PlanningPreset,
 } from "@/lib/create/progressive-planning";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -103,6 +104,7 @@ function getWrittenUntilChapter(chapters: Array<{ index: number; wordCount: numb
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

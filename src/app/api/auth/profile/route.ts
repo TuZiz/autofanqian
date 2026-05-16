@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth/service";
 import { sessionUserSelect } from "@/lib/auth/user";
 import { zhCN } from "@/lib/copy/zh-cn";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,7 @@ const profileSchema = z.object({
 });
 
 export async function PATCH(request: Request) {
+  assertSameOriginRequest(request);
   try {
     const currentUser = await getCurrentUser();
 

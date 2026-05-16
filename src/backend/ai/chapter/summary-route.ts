@@ -18,6 +18,7 @@ import { getAiModelConfig } from "@/lib/config/ai-model";
 import { getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,7 @@ function clampText(value: string, maxChars: number) {
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

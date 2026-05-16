@@ -3,6 +3,7 @@ import { z } from "zod";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { prisma } from "@/lib/prisma";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -51,6 +52,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   try {
     await requireAdminUser();
     const body = await parseJsonBody(request, createSchema);

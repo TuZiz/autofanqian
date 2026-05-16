@@ -39,10 +39,12 @@ import {
   createStreamGenerationJob,
   failStreamGenerationJob,
 } from "./stream-persistence";
+import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  assertSameOriginRequest(request);
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
