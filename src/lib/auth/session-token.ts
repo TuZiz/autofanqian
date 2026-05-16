@@ -1,4 +1,5 @@
 const SESSION_TOKEN_SECRET_BYTES = 32;
+let warnedMissingSessionSecret = false;
 
 function toHex(bytes: Uint8Array) {
   return Array.from(bytes)
@@ -8,8 +9,26 @@ function toHex(bytes: Uint8Array) {
 
 function randomHex(byteLength: number) {
   const bytes = new Uint8Array(byteLength);
-  crypto.getRandomValues(bytes);
+  globalThis.crypto.getRandomValues(bytes);
   return toHex(bytes);
+}
+
+function getSessionSecret() {
+  const secret = process.env.SESSION_SECRET?.trim();
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET must be configured in production.");
+  }
+
+  if (!warnedMissingSessionSecret) {
+    warnedMissingSessionSecret = true;
+    console.warn(
+      "SESSION_SECRET is not configured. Using a development-only session hash key.",
+    );
+  }
+
+  return "development-only-session-secret-change-me";
 }
 
 export function createRawSessionToken(sessionId: string) {
@@ -29,9 +48,6 @@ export function parseSessionToken(token?: string) {
 }
 
 export async function hashSessionToken(token: string) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(token)
-  );
-  return toHex(new Uint8Array(digest));
+  const { createHmac } = await import("node:crypto");
+  return createHmac("sha256", getSessionSecret()).update(token).digest("hex");
 }

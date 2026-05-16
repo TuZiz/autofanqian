@@ -5,6 +5,7 @@ import { z } from "zod";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import {
+  assertCanManageTargetUser,
   getUserAccessSnapshot,
   isRootAdminEmail,
   isRootAdminUser,
@@ -21,6 +22,7 @@ export const runtime = "nodejs";
 
 const listQuerySchema = z.object({
   q: z.string().max(200).optional(),
+  includeDeleted: z.coerce.boolean().default(false),
   page: z.coerce.number().int().min(1).max(500).default(1),
   pageSize: z.coerce.number().int().min(5).max(50).default(20),
 });
@@ -72,11 +74,15 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const query = listQuerySchema.parse({
       q: url.searchParams.get("q") ?? undefined,
+      includeDeleted: url.searchParams.get("includeDeleted") ?? undefined,
       page: url.searchParams.get("page") ?? undefined,
       pageSize: url.searchParams.get("pageSize") ?? undefined,
     });
 
-    const where = buildWhere(query.q);
+    const where: Prisma.UserWhereInput = {
+      ...buildWhere(query.q),
+      ...(query.includeDeleted ? {} : { status: { not: "deleted" } }),
+    };
     const skip = (query.page - 1) * query.pageSize;
 
     const [total, rows] = await prisma.$transaction([
@@ -92,6 +98,7 @@ export async function GET(request: Request) {
           email: true,
           name: true,
           emailVerified: true,
+          status: true,
           role: true,
           membershipTier: true,
           lastLoginAt: true,
@@ -110,6 +117,7 @@ export async function GET(request: Request) {
         email: row.email,
         name: row.name,
         emailVerified: row.emailVerified,
+        status: row.status,
         role: access.role,
         membershipTier: row.membershipTier,
         lastLoginAt: row.lastLoginAt,
@@ -144,8 +152,8 @@ export async function POST(request: Request) {
     const email = body.email.trim();
     const adminIsRoot = isRootAdminUser(adminUser);
 
-    if (isRootAdminEmail(email) && !adminIsRoot) {
-      throw new AuthApiError(403, "只有根管理员可以在后台创建根管理员邮箱账号。");
+    if (isRootAdminEmail(email)) {
+      throw new AuthApiError(403, "不能在后台创建根管理员邮箱账号，请通过 ROOT_ADMIN_EMAILS 配置并使用正常注册流程。");
     }
 
     if (role !== "user" && !adminIsRoot) {
@@ -155,6 +163,16 @@ export async function POST(request: Request) {
     if (body.membershipTier && body.membershipTier !== "default" && !adminIsRoot) {
       throw new AuthApiError(403, "只有根管理员可以设置用户组。");
     }
+
+    assertCanManageTargetUser({
+      adminUser,
+      targetUser: {
+        email,
+        role,
+        membershipTier: body.membershipTier ?? "default",
+      },
+      action: role === "admin" ? "role_change" : "update",
+    });
 
     const effectivePassword = body.password?.trim() || generateTempPassword();
     const passwordHash = await hashPassword(effectivePassword);
@@ -177,6 +195,7 @@ export async function POST(request: Request) {
         email: true,
         name: true,
         emailVerified: true,
+        status: true,
         role: true,
         membershipTier: true,
         lastLoginAt: true,

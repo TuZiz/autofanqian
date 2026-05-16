@@ -12,6 +12,7 @@ type AiQuotaUser = {
 
 const DEFAULT_DAILY_CALL_LIMIT = 100;
 const DEFAULT_DAILY_TOKEN_LIMIT = 300_000;
+const DEFAULT_MINUTE_CALL_LIMIT = 3;
 
 function readPositiveLimit(key: string, fallback: number) {
   const value = Number.parseInt(process.env[key] ?? "", 10);
@@ -34,11 +35,13 @@ export async function assertAiQuotaAvailable(user: AiQuotaUser) {
 
   const dailyCallLimit = readPositiveLimit("AI_DAILY_CALL_LIMIT", DEFAULT_DAILY_CALL_LIMIT);
   const dailyTokenLimit = readPositiveLimit("AI_DAILY_TOKEN_LIMIT", DEFAULT_DAILY_TOKEN_LIMIT);
+  const minuteCallLimit = readPositiveLimit("AI_MINUTE_CALL_LIMIT", DEFAULT_MINUTE_CALL_LIMIT);
 
-  if (dailyCallLimit === 0 && dailyTokenLimit === 0) return;
+  if (dailyCallLimit === 0 && dailyTokenLimit === 0 && minuteCallLimit === 0) return;
 
   const { start, end } = getTodayRange();
-  const [callCount, tokenUsage] = await Promise.all([
+  const minuteStart = new Date(Date.now() - 60_000);
+  const [callCount, tokenUsage, recentSuccessCount, activeJobCount] = await Promise.all([
     dailyCallLimit > 0
       ? prisma.aiUsageEvent.count({
           where: {
@@ -58,7 +61,29 @@ export async function assertAiQuotaAvailable(user: AiQuotaUser) {
           _sum: { totalTokens: true },
         })
       : Promise.resolve({ _sum: { totalTokens: null } }),
+    minuteCallLimit > 0
+      ? prisma.aiUsageEvent.count({
+          where: {
+            userId: user.id,
+            createdAt: { gte: minuteStart },
+            success: true,
+          },
+        })
+      : Promise.resolve(0),
+    minuteCallLimit > 0
+      ? prisma.generationJob.count({
+          where: {
+            createdAt: { gte: minuteStart },
+            status: { in: ["queued", "running"] },
+            novel: { userId: user.id },
+          },
+        })
+      : Promise.resolve(0),
   ]);
+
+  if (minuteCallLimit > 0 && recentSuccessCount + activeJobCount >= minuteCallLimit) {
+    throw new AuthApiError(429, "AI 请求过于频繁，请稍后再试。");
+  }
 
   if (dailyCallLimit > 0 && callCount >= dailyCallLimit) {
     throw new AuthApiError(429, "今日 AI 调用次数已用完，请明天再试。");

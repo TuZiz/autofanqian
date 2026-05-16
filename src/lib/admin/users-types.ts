@@ -12,6 +12,7 @@ export type AdminUserRow = {
   email: string;
   name: string | null;
   emailVerified: boolean;
+  status: "active" | "banned" | "limited" | "deleted";
   lastLoginAt: string | null;
   createdAt: string;
   isAdmin: boolean;

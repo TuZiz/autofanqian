@@ -42,14 +42,5 @@ export async function analyzeCreateIdea(payload: IdeaPayload & { idea: string })
 }
 
 export async function generateCreateIdea(payload: IdeaPayload & { existingIdea: string }) {
-  const response = await fetch("/api/ai/idea", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  return (await response.json().catch(() => null)) as GenerateIdeaResponse | null;
+  return apiRequest<{ idea: string }>("/api/ai/idea", payload) as Promise<GenerateIdeaResponse>;
 }

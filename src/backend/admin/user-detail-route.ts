@@ -4,6 +4,7 @@ import { z } from "zod";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import {
+  assertCanManageTargetUser,
   getUserAccessSnapshot,
   isRootAdminEmail,
   isRootAdminUser,
@@ -11,6 +12,7 @@ import {
   requireAdminUser,
 } from "@/lib/auth/admin";
 import { recordAdminAuditLog } from "@/lib/admin/audit-log";
+import { revokeUserSessions } from "@/lib/auth/session";
 import { membershipTierValues } from "@/lib/auth/user-groups";
 import { prisma } from "@/lib/prisma";
 
@@ -56,6 +58,7 @@ export async function PUT(
         email: true,
         name: true,
         emailVerified: true,
+        status: true,
         role: true,
         membershipTier: true,
       },
@@ -65,11 +68,25 @@ export async function PUT(
       throw new AuthApiError(404, "用户不存在");
     }
 
+    assertCanManageTargetUser({
+      adminUser,
+      targetUser: before,
+      action: "update",
+    });
+
     if (isRootAdminUser(before) && !adminIsRoot) {
       throw new AuthApiError(403, "根管理员账号受保护，普通管理员不能修改。");
     }
 
     const nextEmail = body.email?.trim();
+    if (
+      nextEmail &&
+      nextEmail.toLowerCase() !== before.email.toLowerCase() &&
+      isRootAdminEmail(nextEmail)
+    ) {
+      throw new AuthApiError(403, "不能把用户邮箱改成根管理员邮箱。");
+    }
+
     if (
       !isRootAdminUser(before) &&
       nextEmail &&
@@ -114,6 +131,7 @@ export async function PUT(
         email: true,
         name: true,
         emailVerified: true,
+        status: true,
         role: true,
         membershipTier: true,
         lastLoginAt: true,
@@ -139,6 +157,7 @@ export async function PUT(
           email: updated.email,
           name: updated.name,
           emailVerified: updated.emailVerified,
+          status: updated.status,
           membershipTier: updated.membershipTier,
           lastLoginAt: updated.lastLoginAt,
           createdAt: updated.createdAt,
@@ -188,6 +207,7 @@ export async function DELETE(
         code: true,
         email: true,
         name: true,
+        status: true,
         role: true,
         membershipTier: true,
       },
@@ -199,7 +219,28 @@ export async function DELETE(
       throw new AuthApiError(400, "根管理员账号不能删除。");
     }
 
-    await prisma.user.delete({ where: { id: params.id } });
+    assertCanManageTargetUser({
+      adminUser,
+      targetUser: before,
+      action: "delete",
+    });
+
+    const deletedEmail = `${before.email}#deleted#${Date.now()}`;
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: params.id },
+        data: {
+          status: "deleted",
+          email: deletedEmail,
+        },
+        select: { id: true },
+      });
+      await tx.userSession.updateMany({
+        where: { userId: params.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    });
+    await revokeUserSessions(params.id);
     await recordAdminAuditLog({
       request: _request,
       adminUser,

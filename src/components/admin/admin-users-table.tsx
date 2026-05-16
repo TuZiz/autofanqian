@@ -117,6 +117,9 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                             {user.emailVerified ? "已验证" : "未验证"}
                           </span>
                         </div>
+                        <AppChip className={getStatusBadgeClassName(user.status)}>
+                          {getStatusLabel(user.status)}
+                        </AppChip>
                         <span className="text-[11px] font-semibold text-[var(--theme-text-muted)]">
                           {user.hasPassword ? "已设置密码" : "未设置密码"}
                         </span>
@@ -234,4 +237,34 @@ function EditableValue({
       </button>
     </div>
   );
+}
+
+function getStatusLabel(status: string) {
+  switch (status) {
+    case "active":
+      return "正常";
+    case "limited":
+      return "受限";
+    case "banned":
+      return "封禁";
+    case "deleted":
+      return "已删除";
+    default:
+      return status;
+  }
+}
+
+function getStatusBadgeClassName(status: string) {
+  switch (status) {
+    case "active":
+      return "w-fit border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300";
+    case "limited":
+      return "w-fit border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300";
+    case "banned":
+      return "w-fit border-red-200 bg-red-50 text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300";
+    case "deleted":
+      return "w-fit border-zinc-300 bg-zinc-100 text-zinc-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400";
+    default:
+      return "w-fit bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]";
+  }
 }

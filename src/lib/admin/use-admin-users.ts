@@ -207,7 +207,7 @@ export function useAdminUsers() {
       return;
     }
 
-    if (!window.confirm(`确定要删除用户 ${user.email} 吗？此操作不可恢复。`)) return;
+    if (!window.confirm(`确定要删除用户 ${user.email} 吗？账号会被标记为已删除并撤销所有会话，作品数据会保留。`)) return;
 
     const res = await apiRequest<{ id: string }>(
       `/api/admin/users/${encodeURIComponent(user.id)}`,

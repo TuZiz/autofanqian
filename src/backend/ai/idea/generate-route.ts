@@ -25,6 +25,8 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const PUBLIC_AI_UNAVAILABLE_MESSAGE = "AI 服务暂不可用，请联系管理员。";
+
 const requestSchema = z.object({
   genre: z.string().min(1).max(64),
   customGenreLabel: z.string().max(80).optional(),
@@ -78,6 +80,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { success: false, message: "未登录或登录已失效，请先登录。" },
+      { status: 401 },
+    );
+  }
+  await assertAiQuotaAvailable(user);
+
+  const isAdmin = isAdminUser(user);
   const providersFromEnv = getAiProvidersFromEnv();
   const aiModelConfig = await getAiModelConfig();
   const existingIdeaDraft = parsed.data.existingIdea?.trim();
@@ -91,6 +103,19 @@ export async function POST(request: Request) {
 
   if (!providers.length) {
     const envKey = getProviderApiKeyEnvName(target.providerId);
+    console.warn("AI idea generation is not configured", {
+      routeId: target.providerId,
+      missingEnv: envKey,
+    });
+    return NextResponse.json(
+      {
+        success: false,
+        message: isAdmin
+          ? `AI 未配置：当前生成创意线路缺少 ${envKey}，请到后台 AI 模型配置检查。`
+          : PUBLIC_AI_UNAVAILABLE_MESSAGE,
+      },
+      { status: 500 },
+    );
     return NextResponse.json(
       {
         success: false,
@@ -100,7 +125,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = await getCurrentUser();
+  void user;
   if (!user) {
     return NextResponse.json(
       { success: false, message: "未登录或登录已失效，请先登录。" },
@@ -109,7 +134,6 @@ export async function POST(request: Request) {
   }
   await assertAiQuotaAvailable(user);
 
-  const isAdmin = isAdminUser(user);
   const uiConfig = await getCreateUiConfig();
   const genreMeta = uiConfig.genres.find((item) => item.id === parsed.data.genre);
 

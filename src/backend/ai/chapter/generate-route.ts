@@ -57,8 +57,23 @@ export async function POST(request: Request) {
     }
 
     if (error instanceof AuthApiError) {
+      const shouldHideAiInternalError =
+        error.status >= 500 && error.message.includes("AI");
+      if (shouldHideAiInternalError) {
+        console.warn("AI chapter generation failed", {
+          status: error.status,
+          reason: error.internalReason ?? error.message,
+        });
+      }
+
       return NextResponse.json(
-        { success: false, message: error.message, fieldErrors: error.fieldErrors },
+        {
+          success: false,
+          message: shouldHideAiInternalError
+            ? "AI 服务暂不可用，请联系管理员。"
+            : error.message,
+          fieldErrors: error.fieldErrors,
+        },
         { status: error.status },
       );
     }

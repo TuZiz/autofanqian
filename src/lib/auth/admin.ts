@@ -4,18 +4,14 @@ import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import { getDisplayGroup } from "@/lib/auth/user-groups";
 
-type AdminLikeUser = {
+export type AdminLikeUser = {
+  id?: string | null;
   email: string;
   role?: string | null;
   membershipTier?: string | null;
 };
 
 type EffectiveUserRole = "user" | "admin" | "super_admin";
-
-const DEFAULT_ROOT_ADMIN_EMAILS = [
-  "1606975933@qq.com",
-  "codex-audit@example.local",
-];
 
 function parseEmailList(value?: string) {
   return new Set(
@@ -31,8 +27,8 @@ export function getRootAdminEmails() {
     process.env.ROOT_ADMIN_EMAILS || process.env.ADMIN_EMAILS,
   );
 
-  for (const email of DEFAULT_ROOT_ADMIN_EMAILS) {
-    emails.add(email);
+  if (process.env.NODE_ENV === "production" && emails.size === 0) {
+    throw new Error("ROOT_ADMIN_EMAILS must be configured in production.");
   }
 
   return Array.from(emails);
@@ -79,6 +75,31 @@ export function normalizeStoredRole(params: {
   }
 
   return params.requestedRole === "admin" ? "admin" : "user";
+}
+
+export function assertCanManageTargetUser(params: {
+  adminUser: AdminLikeUser;
+  targetUser: AdminLikeUser;
+  action:
+    | "update"
+    | "delete"
+    | "reset_password"
+    | "role_change"
+    | "membership_change";
+}) {
+  const { adminUser, targetUser } = params;
+
+  if (isRootAdminUser(targetUser)) {
+    throw new AuthApiError(403, "根管理员账号受保护，不能执行该操作。");
+  }
+
+  if (isRootAdminUser(adminUser)) {
+    return;
+  }
+
+  if (isAdminUser(targetUser)) {
+    throw new AuthApiError(403, "普通管理员不能管理其他管理员账号。");
+  }
 }
 
 export function getUserAccessSnapshot(user: AdminLikeUser | null | undefined) {

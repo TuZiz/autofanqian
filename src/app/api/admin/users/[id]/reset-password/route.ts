@@ -5,6 +5,7 @@ import { z } from "zod";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import {
+  assertCanManageTargetUser,
   getUserAccessSnapshot,
   isRootAdminUser,
   requireAdminUser,
@@ -48,6 +49,7 @@ export async function POST(
       select: {
         id: true,
         email: true,
+        status: true,
         role: true,
         membershipTier: true,
       },
@@ -59,6 +61,12 @@ export async function POST(
       throw new AuthApiError(403, "根管理员账号受保护，普通管理员不能重置密码。");
     }
 
+    assertCanManageTargetUser({
+      adminUser,
+      targetUser: before,
+      action: "reset_password",
+    });
+
     const user = await prisma.user.update({
       where: { id: params.id },
       data: { passwordHash },
@@ -68,6 +76,7 @@ export async function POST(
         email: true,
         name: true,
         emailVerified: true,
+        status: true,
         role: true,
         membershipTier: true,
         lastLoginAt: true,
