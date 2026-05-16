@@ -148,8 +148,8 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const user = await getCurrentUser();
     if (!user) {
       throw new AuthApiError(401, "未登录或登录已失效，请先登录。");
@@ -228,8 +228,8 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
-  assertSameOriginRequest(_request);
   try {
+    assertSameOriginRequest(_request);
     const user = await getCurrentUser();
     if (!user) {
       throw new AuthApiError(401, "未登录或登录已失效，请先登录。");

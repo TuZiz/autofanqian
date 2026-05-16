@@ -22,8 +22,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     await requireAdminUser();
     const body = await parseJsonBody(request, bodySchema);
     const config = await updatePlanningConfig(body.config);

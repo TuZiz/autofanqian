@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { errorResponse } from "@/lib/auth/api";
+
 import {
   chapterGenerateBodySchema,
 } from "@/lib/ai/chapter-generate-shared";
@@ -13,7 +15,11 @@ import { assertSameOriginRequest } from "@/lib/security/origin";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
+  try {
+    assertSameOriginRequest(request);
+  } catch (error) {
+    return errorResponse(error);
+  }
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

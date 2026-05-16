@@ -65,8 +65,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const adminUser = await requireAdminUser();
     const before = await getAiModelConfig();
     const body = await parseJsonBody(request, bodySchema);

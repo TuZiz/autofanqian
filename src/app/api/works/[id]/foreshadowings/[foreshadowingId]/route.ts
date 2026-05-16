@@ -37,8 +37,8 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id?: string; foreshadowingId?: string }> },
 ) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const rawParams = await context.params;
     const params = paramsSchema.parse({
       id: rawParams.id ?? "",
@@ -83,8 +83,8 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string; foreshadowingId?: string }> },
 ) {
-  assertSameOriginRequest(_request);
   try {
+    assertSameOriginRequest(_request);
     const rawParams = await context.params;
     const params = paramsSchema.parse({
       id: rawParams.id ?? "",

@@ -35,8 +35,8 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const adminUser = await requireAdminUser();
 
     const rawParams = await context.params;
@@ -192,8 +192,8 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
-  assertSameOriginRequest(_request);
   try {
+    assertSameOriginRequest(_request);
     const adminUser = await requireAdminUser();
 
     const rawParams = await context.params;

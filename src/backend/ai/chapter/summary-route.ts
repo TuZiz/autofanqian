@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+
+import { errorResponse } from "@/lib/auth/api";
 import { z } from "zod";
 
 import { assertAiQuotaAvailable } from "@/lib/ai/quota";
@@ -35,7 +37,11 @@ function clampText(value: string, maxChars: number) {
 }
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
+  try {
+    assertSameOriginRequest(request);
+  } catch (error) {
+    return errorResponse(error);
+  }
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

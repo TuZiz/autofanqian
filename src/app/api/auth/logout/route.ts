@@ -1,4 +1,4 @@
-import { successResponse } from "@/lib/auth/api";
+import { errorResponse, successResponse } from "@/lib/auth/api";
 import { zhCN } from "@/lib/copy/zh-cn";
 import {
   createClearedSessionCookie,
@@ -9,7 +9,11 @@ import { assertSameOriginRequest } from "@/lib/security/origin";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
+  try {
+    assertSameOriginRequest(request);
+  } catch (error) {
+    return errorResponse(error);
+  }
 
   await revokeCurrentSession();
 

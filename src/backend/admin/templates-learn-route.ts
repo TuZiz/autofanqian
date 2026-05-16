@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+import { errorResponse } from "@/lib/auth/api";
 import { z } from "zod";
 
 import {
@@ -142,7 +144,11 @@ function sanitizeTemplateText(raw: string, fallbackTitle: string) {
 }
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
+  try {
+    assertSameOriginRequest(request);
+  } catch (error) {
+    return errorResponse(error);
+  }
   const adminUser = await requireAdminUser();
 
   const providersFromEnv = getAiProvidersFromEnv();

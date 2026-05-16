@@ -62,8 +62,8 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const rawParams = await context.params;
     const params = paramsSchema.parse({ id: rawParams.id ?? "" });
     const body = await parseJsonBody(request, characterSchema);

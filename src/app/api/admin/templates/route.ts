@@ -52,8 +52,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     await requireAdminUser();
     const body = await parseJsonBody(request, createSchema);
 

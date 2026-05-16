@@ -56,8 +56,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const user = await getCurrentUser();
     if (!user) {
       throw new AuthApiError(401, "未登录或登录已失效，请先登录。");

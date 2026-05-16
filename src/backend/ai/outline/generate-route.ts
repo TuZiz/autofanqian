@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+import { errorResponse } from "@/lib/auth/api";
 import { randomInt, randomUUID } from "crypto";
 import { z } from "zod";
 
@@ -211,7 +213,11 @@ async function researchBookFromWeb(title: string) {
 }
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
+  try {
+    assertSameOriginRequest(request);
+  } catch (error) {
+    return errorResponse(error);
+  }
   let body: unknown = null;
 
   try {

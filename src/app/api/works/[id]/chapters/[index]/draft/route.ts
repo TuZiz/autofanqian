@@ -60,8 +60,8 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id?: string; index?: string }> },
 ) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const rawParams = await context.params;
     const params = paramsSchema.parse({ id: rawParams.id ?? "", index: rawParams.index ?? "" });
     const body = await parseJsonBody(request, draftSchema);
@@ -121,8 +121,8 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id?: string; index?: string }> },
 ) {
-  assertSameOriginRequest(_request);
   try {
+    assertSameOriginRequest(_request);
     const rawParams = await context.params;
     const params = paramsSchema.parse({ id: rawParams.id ?? "", index: rawParams.index ?? "" });
     const { work } = await requireWorkAccess(params.id);

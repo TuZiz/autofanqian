@@ -8,8 +8,8 @@ import { assertSameOriginRequest } from "@/lib/security/origin";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const { email } = await parseJsonBody(request, sendCodeSchema);
     const data = await sendPasswordResetCode(email, getRequestMeta(request));
 

@@ -1,6 +1,7 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { errorResponse } from "@/lib/auth/api";
 import { assertAiQuotaAvailable } from "@/lib/ai/quota";
 import { runChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
 import {
@@ -44,7 +45,11 @@ import { assertSameOriginRequest } from "@/lib/security/origin";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
+  try {
+    assertSameOriginRequest(request);
+  } catch (error) {
+    return errorResponse(error);
+  }
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

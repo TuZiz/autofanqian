@@ -35,8 +35,8 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id?: string }> },
 ) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const adminUser = await requireAdminUser();
 
     const rawParams = await context.params;

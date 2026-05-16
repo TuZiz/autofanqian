@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+import { errorResponse } from "@/lib/auth/api";
 import { z } from "zod";
 
 import { assertAiQuotaAvailable } from "@/lib/ai/quota";
@@ -65,7 +67,11 @@ function fieldErrorsFromZod(error: z.ZodError) {
 }
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
+  try {
+    assertSameOriginRequest(request);
+  } catch (error) {
+    return errorResponse(error);
+  }
 
   const rawBody = await request.json().catch(() => null);
   if (!rawBody) {

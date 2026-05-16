@@ -17,8 +17,8 @@ const profileSchema = z.object({
 });
 
 export async function PATCH(request: Request) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {

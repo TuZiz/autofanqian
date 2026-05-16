@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { errorResponse } from "@/lib/auth/api";
+
 import { chapterGenerateBodySchema } from "@/lib/ai/chapter-generate-shared";
 import { assertAiQuotaAvailable } from "@/lib/ai/quota";
 import { getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
@@ -12,7 +14,11 @@ import { assertSameOriginRequest } from "@/lib/security/origin";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
+  try {
+    assertSameOriginRequest(request);
+  } catch (error) {
+    return errorResponse(error);
+  }
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(

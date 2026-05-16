@@ -18,8 +18,8 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ id?: string; index?: string }> },
 ) {
-  assertSameOriginRequest(_request);
   try {
+    assertSameOriginRequest(_request);
     const user = await getCurrentUser();
     if (!user) {
       throw new AuthApiError(401, "未登录或登录已失效，请先登录。");

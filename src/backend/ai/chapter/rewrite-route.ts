@@ -97,8 +97,8 @@ function buildRewritePrompt(params: {
 }
 
 export async function POST(request: Request) {
-  assertSameOriginRequest(request);
   try {
+    assertSameOriginRequest(request);
     const raw = await request.json().catch(() => null as unknown);
     const parsed = bodySchema.safeParse(raw);
     if (!parsed.success) {

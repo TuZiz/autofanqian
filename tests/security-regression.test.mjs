@@ -39,7 +39,7 @@ test("admin management guards protect root and admin targets", () => {
   assert.match(userDetailSource, /status: "deleted"/);
 });
 
-test("all mutating route handlers call assertSameOriginRequest first", () => {
+test("all mutating route handlers catch assertSameOriginRequest with the first try block", () => {
   const files = [...walk("src/app/api"), ...walk("src/backend")];
   const problems = [];
 
@@ -66,9 +66,24 @@ test("all mutating route handlers call assertSameOriginRequest first", () => {
         continue;
       }
 
+      const firstBodyLine = lines
+        .slice(openLine + 1, openLine + 8)
+        .find((line) => line.trim().length > 0);
+      if (firstBodyLine?.trim() !== "try {") {
+        problems.push(`${file}:${index + 1} must enter try before origin assertion`);
+        continue;
+      }
+
+      const tryLine = lines.findIndex(
+        (line, lineIndex) => lineIndex > openLine && line.trim() === "try {",
+      );
       const expected = `assertSameOriginRequest(${requestParam});`;
-      if (lines[openLine + 1]?.trim() !== expected) {
-        problems.push(`${file}:${index + 1} missing ${expected}`);
+      const firstTryStatements = lines
+        .slice(tryLine + 1, tryLine + 8)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (firstTryStatements[0] !== expected) {
+        problems.push(`${file}:${index + 1} first try block missing ${expected}`);
       }
     }
   }
