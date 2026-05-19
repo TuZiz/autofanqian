@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
+  getPublicMembershipPlan,
   PUBLIC_MEMBERSHIP_PLANS,
-  PUBLIC_MEMBERSHIP_PLAN_MAP,
   type PublicMembershipPlan,
   type PublicMembershipTier,
 } from "@/shared/membership-public-plans";
@@ -141,10 +141,9 @@ export function DashboardUpgradeModal({
   onClose,
 }: DashboardUpgradeModalProps) {
   const [previewTier, setPreviewTier] = useState<PublicMembershipTier | null>(null);
-  const normalizedTier = PUBLIC_MEMBERSHIP_PLAN_MAP[currentTier] ? currentTier : "default";
-  const currentPlan = PUBLIC_MEMBERSHIP_PLAN_MAP[normalizedTier];
-  const currentRank = tierRank[normalizedTier];
-  const previewPlan = previewTier ? PUBLIC_MEMBERSHIP_PLAN_MAP[previewTier] : null;
+  const currentPlan = getPublicMembershipPlan(currentTier);
+  const currentRank = tierRank[currentPlan.tier];
+  const previewPlan = previewTier ? getPublicMembershipPlan(previewTier) : null;
 
   const quotaCards = useMemo(() => [
     {
@@ -172,8 +171,8 @@ export function DashboardUpgradeModal({
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-h-[calc(100dvh-1.5rem)] overflow-y-auto p-0 sm:max-w-6xl lg:max-w-7xl">
-        <div className="relative overflow-hidden rounded-xl bg-[var(--theme-surface-solid)]">
+      <DialogContent className="max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1rem)] overflow-y-auto p-0 sm:max-w-6xl lg:max-w-7xl">
+        <div className="relative min-w-0 overflow-hidden rounded-xl bg-[var(--theme-surface-solid)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_32%)]" />
           <div className="relative space-y-5 p-5 sm:p-6">
             <DialogHeader className="pr-10">
@@ -208,19 +207,19 @@ export function DashboardUpgradeModal({
               </div>
             ) : null}
 
-            <section className="grid gap-3 md:grid-cols-3">
+            <section className="grid min-w-0 gap-3 md:grid-cols-3">
               {quotaCards.map((item) => (
                 <QuotaPreviewCard key={item.label} {...item} />
               ))}
             </section>
 
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <section className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
               {PUBLIC_MEMBERSHIP_PLANS.map((plan) => (
                 <PlanCard
                   key={plan.tier}
                   currentRank={currentRank}
                   isAdmin={isAdmin}
-                  isCurrent={plan.tier === normalizedTier}
+                  isCurrent={plan.tier === currentPlan.tier}
                   plan={plan}
                   onPreview={() => setPreviewTier(plan.tier)}
                 />
@@ -238,7 +237,7 @@ export function DashboardUpgradeModal({
               </div>
             ) : null}
 
-            <section className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-4 shadow-sm">
+            <section className="min-w-0 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-4 shadow-sm">
               <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h3 className="text-base font-extrabold text-[var(--theme-text-strong)]">权益矩阵</h3>
@@ -259,7 +258,7 @@ export function DashboardUpgradeModal({
                           key={plan.tier}
                           className={cn(
                             "px-3 py-3 text-xs font-extrabold text-[var(--theme-text-strong)]",
-                            plan.tier === normalizedTier && "rounded-t-xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
+                            plan.tier === currentPlan.tier && "rounded-t-xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
                           )}
                         >
                           {plan.name}
@@ -278,7 +277,7 @@ export function DashboardUpgradeModal({
                             key={plan.tier}
                             className={cn(
                               "border-t border-[var(--theme-border)] px-3 py-3 font-semibold text-[var(--theme-text-strong)]",
-                              plan.tier === normalizedTier && "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
+                              plan.tier === currentPlan.tier && "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
                             )}
                           >
                             {renderMatrixValue(row.getValue(plan))}
@@ -314,9 +313,9 @@ function QuotaPreviewCard({
   const percent = unlimited ? 100 : Math.min(100, Math.round((used / limit) * 100));
 
   return (
-    <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-4 shadow-sm">
+    <div className="min-w-0 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="text-xs font-bold text-[var(--theme-text-muted)]">{label}</div>
           <div className="mt-1 text-lg font-extrabold text-[var(--theme-text-strong)]">
             {unlimited ? "不限" : `${formatNumber(used)} / ${formatCount(limit, unit)}`}
@@ -364,7 +363,7 @@ function PlanCard({
   return (
     <article
       className={cn(
-        "group rounded-2xl p-[1px] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl",
+        "group min-w-0 rounded-2xl p-[1px] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl",
         accent.shell,
         isCurrent && "shadow-[0_0_0_2px_var(--theme-brand-600)]",
       )}

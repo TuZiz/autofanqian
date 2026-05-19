@@ -115,3 +115,14 @@ export const PUBLIC_MEMBERSHIP_PLANS: PublicMembershipPlan[] = [
 export const PUBLIC_MEMBERSHIP_PLAN_MAP = Object.fromEntries(
   PUBLIC_MEMBERSHIP_PLANS.map((plan) => [plan.tier, plan]),
 ) as Record<PublicMembershipTier, PublicMembershipPlan>;
+
+export function getPublicMembershipPlan(
+  tier?: PublicMembershipTier | string | null,
+) {
+  if (!tier) return PUBLIC_MEMBERSHIP_PLAN_MAP.default;
+
+  return (
+    PUBLIC_MEMBERSHIP_PLAN_MAP[tier as PublicMembershipTier] ??
+    PUBLIC_MEMBERSHIP_PLAN_MAP.default
+  );
+}

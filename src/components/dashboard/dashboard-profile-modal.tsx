@@ -35,7 +35,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { PUBLIC_MEMBERSHIP_PLAN_MAP } from "@/shared/membership-public-plans";
+import { getPublicMembershipPlan } from "@/shared/membership-public-plans";
 
 type DashboardProfileModalProps = {
   onClose: () => void;
@@ -68,7 +68,7 @@ export function DashboardProfileModal({
 
   const displayName = user.name?.trim() || "未设置昵称";
   const groupLabel = user.displayGroup ?? (user.isAdmin ? "管理员" : "Free");
-  const currentPlan = PUBLIC_MEMBERSHIP_PLAN_MAP[user.membershipTier ?? "default"];
+  const currentPlan = getPublicMembershipPlan(user.membershipTier);
   const closeDisabled = profileBusy || codeBusy || passwordBusy;
 
   const passwordMismatch = useMemo(() => {
@@ -246,7 +246,7 @@ export function DashboardProfileModal({
                   当前套餐：{currentPlan.name}
                 </div>
               </div>
-              {user.membershipTier === "max" && !user.isAdmin ? null : (
+              {currentPlan.tier === "max" && !user.isAdmin ? null : (
                 <Button
                   size="xs"
                   className="bg-[var(--theme-brand-600)] text-white hover:brightness-105"
@@ -261,7 +261,7 @@ export function DashboardProfileModal({
               <div className="mt-2 text-[11px] font-semibold text-[var(--theme-text-muted)]">
                 管理员不受套餐限制
               </div>
-            ) : user.membershipTier === "max" ? (
+            ) : currentPlan.tier === "max" ? (
               <div className="mt-2 text-[11px] font-semibold text-[var(--theme-text-muted)]">
                 已是最高套餐
               </div>
