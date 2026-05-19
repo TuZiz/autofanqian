@@ -110,6 +110,8 @@ export async function POST(request: Request) {
     let rawOutline = extractJson(first.text);
 
     if (!rawOutline) {
+      await assertAiQuotaAvailable(user);
+
       const retry = await callAiText({
         providers,
         preferredProviderId: first.providerId,
@@ -129,7 +131,7 @@ export async function POST(request: Request) {
 
       await logAiUsage({
         userId: user.id,
-        action: "short_story_outline_generate",
+        action: "short_story_outline_generate_retry",
         result: retry,
       });
 

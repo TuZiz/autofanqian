@@ -13,6 +13,7 @@ import {
   beginChapterGenerationLock,
   endChapterGenerationLock,
 } from "@/lib/ai/chapter-generation-lock";
+import { assertAiQuotaAvailable } from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildChapterSmartProviderChain,
@@ -195,6 +196,7 @@ export async function generateChapterForUser(params: {
       generationMode: prepared.generationMode,
       workWords: prepared.work.words,
       targetChapters: prepared.work.targetChapters,
+      beforeRepairAiCall: () => assertAiQuotaAvailable(user),
     });
 
     if (lengthRepair.repairResult) {

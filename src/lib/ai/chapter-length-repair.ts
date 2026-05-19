@@ -202,6 +202,7 @@ export async function repairChapterLengthIfNeeded(params: {
   generationMode: "generate" | "regenerate";
   workWords?: string | null;
   targetChapters?: number | null;
+  beforeRepairAiCall?: () => Promise<void>;
 }) {
   const policy = resolveChapterLengthPolicy({
     workWords: params.workWords,
@@ -221,6 +222,20 @@ export async function repairChapterLengthIfNeeded(params: {
   }
 
   const issue = initialWordCount < policy.min ? "too_short" : "too_long";
+  try {
+    await params.beforeRepairAiCall?.();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "额度不足";
+    return {
+      draft: params.draft,
+      wordCount: initialWordCount,
+      policy,
+      repairAttempted: true,
+      repairApplied: false,
+      repairNote: `字数修正已跳过：${message}`,
+    } satisfies ChapterLengthRepairOutcome;
+  }
+
   const repairResult = await callAiText({
     providers: params.providers,
     routeId: params.routeId,

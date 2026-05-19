@@ -87,12 +87,6 @@ export async function POST(request: Request) {
 
   const body = parsedBody.data;
   const isAdmin = isAdminUser(user);
-  try {
-    await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "chapter_details");
-  } catch (error) {
-    return errorResponse(error);
-  }
 
   try {
     const work = await prisma.work.findUnique({
@@ -145,6 +139,13 @@ export async function POST(request: Request) {
         { success: false, message: "章节正文为空，无法提取设定。" },
         { status: 400 },
       );
+    }
+
+    try {
+      await assertAiQuotaAvailable(user);
+      await assertCanUseAiAction(user, "chapter_details");
+    } catch (error) {
+      return errorResponse(error);
     }
 
     const providersFromEnv = getAiProvidersFromEnv();

@@ -63,12 +63,6 @@ export async function POST(request: Request) {
   const body = parsedBody.data;
   const isAdmin = isAdminUser(user);
   const extraPrompt = body.extraPrompt?.trim() ?? "";
-  try {
-    await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "chapter_summary");
-  } catch (error) {
-    return errorResponse(error);
-  }
 
   try {
     const work = await prisma.work.findUnique({
@@ -121,6 +115,13 @@ export async function POST(request: Request) {
         { success: false, message: "章节正文为空，无法生成摘要。" },
         { status: 400 },
       );
+    }
+
+    try {
+      await assertAiQuotaAvailable(user);
+      await assertCanUseAiAction(user, "chapter_summary");
+    } catch (error) {
+      return errorResponse(error);
     }
 
     const providersFromEnv = getAiProvidersFromEnv();

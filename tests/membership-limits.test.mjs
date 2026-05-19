@@ -14,6 +14,14 @@ function read(relativePath) {
   return readFileSync(path.join(rootDir, relativePath), "utf8");
 }
 
+function assertBefore(source, before, after, label) {
+  const beforeIndex = source.indexOf(before);
+  const afterIndex = source.indexOf(after);
+  assert.notEqual(beforeIndex, -1, `${label}: missing ${before}`);
+  assert.notEqual(afterIndex, -1, `${label}: missing ${after}`);
+  assert.ok(beforeIndex < afterIndex, `${label}: expected ${before} before ${after}`);
+}
+
 function makeLimits(overrides) {
   return {
     tier: overrides.tier ?? "default",
@@ -141,4 +149,95 @@ test("membership guards enforce works, chapters and outline action limits server
   assert.match(chapterRouteSource, /await assertCanCreateChapter\(user, work\.id/);
   assert.match(outlineRouteSource, /await assertCanUseAiAction\(user, "outline_generate"\)/);
   assert.match(shortOutlineRouteSource, /await assertCanUseAiAction\(user, "short_story_outline_generate"\)/);
+});
+
+test("App Router AI routes delegate to backend quota-protected handlers", () => {
+  const routeExpectations = [
+    ["src/app/api/ai/idea/route.ts", "@/backend/ai/idea/generate-route"],
+    ["src/app/api/ai/idea/analyze/route.ts", "@/backend/ai/idea/analyze-route"],
+    ["src/app/api/ai/chapter/route.ts", "@/backend/ai/chapter/generate-route"],
+    ["src/app/api/ai/chapter/summary/route.ts", "@/backend/ai/chapter/summary-route"],
+    ["src/app/api/ai/chapter/outline/route.ts", "@/backend/ai/chapter/outline-route"],
+    ["src/app/api/ai/chapter/details/route.ts", "@/backend/ai/chapter/details-route"],
+  ];
+
+  for (const [file, backendModule] of routeExpectations) {
+    const source = read(file);
+    assert.match(source, /export const runtime = "nodejs"/, `${file} must use node runtime`);
+    assert.match(source, new RegExp(`export \\{ POST \\} from "${backendModule.replaceAll("/", "\\/")}"`));
+    assert.doesNotMatch(source, /callAiText\(/, `${file} must not keep a legacy AI implementation`);
+  }
+});
+
+test("quota checks happen before every explicit retry or expansion call", () => {
+  const ideaSource = read("src/backend/ai/idea/generate-route.ts");
+  const analyzeSource = read("src/backend/ai/idea/analyze-route.ts");
+  const outlineSource = read("src/backend/ai/outline/generate-route.ts");
+  const refineSource = read("src/backend/ai/outline/refine-route.ts");
+  const shortOutlineSource = read("src/backend/ai/short-story/outline-route.ts");
+
+  assert.ok((ideaSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
+  assertBefore(
+    ideaSource,
+    "await assertAiQuotaAvailable(user);",
+    "const second = await callAiText",
+    "idea expansion",
+  );
+
+  assert.ok((analyzeSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
+  assertBefore(
+    analyzeSource,
+    "await assertAiQuotaAvailable(user);",
+    "const second = await callAiText",
+    "idea analyze retry",
+  );
+
+  assert.ok((outlineSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
+  assertBefore(
+    outlineSource,
+    "await assertAiQuotaAvailable(user);",
+    "const second = await callAiText",
+    "long outline retry",
+  );
+
+  assert.ok((refineSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
+  assertBefore(
+    refineSource,
+    "await assertAiQuotaAvailable(user);",
+    "const second = await callAiText",
+    "outline extend retry",
+  );
+
+  assert.ok((shortOutlineSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
+  assertBefore(
+    shortOutlineSource,
+    "await assertAiQuotaAvailable(user);",
+    "const retry = await callAiText",
+    "short outline retry",
+  );
+  assert.match(shortOutlineSource, /action: "short_story_outline_generate_retry"/);
+});
+
+test("chapter metadata routes verify access before quota and AI calls", () => {
+  const checks = [
+    ["src/backend/ai/chapter/summary-route.ts", "chapter_summary"],
+    ["src/backend/ai/chapter/outline-route.ts", "chapter_outline"],
+    ["src/backend/ai/chapter/details-route.ts", "chapter_details"],
+  ];
+
+  for (const [file, action] of checks) {
+    const source = read(file);
+    assertBefore(source, "const work = await prisma.work.findUnique", "await assertAiQuotaAvailable(user);", file);
+    assertBefore(source, `await assertCanUseAiAction(user, "${action}")`, "const result = await callAiText", file);
+  }
+});
+
+test("chapter generation repair checks quota before optional repair AI call", () => {
+  const repairSource = read("src/lib/ai/chapter-length-repair.ts");
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const streamPersistenceSource = read("src/backend/ai/chapter/stream-persistence.ts");
+
+  assertBefore(repairSource, "await params.beforeRepairAiCall?.();", "const repairResult = await callAiText", "repair quota");
+  assert.match(generateSource, /beforeRepairAiCall: \(\) => assertAiQuotaAvailable\(user\)/);
+  assert.match(streamPersistenceSource, /beforeRepairAiCall: \(\) => assertAiQuotaAvailable\(prepared\.user\)/);
 });

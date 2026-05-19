@@ -96,6 +96,20 @@ export async function POST(request: Request) {
     );
   }
 
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json(
+      { success: false, message: "未登录或登录已失效，请先登录。" },
+      { status: 401 },
+    );
+  }
+  try {
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "idea_analyze");
+  } catch (error) {
+    return errorResponse(error);
+  }
+
   const providers = getAiProvidersFromEnv();
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.ideaAnalyze;
@@ -115,20 +129,6 @@ export async function POST(request: Request) {
       },
       { status: 500 },
     );
-  }
-
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json(
-      { success: false, message: "未登录或登录已失效，请先登录。" },
-      { status: 401 },
-    );
-  }
-  try {
-    await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "idea_analyze");
-  } catch (error) {
-    return errorResponse(error);
   }
 
   const uiConfig = await getCreateUiConfig();
@@ -211,6 +211,12 @@ export async function POST(request: Request) {
   let analysisRaw = extractJson(content);
 
   if (!analysisRaw) {
+    try {
+      await assertAiQuotaAvailable(user);
+    } catch (error) {
+      return errorResponse(error);
+    }
+
     const second = await callAiText({
       providers: analysisProviders,
       messages: [

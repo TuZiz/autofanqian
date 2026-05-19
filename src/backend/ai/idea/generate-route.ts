@@ -234,6 +234,12 @@ export async function POST(request: Request) {
 
   let content = normalizeIdeaOutput(first.text);
   if (nonWhitespaceLength(content) < minIdeaChars) {
+    try {
+      await assertAiQuotaAvailable(user);
+    } catch (error) {
+      return errorResponse(error);
+    }
+
     const second = await callAiText({
       providers,
       preferredProviderId: first.providerId,

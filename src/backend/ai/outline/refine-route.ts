@@ -129,13 +129,6 @@ export async function POST(request: Request) {
     );
   }
 
-  try {
-    await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "outline_extend");
-  } catch (error) {
-    return errorResponse(error);
-  }
-
   const isAdmin = isAdminUser(user);
   const work = await prisma.work.findUnique({
     where: { id: parsed.data.workId },
@@ -201,6 +194,13 @@ export async function POST(request: Request) {
       { success: false, message: extensionState.reason },
       { status: 423 },
     );
+  }
+
+  try {
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "outline_extend");
+  } catch (error) {
+    return errorResponse(error);
   }
 
   const nextPlannedUntil = getNextPlannedUntil({
@@ -330,6 +330,12 @@ export async function POST(request: Request) {
   let storyRaw = extractJson(content);
 
   if (!storyRaw) {
+    try {
+      await assertAiQuotaAvailable(user);
+    } catch (error) {
+      return errorResponse(error);
+    }
+
     const second = await callAiText({
       providers,
       preferredProviderId: first.providerId ?? target.providerId,

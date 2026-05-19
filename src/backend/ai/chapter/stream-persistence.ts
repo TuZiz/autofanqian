@@ -6,6 +6,7 @@ import {
   finalizeGeneratedDraft,
   type PreparedChapterGeneration,
 } from "@/lib/ai/chapter-generate-shared";
+import { assertAiQuotaAvailable } from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   getReadableAiErrorMessage,
@@ -173,6 +174,7 @@ export async function completeSuccessfulStreamGeneration(params: {
     generationMode: prepared.generationMode,
     workWords: prepared.work.words,
     targetChapters: prepared.work.targetChapters,
+    beforeRepairAiCall: () => assertAiQuotaAvailable(prepared.user),
   });
   const finalDraft = lengthRepair.draft;
   const finalWordCount = lengthRepair.wordCount;

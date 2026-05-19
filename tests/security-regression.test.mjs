@@ -107,7 +107,7 @@ test("AI quota includes minute limit and active generation jobs", () => {
 test("idea generation route has a single user and quota check", () => {
   const ideaSource = read("src/backend/ai/idea/generate-route.ts");
   assert.equal((ideaSource.match(/getCurrentUser\(/g) ?? []).length, 1);
-  assert.equal((ideaSource.match(/assertAiQuotaAvailable\(user\)/g) ?? []).length, 1);
+  assert.ok((ideaSource.match(/assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
   assert.doesNotMatch(ideaSource, /void user/);
   assert.doesNotMatch(ideaSource, /当前“生成创意”配置使用/);
 });

@@ -389,6 +389,12 @@ export async function POST(request: Request) {
   let storyRaw = extractJson(content);
 
   if (!storyRaw) {
+    try {
+      await assertAiQuotaAvailable(user);
+    } catch (error) {
+      return errorResponse(error);
+    }
+
     const second = await callAiText({
       providers,
       preferredProviderId: first.providerId,
