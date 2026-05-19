@@ -30,6 +30,7 @@ import {
   normalizeProgressiveOutline,
   type PlanningPreset,
 } from "@/lib/create/progressive-planning";
+import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 
@@ -119,8 +120,6 @@ export async function POST(request: Request) {
     );
   }
 
-  await assertAiQuotaAvailable(user);
-
   const raw = await request.json().catch(() => null as unknown);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
@@ -128,6 +127,13 @@ export async function POST(request: Request) {
       { success: false, message: "请求参数校验失败，请检查输入内容。" },
       { status: 400 },
     );
+  }
+
+  try {
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "outline_extend");
+  } catch (error) {
+    return errorResponse(error);
   }
 
   const isAdmin = isAdminUser(user);

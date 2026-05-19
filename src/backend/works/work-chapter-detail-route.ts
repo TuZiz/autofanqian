@@ -8,6 +8,7 @@ import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import type { StoryOutline } from "@/lib/create/outline-draft";
 import { getEffectivePlannedUntil, isChapterWithinPlanning } from "@/lib/create/progressive-planning";
+import { assertCanCreateChapter } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { assertSameOriginRequest } from "@/lib/security/origin";
@@ -117,6 +118,10 @@ export async function GET(
 
     if (existingChapter?.deletedAt) {
       throw new AuthApiError(410, "章节已删除，请先恢复后再编辑。");
+    }
+
+    if (!existingChapter) {
+      await assertCanCreateChapter(user, work.id, { index: parsed.index });
     }
 
     const chapter = await prisma.chapter.upsert({
@@ -235,6 +240,10 @@ export async function PUT(
 
     if (previousChapter?.deletedAt) {
       throw new AuthApiError(410, "章节已删除，请先恢复后再编辑。");
+    }
+
+    if (!previousChapter) {
+      await assertCanCreateChapter(user, work.id, { index: parsed.index });
     }
 
     if (previousChapter) {

@@ -6,6 +6,7 @@ import { isAdminUser } from "@/lib/auth/admin";
 import { AuthApiError } from "@/lib/auth/errors";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { getCurrentUser } from "@/lib/auth/service";
+import { assertCanCreateWork } from "@/lib/membership/guards";
 import {
   workCreateBodySchema,
   workListQuerySchema,
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
     }
 
     const body = await parseJsonBody(request, workCreateBodySchema);
+    await assertCanCreateWork(user);
 
     return successResponse(
       await createWorkFromDraft({ body, userId: user.id }),

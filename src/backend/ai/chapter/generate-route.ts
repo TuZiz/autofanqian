@@ -8,6 +8,10 @@ import { assertAiQuotaAvailable } from "@/lib/ai/quota";
 import { getAiProvidersFromEnv } from "@/lib/ai/upstream-text";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
+import {
+  assertCanCreateChapter,
+  assertCanUseAiAction,
+} from "@/lib/membership/guards";
 import { generateChapterForUser } from "./generate-service";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 
@@ -37,7 +41,11 @@ export async function POST(request: Request) {
   }
 
   try {
+    await assertCanCreateChapter(user, parsedBody.data.workId, {
+      index: parsedBody.data.index,
+    });
     await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "chapter_generate");
     const data = await generateChapterForUser({
       input: parsedBody.data,
       providersFromEnv: getAiProvidersFromEnv(),

@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { requireWorkAccess } from "@/lib/works/access";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { assertCanUseAiAction } from "@/lib/membership/guards";
 
 export const runtime = "nodejs";
 
@@ -181,6 +182,7 @@ export async function POST(request: Request) {
     }
 
     await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, `chapter_rewrite_${body.action}`);
 
     const providersFromEnv = getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();

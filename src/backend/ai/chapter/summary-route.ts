@@ -18,6 +18,7 @@ import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
+import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { assertSameOriginRequest } from "@/lib/security/origin";
@@ -62,7 +63,12 @@ export async function POST(request: Request) {
   const body = parsedBody.data;
   const isAdmin = isAdminUser(user);
   const extraPrompt = body.extraPrompt?.trim() ?? "";
-  await assertAiQuotaAvailable(user);
+  try {
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "chapter_summary");
+  } catch (error) {
+    return errorResponse(error);
+  }
 
   try {
     const work = await prisma.work.findUnique({

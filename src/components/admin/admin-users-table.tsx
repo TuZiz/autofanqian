@@ -3,6 +3,7 @@
 import { Key, Lock, PencilLine, Search, Shield, Trash2 } from "lucide-react";
 
 import { AppButton, AppCard, AppChip, AppInput } from "@/components/app-ui";
+import { membershipTierLabels } from "@/lib/auth/user-groups";
 import { formatDateTime } from "@/lib/admin/users-format";
 import type { AdminUsersController } from "@/lib/admin/use-admin-users";
 
@@ -84,16 +85,21 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                     />
                   </td>
                   <td className="px-4 py-2.5">
-                    <AppChip
-                      className={
-                        user.isAdmin
-                          ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]"
-                          : "bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]"
-                      }
-                    >
-                      {user.isAdmin ? <Shield className="h-3 w-3" /> : null}
-                      {user.displayGroup}
-                    </AppChip>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <AppChip
+                        className={
+                          user.isAdmin
+                            ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]"
+                            : "bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]"
+                        }
+                      >
+                        {user.isAdmin ? <Shield className="h-3 w-3" /> : null}
+                        {user.displayGroup}
+                      </AppChip>
+                      <AppChip className={getMembershipTierBadgeClassName(user.membershipTier)}>
+                        {membershipTierLabels[user.membershipTier]}
+                      </AppChip>
+                    </div>
                     {user.isRootAdmin ? (
                       <span className="ml-2 inline-flex items-center gap-1 rounded-md border border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--theme-warning-text)]">
                         <Lock className="h-3 w-3" />
@@ -266,5 +272,18 @@ function getStatusBadgeClassName(status: string) {
       return "w-fit border-zinc-300 bg-zinc-100 text-zinc-500 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400";
     default:
       return "w-fit bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]";
+  }
+}
+
+function getMembershipTierBadgeClassName(tier: string) {
+  switch (tier) {
+    case "plus":
+      return "w-fit border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300";
+    case "pro":
+      return "w-fit border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-400/20 dark:bg-violet-400/10 dark:text-violet-300";
+    case "max":
+      return "w-fit border-zinc-300 bg-zinc-950 text-white dark:border-white/15 dark:bg-white dark:text-zinc-950";
+    default:
+      return "w-fit border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-white/10 dark:bg-white/5 dark:text-zinc-300";
   }
 }

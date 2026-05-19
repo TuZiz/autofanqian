@@ -93,11 +93,15 @@ test("all mutating route handlers catch assertSameOriginRequest with the first t
 
 test("AI quota includes minute limit and active generation jobs", () => {
   const quotaSource = read("src/lib/ai/quota.ts");
-  assert.match(quotaSource, /AI_MINUTE_CALL_LIMIT/);
+  assert.match(quotaSource, /getMembershipLimits\(user\.membershipTier \?\? "default"\)/);
+  assert.doesNotMatch(quotaSource, /AI_DAILY_CALL_LIMIT/);
+  assert.doesNotMatch(quotaSource, /AI_DAILY_TOKEN_LIMIT/);
+  assert.doesNotMatch(quotaSource, /AI_MINUTE_CALL_LIMIT/);
   assert.match(quotaSource, /createdAt: \{ gte: minuteStart \}/);
   assert.match(quotaSource, /success: true/);
   assert.match(quotaSource, /prisma\.generationJob\.count/);
   assert.match(quotaSource, /status: \{ in: \["queued", "running"\] \}/);
+  assert.match(quotaSource, /assertMembershipAiUsageAvailable\(limits/);
 });
 
 test("idea generation route has a single user and quota check", () => {

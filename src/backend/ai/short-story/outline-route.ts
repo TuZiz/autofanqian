@@ -23,6 +23,7 @@ import {
   normalizeShortStoryOutline,
   shortStoryOutlineSchema,
 } from "@/lib/create/short-story-outline-schema";
+import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 import { shortStoryInputSchema } from "@/shared/schemas/short-story";
 
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
 
     const input = await parseJsonBody(request, shortStoryInputSchema);
     await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "short_story_outline_generate");
 
     const aiModelConfig = await getAiModelConfig();
     const target = aiModelConfig.outlineGenerate;

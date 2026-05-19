@@ -4,6 +4,7 @@ import { createShortStoryWork } from "@/backend/works/short-story-create-service
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
+import { assertCanCreateWork } from "@/lib/membership/guards";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 import { shortStoryWorkCreateBodySchema } from "@/shared/schemas/short-story-work-api";
 
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
     }
 
     const body = await parseJsonBody(request, shortStoryWorkCreateBodySchema);
+    await assertCanCreateWork(user);
 
     return successResponse(
       await createShortStoryWork({ body, userId: user.id }),

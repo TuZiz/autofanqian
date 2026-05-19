@@ -20,6 +20,7 @@ import { getAiModelConfig } from "@/lib/config/ai-model";
 import { getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import type { StoryOutline } from "@/lib/create/outline-draft";
 import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
+import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { assertSameOriginRequest } from "@/lib/security/origin";
@@ -102,7 +103,12 @@ export async function POST(request: Request) {
   const body = parsedBody.data;
   const isAdmin = isAdminUser(user);
   const extraPrompt = body.extraPrompt?.trim() ?? "";
-  await assertAiQuotaAvailable(user);
+  try {
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "chapter_outline");
+  } catch (error) {
+    return errorResponse(error);
+  }
 
   try {
     const work = await prisma.work.findUnique({

@@ -3,7 +3,7 @@ export const membershipTierValues = ["default", "plus", "pro", "max"] as const;
 export type MembershipTierValue = (typeof membershipTierValues)[number];
 
 export const membershipTierLabels: Record<MembershipTierValue, string> = {
-  default: "Default",
+  default: "Free",
   plus: "Plus",
   pro: "Pro",
   max: "Max",

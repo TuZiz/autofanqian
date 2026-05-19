@@ -23,6 +23,7 @@ import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
+import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 
@@ -101,7 +102,12 @@ export async function POST(request: Request) {
     );
   }
 
-  await assertAiQuotaAvailable(user);
+  try {
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "idea_generate");
+  } catch (error) {
+    return errorResponse(error);
+  }
 
   const isAdmin = isAdminUser(user);
   const aiModelConfig = await getAiModelConfig();

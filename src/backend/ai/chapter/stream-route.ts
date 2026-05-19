@@ -26,6 +26,10 @@ import {
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
 import {
+  assertCanCreateChapter,
+  assertCanUseAiAction,
+} from "@/lib/membership/guards";
+import {
   buildStreamMessages,
   extractTitleAndContentFromStream,
 } from "./stream-draft";
@@ -66,7 +70,16 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  await assertAiQuotaAvailable(user);
+
+  try {
+    await assertCanCreateChapter(user, parsedBody.data.workId, {
+      index: parsedBody.data.index,
+    });
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "chapter_generate_stream");
+  } catch (error) {
+    return errorResponse(error);
+  }
 
   try {
     const prepared = await prepareChapterGeneration({

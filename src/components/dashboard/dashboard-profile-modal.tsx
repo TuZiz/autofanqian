@@ -63,7 +63,7 @@ export function DashboardProfileModal({
   const [passwordFieldErrors, setPasswordFieldErrors] = useState<Record<string, string>>({});
 
   const displayName = user.name?.trim() || "未设置昵称";
-  const groupLabel = user.displayGroup ?? (user.isAdmin ? "管理员" : "Default");
+  const groupLabel = user.displayGroup ?? (user.isAdmin ? "管理员" : "Free");
   const closeDisabled = profileBusy || codeBusy || passwordBusy;
 
   const passwordMismatch = useMemo(() => {

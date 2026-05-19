@@ -21,6 +21,7 @@ import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { getCreateUiConfig } from "@/lib/config/create-ui";
+import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
@@ -123,7 +124,12 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-  await assertAiQuotaAvailable(user);
+  try {
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "idea_analyze");
+  } catch (error) {
+    return errorResponse(error);
+  }
 
   const uiConfig = await getCreateUiConfig();
   const genreMeta = uiConfig.genres.find((item) => item.id === parsed.data.genre);

@@ -28,6 +28,7 @@ import {
   storyOutlineSchema,
 } from "@/lib/create/outline-schema";
 import { normalizeProgressiveOutline } from "@/lib/create/progressive-planning";
+import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
@@ -251,7 +252,12 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-  await assertAiQuotaAvailable(user);
+  try {
+    await assertAiQuotaAvailable(user);
+    await assertCanUseAiAction(user, "outline_generate");
+  } catch (error) {
+    return errorResponse(error);
+  }
 
   const providersFromEnv = getAiProvidersFromEnv();
   const aiModelConfig = await getAiModelConfig();
