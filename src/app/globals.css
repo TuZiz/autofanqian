@@ -1012,6 +1012,132 @@
   }
 }
 
+html.dark .create-modern-shell,
+:root[data-theme="dark"] .create-modern-shell {
+  background:
+    radial-gradient(circle at 14% 8%, rgba(16, 185, 129, 0.08), transparent 25rem),
+    radial-gradient(circle at 84% 0%, rgba(96, 165, 250, 0.08), transparent 28rem),
+    linear-gradient(180deg, #0f1117 0%, #11131b 100%) !important;
+  color: var(--theme-text-primary);
+}
+
+html.dark .create-modern-shell > .pointer-events-none.fixed.inset-0,
+:root[data-theme="dark"] .create-modern-shell > .pointer-events-none.fixed.inset-0 {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px) !important;
+  opacity: 0.18 !important;
+}
+
+html.dark .create-modern-shell [class~="bg-white"],
+html.dark .create-modern-shell [class~="bg-white/70"],
+html.dark .create-modern-shell [class~="bg-white/80"],
+html.dark .create-modern-shell [class~="bg-white/90"],
+html.dark .create-modern-shell [class~="bg-white/92"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-white"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-white/70"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-white/80"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-white/90"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-white/92"] {
+  background-color: rgba(22, 24, 34, 0.92) !important;
+}
+
+html.dark .create-modern-shell [class~="bg-slate-50"],
+html.dark .create-modern-shell [class~="bg-slate-50/80"],
+html.dark .create-modern-shell [class~="bg-slate-50/90"],
+html.dark .create-modern-shell [class~="bg-slate-100"],
+html.dark .create-modern-shell [class~="bg-slate-100/80"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-slate-50"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-slate-50/80"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-slate-50/90"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-slate-100"],
+:root[data-theme="dark"] .create-modern-shell [class~="bg-slate-100/80"] {
+  background-color: rgba(255, 255, 255, 0.045) !important;
+}
+
+html.dark .create-modern-shell [class~="border-slate-100"],
+html.dark .create-modern-shell [class~="border-slate-200"],
+html.dark .create-modern-shell [class~="border-slate-200/60"],
+html.dark .create-modern-shell [class~="border-slate-200/70"],
+html.dark .create-modern-shell [class~="border-slate-200/80"],
+html.dark .create-modern-shell [class~="border-slate-300"],
+:root[data-theme="dark"] .create-modern-shell [class~="border-slate-100"],
+:root[data-theme="dark"] .create-modern-shell [class~="border-slate-200"],
+:root[data-theme="dark"] .create-modern-shell [class~="border-slate-200/60"],
+:root[data-theme="dark"] .create-modern-shell [class~="border-slate-200/70"],
+:root[data-theme="dark"] .create-modern-shell [class~="border-slate-200/80"],
+:root[data-theme="dark"] .create-modern-shell [class~="border-slate-300"] {
+  border-color: var(--theme-border) !important;
+}
+
+html.dark .create-modern-shell [class~="ring-slate-200/80"],
+html.dark .create-modern-shell [class~="ring-slate-950/10"],
+:root[data-theme="dark"] .create-modern-shell [class~="ring-slate-200/80"],
+:root[data-theme="dark"] .create-modern-shell [class~="ring-slate-950/10"] {
+  --tw-ring-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html.dark .create-modern-shell [class~="text-slate-950"],
+html.dark .create-modern-shell [class~="text-slate-900"],
+html.dark .create-modern-shell [class~="text-slate-800"],
+:root[data-theme="dark"] .create-modern-shell [class~="text-slate-950"],
+:root[data-theme="dark"] .create-modern-shell [class~="text-slate-900"],
+:root[data-theme="dark"] .create-modern-shell [class~="text-slate-800"] {
+  color: var(--theme-text-strong) !important;
+}
+
+html.dark .create-modern-shell [class~="text-slate-700"],
+html.dark .create-modern-shell [class~="text-slate-600"],
+:root[data-theme="dark"] .create-modern-shell [class~="text-slate-700"],
+:root[data-theme="dark"] .create-modern-shell [class~="text-slate-600"] {
+  color: var(--theme-text-primary) !important;
+}
+
+html.dark .create-modern-shell [class~="text-slate-500"],
+html.dark .create-modern-shell [class~="text-slate-400"],
+html.dark .create-modern-shell [class~="text-slate-300"],
+:root[data-theme="dark"] .create-modern-shell [class~="text-slate-500"],
+:root[data-theme="dark"] .create-modern-shell [class~="text-slate-400"],
+:root[data-theme="dark"] .create-modern-shell [class~="text-slate-300"] {
+  color: var(--theme-text-muted) !important;
+}
+
+html.dark .create-modern-shell input,
+html.dark .create-modern-shell select,
+html.dark .create-modern-shell textarea,
+:root[data-theme="dark"] .create-modern-shell input,
+:root[data-theme="dark"] .create-modern-shell select,
+:root[data-theme="dark"] .create-modern-shell textarea {
+  color: var(--theme-text-primary) !important;
+  caret-color: var(--theme-text-primary);
+}
+
+html.dark .create-modern-shell input::placeholder,
+html.dark .create-modern-shell textarea::placeholder,
+:root[data-theme="dark"] .create-modern-shell input::placeholder,
+:root[data-theme="dark"] .create-modern-shell textarea::placeholder {
+  color: rgba(156, 163, 175, 0.78) !important;
+}
+
+html.dark .create-modern-shell select option,
+:root[data-theme="dark"] .create-modern-shell select option {
+  background: var(--theme-surface-solid);
+  color: var(--theme-text-primary);
+}
+
+html.dark .create-modern-shell [class~="hover:bg-white"]:hover,
+html.dark .create-modern-shell [class~="hover:bg-slate-50"]:hover,
+html.dark .create-modern-shell [class~="hover:bg-slate-100"]:hover,
+html.dark .create-modern-shell [class~="focus:bg-white"]:focus,
+html.dark .create-modern-shell [class~="focus-within:bg-white"]:focus-within,
+:root[data-theme="dark"] .create-modern-shell [class~="hover:bg-white"]:hover,
+:root[data-theme="dark"] .create-modern-shell [class~="hover:bg-slate-50"]:hover,
+:root[data-theme="dark"] .create-modern-shell [class~="hover:bg-slate-100"]:hover,
+:root[data-theme="dark"] .create-modern-shell [class~="focus:bg-white"]:focus,
+:root[data-theme="dark"] .create-modern-shell [class~="focus-within:bg-white"]:focus-within {
+  background-color: rgba(255, 255, 255, 0.075) !important;
+}
+
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
