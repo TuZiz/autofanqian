@@ -150,6 +150,7 @@ export async function listWorksForUser(params: ListWorksParams) {
     select: {
       id: true,
       userId: true,
+      workType: true,
       title: true,
       tag: true,
       words: true,
@@ -234,6 +235,7 @@ export async function listWorksForUser(params: ListWorksParams) {
 
     return {
       id: work.id,
+      workType: work.workType,
       title: work.title,
       tag: work.tag,
       genreLabel: work.genreLabel || work.genreId,
@@ -272,6 +274,7 @@ export async function listWorksForUser(params: ListWorksParams) {
     activeWork: activeWork
       ? {
           id: activeWork.id,
+          workType: activeWork.workType,
           title: activeWork.title,
           tag: activeWork.tag,
           words: activeWork.words,
@@ -279,6 +282,7 @@ export async function listWorksForUser(params: ListWorksParams) {
           plannedUntilChapter: activeWork.plannedUntilChapter,
           wordCount: workWordCount,
           completionPercent,
+          createdAt: activeWork.createdAt.toISOString(),
           updatedAt: (activeChapter?.updatedAt ?? activeWork.updatedAt).toISOString(),
           chapter: {
             index: activeChapter?.index ?? 1,

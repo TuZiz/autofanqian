@@ -17,6 +17,7 @@ import { useState } from "react";
 import { aiZhCN, getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 import { cn } from "@/lib/utils";
+import { isShortStoryWork } from "@/shared/work-type";
 import {
   CollapsiblePanel,
   formatChapterLabel,
@@ -67,7 +68,8 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
     work,
     workId,
   } = editor;
-  const currentChapterLabel = formatChapterLabel(chapterIndex);
+  const isShortStory = isShortStoryWork(work?.workType);
+  const currentChapterLabel = isShortStory ? `场景 ${chapterIndex}` : formatChapterLabel(chapterIndex);
   const [expandedSections, setExpandedSections] = useState<Record<SidebarSectionKey, boolean>>({
     target: false,
     summary: false,
@@ -108,7 +110,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
               </span>
             </div>
             <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--theme-text-secondary)]">
-              {title || "未命名章节"} · 摘要、大纲与细节设定会作为本章写作上下文。
+              {title || (isShortStory ? "未命名场景" : "未命名章节")} · 摘要、{isShortStory ? "段落提示" : "大纲"}与细节设定会作为{isShortStory ? "本场景" : "本章"}写作上下文。
             </p>
           </section>
 
@@ -166,12 +168,12 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
             icon={BookOpen}
             onToggle={() => toggleSection("target")}
             subtitle={`绑定：${title || currentChapterLabel}`}
-            title="本章目标"
+            title={isShortStory ? "本场景目标" : "本章目标"}
           >
             <div className="space-y-2">
               {(outlinePreviewLines.length
                 ? outlinePreviewLines
-                : ["生成章节大纲后，这里会显示本章目标、冲突、信息点和结尾钩子。"]
+                : [isShortStory ? "生成段落提示后，这里会显示本场景目标、冲突、信息点和结尾钩子。" : "生成章节大纲后，这里会显示本章目标、冲突、信息点和结尾钩子。"]
               ).map((line, index) => (
                 <div
                   key={`${line}-${index}`}
@@ -206,7 +208,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
             placeholder="生成摘要，或手动整理关键冲突、转折和承接..."
             rows={11}
             subtitle="摘要与承接"
-            title="章节摘要"
+            title={isShortStory ? "场景摘要" : "章节摘要"}
             value={chapterSummary}
           />
 
@@ -225,10 +227,10 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
             onExpand={() => openMetaEditor("outline")}
             onToggle={() => toggleSection("outline")}
             onValueChange={updateOutlineText}
-            placeholder="生成大纲，或手动列出本章关键节点、节奏和钩子..."
+            placeholder={isShortStory ? "生成段落提示，或手动列出本场景关键节点、节奏和钩子..." : "生成大纲，或手动列出本章关键节点、节奏和钩子..."}
             rows={11}
-            subtitle="章节节点"
-            title="章节大纲"
+            subtitle={isShortStory ? "场景节点" : "章节节点"}
+            title={isShortStory ? "段落提示" : "章节大纲"}
             value={chapterOutlineText}
           />
 

@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth/service";
 import type { StoryOutline } from "@/lib/create/outline-draft";
 import { getEffectivePlannedUntil, inferTargetChapters } from "@/lib/create/progressive-planning";
 import { prisma } from "@/lib/prisma";
+import { isShortStoryWork } from "@/shared/work-type";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ async function requireWorkAccess(params: {
     select: {
       id: true,
       userId: true,
+      workType: true,
       title: true,
       tag: true,
       outline: true,
@@ -105,20 +107,31 @@ export async function GET(
 
     const maxIndex = chapters.reduce((max, chapter) => Math.max(max, chapter.index), 0);
     const { lastEditedIndex, nextIndex } = getSequentialChapterProgress(chapters);
-    const plannedUntilChapter = getEffectivePlannedUntil({
-      outline: work.outline as unknown as StoryOutline,
-      plannedUntilChapter: work.plannedUntilChapter,
-      maxWrittenChapter: maxIndex,
-    });
+    const plannedUntilChapter = isShortStoryWork(work.workType)
+      ? Math.max(
+          1,
+          work.plannedUntilChapter || 0,
+          work.targetChapters || 0,
+          maxIndex,
+          chapters.length,
+        )
+      : getEffectivePlannedUntil({
+          outline: work.outline as unknown as StoryOutline,
+          plannedUntilChapter: work.plannedUntilChapter,
+          maxWrittenChapter: maxIndex,
+        });
     const safeNextIndex = Math.min(nextIndex, Math.max(1, plannedUntilChapter));
 
     return successResponse(
       {
         work: {
           id: work.id,
+          workType: work.workType,
           title: work.title,
           tag: work.tag,
-          targetChapters: work.targetChapters ?? inferTargetChapters(work.outline as unknown as StoryOutline),
+          targetChapters: isShortStoryWork(work.workType)
+            ? (work.targetChapters ?? plannedUntilChapter)
+            : work.targetChapters ?? inferTargetChapters(work.outline as unknown as StoryOutline),
           plannedUntilChapter,
         },
         nextIndex: safeNextIndex,

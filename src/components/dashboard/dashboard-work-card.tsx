@@ -11,6 +11,7 @@ import {
   getTitleInitial,
 } from "@/lib/dashboard/dashboard-visual";
 import type { DashboardWork } from "@/lib/dashboard/dashboard-types";
+import { isShortStoryWork } from "@/shared/work-type";
 
 type DashboardWorkCardProps = {
   canDeleteWork: boolean;
@@ -35,6 +36,7 @@ export function DashboardWorkCard({
   const chapterLine = getChapterLine(work);
   const wordStat = formatWordStat(work.wordCount);
   const ownerLine = work.owner?.name || work.owner?.email;
+  const shortStory = isShortStoryWork(work.workType);
 
   const progressPercent = progressParams.hasTarget
     ? Number(progressParams.percent)
@@ -57,7 +59,7 @@ export function DashboardWorkCard({
           <div className="min-w-0">
             <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
               <span className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--theme-text-secondary)]">
-                {work.tag || "小说"}
+                {shortStory ? "短篇小说" : work.tag || "小说"}
               </span>
               <span className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--theme-text-secondary)]">
                 {work.genreLabel || "未分类"}
@@ -84,7 +86,7 @@ export function DashboardWorkCard({
 
         <div className="grid grid-cols-4 gap-3 sm:pl-[60px] lg:ml-4 lg:w-[360px] lg:pl-0">
           <TableMetric label="字数" value={wordStat.value + wordStat.unit} />
-          <TableMetric label="章节" value={String(work.chapterCount)} />
+          <TableMetric label={shortStory ? "场景" : "章节"} value={String(work.chapterCount)} />
           <TableMetric label="更新" value={formatRelativeTime(work.updatedAt)} />
           <ProgressMetric display={progressDisplay} label="进度" value={progressPercent} />
         </div>

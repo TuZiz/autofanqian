@@ -273,6 +273,7 @@ export async function POST(request: Request) {
             type: "done",
             work: {
               id: prepared.work.id,
+              workType: prepared.work.workType,
               title: prepared.work.title,
               tag: prepared.work.tag,
             },

@@ -2,6 +2,8 @@
 import { ChevronDown, Edit3, Layers } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { StoryOutline } from "@/lib/create/outline-draft";
+import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
 import { formatChapterCount, formatVolumeDesc } from "@/lib/workbench/work-dashboard-format";
 import { cn } from "@/lib/utils";
@@ -10,13 +12,97 @@ export function WorkSynopsisCard() {
   return null;
 }
 
+function isLongOutline(outline: WorkDashboardController["outline"]): outline is StoryOutline {
+  return Boolean(outline && Array.isArray((outline as Partial<StoryOutline>).volumes));
+}
+
+function isShortOutline(outline: WorkDashboardController["outline"]): outline is ShortStoryOutline {
+  return Boolean(outline && Array.isArray((outline as Partial<ShortStoryOutline>).beats));
+}
+
+export function WorkShortStoryOutlinePanel({ dashboard }: { dashboard: WorkDashboardController }) {
+  const outline = isShortOutline(dashboard.outline) ? dashboard.outline : null;
+
+  return (
+    <section className="app-compact-panel p-4 sm:p-5">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-500/10 dark:text-emerald-300">
+            <Layers className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-[1.45rem] font-extrabold tracking-tight text-zinc-950 dark:text-white">短篇结构</h2>
+            <div className="mt-1 flex flex-wrap items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              <span className="rounded-lg bg-zinc-100/80 px-2 py-1 dark:bg-zinc-800/80">
+                {outline ? `${outline.beats.length} 个场景` : "0 个场景"}
+              </span>
+              <span className="rounded-lg bg-zinc-100/80 px-2 py-1 dark:bg-zinc-800/80">
+                目标 {outline?.targetWords?.toLocaleString("zh-CN") ?? 0} 字
+              </span>
+              <span className="rounded-lg bg-zinc-100/80 px-2 py-1 dark:bg-zinc-800/80">
+                {outline?.theme || "主题待定"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {outline ? (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-4 shadow-inner">
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+              开篇钩子
+            </div>
+            <p className="mt-2 text-sm font-semibold leading-7 text-[var(--theme-text-secondary)]">
+              {outline.hook}
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            {outline.beats.map((beat) => (
+              <article
+                key={beat.index}
+                className="grid gap-3 rounded-xl border border-[var(--theme-border)] bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md dark:bg-zinc-950/80 dark:hover:border-emerald-500/30 md:grid-cols-[88px_minmax(0,1fr)_112px]"
+              >
+                <div className="flex h-10 w-fit items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] px-3 text-xs font-black text-[var(--theme-text-muted)] shadow-sm md:h-12 md:w-full">
+                  场景 {beat.index}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="truncate text-base font-extrabold text-zinc-950 dark:text-white">{beat.title}</h3>
+                  <p className="mt-1.5 text-sm font-medium leading-6 text-zinc-600 dark:text-zinc-300">
+                    {beat.purpose}
+                  </p>
+                  <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-zinc-500 dark:text-zinc-400">
+                    {beat.writingPrompt}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => dashboard.goToChapter(beat.index)}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-white px-4 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-1 hover:ring-emerald-300 active:scale-[0.98] dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/40"
+                >
+                  写作
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-[var(--theme-border)] p-8 text-center text-sm font-bold uppercase tracking-wider text-zinc-500 dark:border-[var(--theme-border)] dark:text-zinc-400">
+          暂无短篇结构数据
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardController }) {
   const {
     goToChapter,
     nextChapterIndex,
     openOutlineRefineConfirm,
     openVolumeIndex,
-    outline,
+    outline: rawOutline,
     outlineExtensionState,
     outlineRefineBusy,
     plannedChapterCount,
@@ -24,6 +110,7 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
     setOpenVolumeIndex,
     work,
   } = dashboard;
+  const outline = isLongOutline(rawOutline) ? rawOutline : null;
   const extendBlockedReason = !outlineExtensionState.allowed ? outlineExtensionState.reason : "";
   const blockingSegment = outline ? findBlockingSegmentAnchor(outline.volumes, nextChapterIndex) : null;
   const blockedSegmentReason = buildBlockedSegmentReason(blockingSegment, nextChapterIndex);
@@ -281,7 +368,7 @@ function getSegmentTargetChapter(segmentBounds: SegmentBounds, nextChapterIndex:
 }
 
 function findBlockingSegmentAnchor(
-  volumes: NonNullable<WorkDashboardController["outline"]>["volumes"],
+  volumes: StoryOutline["volumes"],
   chapterIndex: number,
 ): BlockingSegmentAnchor | null {
   if (!chapterIndex || chapterIndex < 1) return null;

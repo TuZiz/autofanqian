@@ -3,6 +3,8 @@ import { z } from "zod";
 import type { UpstreamProvider, UpstreamRouteId } from "@/lib/ai/upstream-text";
 import type { SessionUser } from "@/lib/auth/user";
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
+import type { WorkTypeValue } from "@/shared/work-type";
 
 export const chapterGenerateBodySchema = z.object({
   workId: z.string().min(1).max(64),
@@ -21,6 +23,7 @@ export type PreparedChapterGeneration = {
   work: {
     id: string;
     userId: string;
+    workType: WorkTypeValue;
     genreId: string;
     genreLabel: string | null;
     idea: string;
@@ -31,7 +34,7 @@ export type PreparedChapterGeneration = {
     tag: string;
     title: string;
     synopsis: string;
-    outline: StoryOutline;
+    outline: StoryOutline | ShortStoryOutline;
     targetChapters: number | null;
     plannedUntilChapter: number;
   };

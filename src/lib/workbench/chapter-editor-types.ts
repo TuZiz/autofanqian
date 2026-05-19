@@ -1,5 +1,7 @@
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
 import type { SessionAccessFields } from "@/lib/auth/session-user-types";
+import type { WorkTypeValue } from "@/shared/work-type";
 
 export type ChapterSessionUser = SessionAccessFields & {
   email: string;
@@ -7,9 +9,10 @@ export type ChapterSessionUser = SessionAccessFields & {
 
 export type WorkLite = {
   id: string;
+  workType: WorkTypeValue;
   title: string;
   tag: string;
-  outline?: StoryOutline | null;
+  outline?: StoryOutline | ShortStoryOutline | null;
   targetChapters?: number | null;
   plannedUntilChapter?: number | null;
 };

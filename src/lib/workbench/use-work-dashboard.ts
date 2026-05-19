@@ -20,6 +20,7 @@ import type {
   WorkDetail,
 } from "./work-dashboard-types";
 import { useWorkDashboardBootstrap } from "./use-work-dashboard-bootstrap";
+import { isShortStoryWork } from "@/shared/work-type";
 
 export function useWorkDashboard(workId: string) {
   const router = useRouter();
@@ -48,6 +49,7 @@ export function useWorkDashboard(workId: string) {
   const [commandQuery, setCommandQuery] = useState("");
 
   const outline = work?.outline;
+  const isShortStory = isShortStoryWork(work?.workType);
   const activeGeneration = useActiveChapterGeneration(workId);
   const hasActiveGeneration = activeGeneration?.status === "running";
   const orderedNextChapterIndex =
@@ -87,13 +89,15 @@ export function useWorkDashboard(workId: string) {
     const createIndex = Math.max(1, maxChapterIndex + 1);
     const plannedLimit = Math.max(
       work.plannedUntilChapter || 0,
-      work.outline?.plannedUntilChapter || 0,
+      work.outline && "plannedUntilChapter" in work.outline
+        ? work.outline.plannedUntilChapter || 0
+        : 0,
       maxChapterIndex,
       chapters.length,
     );
 
     if (plannedLimit && createIndex > plannedLimit) {
-      setAddChapterError("请先规划下一段后再新增章节。");
+      setAddChapterError(isShortStory ? "短篇场景已全部拆分。" : "请先规划下一段后再新增章节。");
       return;
     }
 
@@ -114,7 +118,7 @@ export function useWorkDashboard(workId: string) {
 
     const nextChapter = result.data?.chapter;
     if (!result.success || !nextChapter) {
-      setAddChapterError(result.message || "新增章节失败，请稍后重试。");
+      setAddChapterError(result.message || (isShortStory ? "新增场景失败，请稍后重试。" : "新增章节失败，请稍后重试。"));
       return;
     }
 
@@ -275,23 +279,24 @@ export function useWorkDashboard(workId: string) {
     if (!work) return [] as HeaderChip[];
 
     const chips: HeaderChip[] = [];
+    chips.push({ label: isShortStory ? "短篇小说" : "长篇连载", tone: "brand" });
     chips.push({ label: work.genreLabel || work.genreId, tone: "muted" });
     if (work.words) chips.push({ label: `目标 ${work.words}`, tone: "muted" });
-    chips.push({ label: "大纲已就绪", tone: "brand" });
+    chips.push({ label: isShortStory ? "结构已就绪" : "大纲已就绪", tone: "brand" });
     return chips;
-  }, [work]);
+  }, [isShortStory, work]);
 
   const editedChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
   const targetChapterCount =
     work?.targetChapters ||
-    outline?.targetChapters ||
-    outline?.totalChapters ||
+    (!isShortStory && outline && "targetChapters" in outline ? outline.targetChapters : undefined) ||
+    (!isShortStory && outline && "totalChapters" in outline ? outline.totalChapters : undefined) ||
     maxChapterIndex ||
     chapters.length ||
     0;
   const plannedChapterCount = Math.max(
     work?.plannedUntilChapter || 0,
-    outline?.plannedUntilChapter || 0,
+    outline && "plannedUntilChapter" in outline ? outline.plannedUntilChapter || 0 : 0,
     maxChapterIndex,
     chapters.length,
   );
@@ -312,6 +317,9 @@ export function useWorkDashboard(workId: string) {
     plannedUntilChapter: plannedChapterCount,
     writtenUntilChapter: currentProgressChapter,
   });
+  const effectiveOutlineExtensionState = isShortStory
+    ? { allowed: false, reason: "短篇小说已按场景拆分，无需规划下一段。" }
+    : outlineExtensionState;
 
   const commandChapters = useMemo(() => {
     const normalized = commandQuery.trim().toLowerCase();
@@ -322,7 +330,7 @@ export function useWorkDashboard(workId: string) {
     return sorted.filter((chapter) => {
       const haystack = [
         chapter.index,
-        `第${chapter.index}章`,
+        isShortStory ? `场景${chapter.index}` : `第${chapter.index}章`,
         chapter.title ?? "",
         work?.title ?? "",
       ]
@@ -330,7 +338,7 @@ export function useWorkDashboard(workId: string) {
         .toLowerCase();
       return haystack.includes(normalized);
     });
-  }, [chapters, commandQuery, work?.title]);
+  }, [chapters, commandQuery, isShortStory, work?.title]);
 
   return {
     activeGeneration,
@@ -359,7 +367,7 @@ export function useWorkDashboard(workId: string) {
     nextChapterIndex: orderedNextChapterIndex,
     openOutlineRefineConfirm,
     outlineExtensionSize,
-    outlineExtensionState,
+    outlineExtensionState: effectiveOutlineExtensionState,
     openVolumeIndex,
     outline,
     outlineRefineBusy,

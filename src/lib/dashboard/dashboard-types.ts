@@ -1,4 +1,5 @@
 import type { SessionAccessFields } from "@/lib/auth/session-user-types";
+import type { WorkTypeValue } from "@/shared/work-type";
 
 export type SessionUser = SessionAccessFields & {
   id: string;
@@ -18,6 +19,7 @@ export type DashboardOverview = {
   };
   activeWork: null | {
     id: string;
+    workType: WorkTypeValue;
     title: string;
     tag: string;
     words: string | null;
@@ -35,6 +37,7 @@ export type DashboardOverview = {
   };
   works: Array<{
     id: string;
+    workType: WorkTypeValue;
     title: string;
     tag: string;
     genreLabel: string;

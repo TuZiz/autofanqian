@@ -4,7 +4,7 @@ import type { ChapterListItem, VolumeSegment } from "./work-dashboard-types";
 
 type OutlineVolume = StoryOutline["volumes"][number];
 
-export function roleToDisplay(role: StoryOutlineRole) {
+export function roleToDisplay(role: StoryOutlineRole | string) {
   const normalized = String(role).trim().toLowerCase();
 
   switch (normalized) {

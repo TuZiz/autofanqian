@@ -1,8 +1,11 @@
+import { isShortStoryWork, type WorkTypeValue } from "@/shared/work-type";
+
 type ProgressInput = {
   words?: string | null;
   targetChapters?: number | null;
   plannedUntilChapter?: number | null;
   completionPercent: number;
+  workType?: WorkTypeValue | string | null;
 };
 
 export type ProgressCopy = {
@@ -76,10 +79,11 @@ export function getProgressCopy(input: ProgressInput): ProgressCopy {
   const percent = Math.max(0, Math.min(100, Math.round(input.completionPercent || 0)));
   const targetWordCount = parseTargetWordCount(input.words);
   const hasPlanningWindow = Boolean(input.plannedUntilChapter || input.targetChapters);
+  const shortStory = isShortStoryWork(input.workType);
 
   if (targetWordCount) {
     return {
-      label: "规划目标完成度",
+      label: shortStory ? "短篇完成度" : "规划目标完成度",
       value: `${percent}%`,
       hint: `按字数目标计算 · 目标 ${targetWordCount.toLocaleString("zh-CN")} 字`,
       percent,
@@ -88,12 +92,14 @@ export function getProgressCopy(input: ProgressInput): ProgressCopy {
   }
 
   if (hasPlanningWindow) {
-    const planLabel = input.plannedUntilChapter
-      ? `当前已规划到第 ${input.plannedUntilChapter} 章`
-      : `长期目标 ${input.targetChapters} 章`;
+    const planLabel = shortStory
+      ? `已拆成 ${input.plannedUntilChapter || input.targetChapters || 0} 个场景`
+      : input.plannedUntilChapter
+        ? `当前已规划到第 ${input.plannedUntilChapter} 章`
+        : `长期目标 ${input.targetChapters} 章`;
 
     return {
-      label: "当前规划窗口完成度",
+      label: shortStory ? "短篇场景完成度" : "当前规划窗口完成度",
       value: `${percent}%`,
       hint: planLabel,
       percent,
@@ -113,7 +119,13 @@ export function getProgressCopy(input: ProgressInput): ProgressCopy {
 export function getPlanningLabel(input: {
   targetChapters?: number | null;
   plannedUntilChapter?: number | null;
+  workType?: WorkTypeValue | string | null;
 }) {
+  if (isShortStoryWork(input.workType)) {
+    const count = input.plannedUntilChapter || input.targetChapters;
+    return count ? `${count} 个场景` : "未拆分场景";
+  }
+
   if (input.plannedUntilChapter) {
     return `规划至第 ${input.plannedUntilChapter} 章`;
   }
@@ -126,21 +138,29 @@ export function getPlanningLabel(input: {
 }
 
 export function getChapterLine(input: {
+  workType?: WorkTypeValue | string | null;
   chapter: {
     index: number;
     title: string | null;
     wordCount: number;
   };
 }) {
+  const unit = isShortStoryWork(input.workType) ? "场景" : "章";
   if (input.chapter.title?.trim()) {
-    return `第 ${input.chapter.index} 章 · ${input.chapter.title.trim()}`;
+    return isShortStoryWork(input.workType)
+      ? `场景 ${input.chapter.index} · ${input.chapter.title.trim()}`
+      : `第 ${input.chapter.index} 章 · ${input.chapter.title.trim()}`;
   }
 
   if (input.chapter.wordCount > 0) {
-    return `第 ${input.chapter.index} 章 · 正在写作`;
+    return isShortStoryWork(input.workType)
+      ? `场景 ${input.chapter.index} · 正在写作`
+      : `第 ${input.chapter.index} 章 · 正在写作`;
   }
 
-  return `第 ${input.chapter.index} 章 · 还未开始`;
+  return isShortStoryWork(input.workType)
+    ? `${unit} ${input.chapter.index} · 还未开始`
+    : `第 ${input.chapter.index} 章 · 还未开始`;
 }
 
 export function getTitleInitial(title: string) {

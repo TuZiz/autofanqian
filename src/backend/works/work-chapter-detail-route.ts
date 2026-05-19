@@ -11,6 +11,7 @@ import { getEffectivePlannedUntil, isChapterWithinPlanning } from "@/lib/create/
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { isShortStoryWork } from "@/shared/work-type";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +33,8 @@ function countWords(text: string) {
   return text.replace(/\s+/g, "").length;
 }
 
-function getDefaultChapterTitle(index: number) {
+function getDefaultChapterTitle(index: number, workType?: string | null) {
+  if (isShortStoryWork(workType)) return `场景 ${index}`;
   if (index === 1) return "第一章";
   return `第${index}章`;
 }
@@ -43,6 +45,7 @@ async function requireWorkAccess(params: { workId: string; userId: string; isAdm
     select: {
       id: true,
       userId: true,
+      workType: true,
       title: true,
       tag: true,
       outline: true,
@@ -65,15 +68,25 @@ async function requireWorkAccess(params: { workId: string; userId: string; isAdm
 
 function assertChapterIsPlanned(work: Awaited<ReturnType<typeof requireWorkAccess>>, index: number) {
   const outline = work.outline as unknown as StoryOutline;
-  const plannedUntilChapter = getEffectivePlannedUntil({
-    outline,
-    plannedUntilChapter: work.plannedUntilChapter,
-  });
+  const plannedUntilChapter = isShortStoryWork(work.workType)
+    ? Math.max(1, work.plannedUntilChapter || 0, work.targetChapters || 0)
+    : getEffectivePlannedUntil({
+        outline,
+        plannedUntilChapter: work.plannedUntilChapter,
+      });
 
-  if (!isChapterWithinPlanning({ index, outline, plannedUntilChapter })) {
+  const planned = isShortStoryWork(work.workType)
+    ? index <= plannedUntilChapter
+    : isChapterWithinPlanning({ index, outline, plannedUntilChapter });
+
+  if (!planned) {
+    const currentLabel = isShortStoryWork(work.workType) ? `场景 ${index}` : `第${index}章`;
+    const limitLabel = isShortStoryWork(work.workType)
+      ? `场景 ${plannedUntilChapter}`
+      : `第${plannedUntilChapter}章`;
     throw new AuthApiError(
       423,
-      `第${index}章尚未规划，当前只开放到第${plannedUntilChapter}章。请先在作品页点击“规划下一段”。`,
+      `${currentLabel}尚未规划，当前只开放到${limitLabel}。`,
     );
   }
 
@@ -111,7 +124,7 @@ export async function GET(
       create: {
         workId: work.id,
         index: parsed.index,
-        title: getDefaultChapterTitle(parsed.index),
+        title: getDefaultChapterTitle(parsed.index, work.workType),
         content: "",
         wordCount: 0,
         status: parsed.index <= plannedUntilChapter ? "planned" : "locked",
@@ -136,6 +149,7 @@ export async function GET(
       {
         work: {
           id: work.id,
+          workType: work.workType,
           title: work.title,
           tag: work.tag,
           outline: work.outline,
@@ -240,7 +254,7 @@ export async function PUT(
       create: {
         workId: work.id,
         index: parsed.index,
-        title: nextTitle ?? getDefaultChapterTitle(parsed.index),
+        title: nextTitle ?? getDefaultChapterTitle(parsed.index, work.workType),
         content: nextContent ?? "",
         wordCount: typeof nextWordCount === "number" ? nextWordCount : 0,
         status:
@@ -291,6 +305,7 @@ export async function PUT(
       {
         work: {
           id: work.id,
+          workType: work.workType,
           title: work.title,
           tag: work.tag,
           targetChapters: work.targetChapters,

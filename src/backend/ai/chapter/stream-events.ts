@@ -16,7 +16,7 @@ export type ChapterStreamEvent =
         updatedAt: string;
         createdAt: string;
       };
-      work: { id: string; title: string; tag: string };
+      work: { id: string; workType: "long_novel" | "short_story"; title: string; tag: string };
     }
   | { type: "aborted"; savedDraft: boolean; message: string }
   | { type: "error"; message: string };

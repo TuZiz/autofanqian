@@ -10,6 +10,7 @@ export type ChapterGenerationStage =
 export type ChapterGenerationResult = {
   work: {
     id: string;
+    workType: "long_novel" | "short_story";
     title: string;
     tag: string;
   };

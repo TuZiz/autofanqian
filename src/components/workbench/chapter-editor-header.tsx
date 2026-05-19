@@ -3,6 +3,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
+import { isShortStoryWork } from "@/shared/work-type";
 import { ChapterEditorMenu } from "./chapter-editor-menu";
 import {
   normalizeChapterCopy,
@@ -29,7 +30,10 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
     work,
     workId,
   } = editor;
-  const nextChapterLabel = formatChapterLabel(Math.max(chapterIndex, maxChapterIndex) + 1);
+  const nextChapterLabel = formatChapterLabel(
+    Math.max(chapterIndex, maxChapterIndex) + 1,
+    work?.workType,
+  );
   const aiLabel = normalizeChapterCopy(effectiveAiBusy ? aiStageMessage : aiButtonLabel);
   const progress = Math.round(Math.max(0, Math.min(100, effectiveAiProgress)));
 
@@ -108,6 +112,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
   );
 }
 
-function formatChapterLabel(index: number) {
+function formatChapterLabel(index: number, workType?: string | null) {
+  if (isShortStoryWork(workType)) return `场景 ${Math.max(1, index)}`;
   return `第${Math.max(1, index)}章`;
 }

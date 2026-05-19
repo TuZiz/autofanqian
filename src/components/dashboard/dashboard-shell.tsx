@@ -17,6 +17,7 @@ import {
 } from "@/lib/dashboard/dashboard-visual";
 import type { DashboardClientController } from "@/lib/dashboard/use-dashboard-client";
 import { cn } from "@/lib/utils";
+import { isShortStoryWork } from "@/shared/work-type";
 import { DashboardProfileModal } from "./dashboard-profile-modal";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardWorksSection } from "./dashboard-works-section";
@@ -60,7 +61,7 @@ export function DashboardShell({ dashboard }: DashboardShellProps) {
       },
       {
         icon: BookOpen,
-        label: "章节积累",
+        label: "内容段落",
         tone: "amber",
         value: `${overview?.stats.chapterCount ?? 0}`,
       },
@@ -207,7 +208,7 @@ function ActiveWorkPanel({
       <div className="relative z-10">
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-md bg-[var(--theme-brand-soft)] px-2.5 py-1 text-[10px] font-bold text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]">
-            活跃连载
+            {isShortStoryWork(activeWork.workType) ? "活跃短篇" : "活跃连载"}
           </div>
           <span className="text-xs font-bold text-[var(--theme-text-muted)]">
             {formatRelativeTime(activeWork.updatedAt)} 记录

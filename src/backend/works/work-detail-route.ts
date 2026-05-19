@@ -13,6 +13,7 @@ import {
 import { getPlanningConfig } from "@/lib/config/planning";
 import { prisma } from "@/lib/prisma";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { isShortStoryWork } from "@/shared/work-type";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export async function GET(
       select: {
         id: true,
         userId: true,
+        workType: true,
         genreId: true,
         genreLabel: true,
         idea: true,
@@ -84,8 +86,10 @@ export async function GET(
 
     let normalizedWork = work;
     const outline = work.outline as unknown as StoryOutline;
-    const targetChapters = work.targetChapters ?? inferTargetChapters(outline);
-    if (!work.plannedUntilChapter || !outline.planningMode) {
+    const targetChapters = isShortStoryWork(work.workType)
+      ? (work.targetChapters ?? work.plannedUntilChapter ?? 0)
+      : work.targetChapters ?? inferTargetChapters(outline);
+    if (!isShortStoryWork(work.workType) && (!work.plannedUntilChapter || !outline.planningMode)) {
       const planningConfig = await getPlanningConfig();
       const progressive = normalizeProgressiveOutline(outline, {
         config: planningConfig,
@@ -103,6 +107,7 @@ export async function GET(
         select: {
           id: true,
           userId: true,
+          workType: true,
           genreId: true,
           genreLabel: true,
           idea: true,
@@ -181,6 +186,7 @@ export async function PATCH(
       select: {
         id: true,
         userId: true,
+        workType: true,
         genreId: true,
         genreLabel: true,
         idea: true,

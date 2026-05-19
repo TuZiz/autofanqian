@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 import { cn } from "@/lib/utils";
+import { isShortStoryWork } from "@/shared/work-type";
 
 type ChapterEditorMenuProps = {
   editor: WorkChapterEditorController;
@@ -42,7 +43,8 @@ export function ChapterEditorMenu({ editor, nextChapterLabel }: ChapterEditorMen
   const chapterSearchInputRef = useRef<HTMLInputElement | null>(null);
   const chapterMenuCloseTimerRef = useRef<number | null>(null);
   const handledFocusNonceRef = useRef(0);
-  const currentChapterLabel = formatChapterLabel(chapterIndex);
+  const isShortStory = isShortStoryWork(work?.workType);
+  const currentChapterLabel = formatChapterLabel(chapterIndex, work?.workType);
 
   const clearChapterMenuCloseTimer = useCallback(() => {
     if (!chapterMenuCloseTimerRef.current) return;
@@ -175,7 +177,7 @@ export function ChapterEditorMenu({ editor, nextChapterLabel }: ChapterEditorMen
             </div>
             <label className="flex h-12 items-center gap-3 rounded-xl border border-[var(--theme-border)] bg-white/80 px-4 text-sm text-zinc-500 shadow-sm transition-all focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-400/20 dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-zinc-400 dark:focus-within:border-emerald-500 dark:focus-within:ring-emerald-500/20">
               <Search className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400" />
-              <span className="sr-only">搜索章节</span>
+              <span className="sr-only">{isShortStory ? "搜索场景" : "搜索章节"}</span>
               <input
                 ref={chapterSearchInputRef}
                 value={commandQuery}
@@ -186,7 +188,7 @@ export function ChapterEditorMenu({ editor, nextChapterLabel }: ChapterEditorMen
                   }
                 }}
                 className="min-w-0 flex-1 bg-transparent font-bold text-zinc-800 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-                placeholder="搜索章节名、卷号或关键词..."
+                placeholder={isShortStory ? "搜索场景名或关键词..." : "搜索章节名、卷号或关键词..."}
               />
             </label>
             {disabledReason ? (
@@ -204,13 +206,14 @@ export function ChapterEditorMenu({ editor, nextChapterLabel }: ChapterEditorMen
             disabledReason={disabledReason}
             goToChapter={goToChapter}
             onClose={closeChapterMenu}
+            workType={work?.workType}
           />
 
           <div className="border-t border-[var(--theme-border)] bg-zinc-50/50 p-3 dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
             <button
               type="button"
               disabled={actionLocked}
-              title={disabledReason || `从${nextChapterLabel}开始新增章节`}
+              title={disabledReason || `从${nextChapterLabel}开始新增${isShortStory ? "场景" : "章节"}`}
               onClick={() => {
                 closeChapterMenu();
                 void handleBatchAddChapters();
@@ -218,7 +221,7 @@ export function ChapterEditorMenu({ editor, nextChapterLabel }: ChapterEditorMen
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-4 py-3 text-xs font-semibold text-zinc-600 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-1 hover:ring-[var(--theme-border)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-[var(--theme-border)]"
             >
               <Plus className="h-4 w-4" />
-              新增章节 · {nextChapterLabel}起
+              新增{isShortStory ? "场景" : "章节"} · {nextChapterLabel}起
             </button>
           </div>
         </div>
@@ -235,6 +238,7 @@ function ChapterMenuList({
   disabledReason,
   goToChapter,
   onClose,
+  workType,
 }: {
   actionLocked: boolean;
   chapterIndex: number;
@@ -243,7 +247,9 @@ function ChapterMenuList({
   disabledReason: string;
   goToChapter: WorkChapterEditorController["goToChapter"];
   onClose: () => void;
+  workType?: string | null;
 }) {
+  const isShortStory = isShortStoryWork(workType);
   return (
     <div
       className="max-h-[min(52vh,420px)] overflow-y-auto p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -258,7 +264,7 @@ function ChapterMenuList({
               key={item.id}
               type="button"
               disabled={actionLocked}
-              title={disabledReason || `${formatChapterLabel(item.index)}：${item.title || "未命名"}`}
+              title={disabledReason || `${formatChapterLabel(item.index, workType)}：${item.title || "未命名"}`}
               onClick={() => {
                 onClose();
                 void goToChapter(item.index);
@@ -274,7 +280,7 @@ function ChapterMenuList({
               data-current-chapter={active ? "true" : undefined}
             >
               <span className="min-w-0 truncate text-sm font-semibold">
-                {formatChapterLabel(item.index)}：{item.title || "未命名"}
+                {formatChapterLabel(item.index, workType)}：{item.title || (isShortStory ? "未命名场景" : "未命名")}
               </span>
               {active ? (
                 <span className="shrink-0 rounded-lg bg-emerald-100/80 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-300">
@@ -290,7 +296,13 @@ function ChapterMenuList({
         })
       ) : (
         <div className="px-4 py-10 text-center text-xs font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-          {commandQuery.trim() ? "没有匹配的章节。" : "暂无可以切换的章节。"}
+          {commandQuery.trim()
+            ? isShortStory
+              ? "没有匹配的场景。"
+              : "没有匹配的章节。"
+            : isShortStory
+              ? "暂无可以切换的场景。"
+              : "暂无可以切换的章节。"}
         </div>
       )}
     </div>
@@ -307,14 +319,16 @@ function getNavigationDisabledReason({
   WorkChapterEditorController,
   "dirty" | "effectiveAiBusy" | "metaSaving" | "saving" | "work"
 >) {
+  const unit = isShortStoryWork(work?.workType) ? "场景" : "章节";
   if (!work) return "作品数据还没有加载完成，暂时不能切换或新增章节。";
-  if (dirty) return "当前章节还有未保存内容，保存完成后才能切换或新增。";
-  if (saving) return "正文正在保存，保存完成后才能切换或新增章节。";
+  if (dirty) return `当前${unit}还有未保存内容，保存完成后才能切换或新增。`;
+  if (saving) return `正文正在保存，保存完成后才能切换或新增${unit}。`;
   if (effectiveAiBusy) return aiZhCN.common.chapterBusy;
   if (metaSaving) return "章节设定正在保存，请稍后再操作。";
   return "";
 }
 
-function formatChapterLabel(index: number) {
+function formatChapterLabel(index: number, workType?: string | null) {
+  if (isShortStoryWork(workType)) return `场景 ${Math.max(1, index)}`;
   return `第${Math.max(1, index)}章`;
 }

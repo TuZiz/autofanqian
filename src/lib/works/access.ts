@@ -23,6 +23,7 @@ export async function requireWorkAccess(workId: string, options?: { allowDeleted
     select: {
       id: true,
       userId: true,
+      workType: true,
       title: true,
       tag: true,
       outline: true,

@@ -9,11 +9,13 @@ import {
   useChapterGenerationThinkingCopy,
 } from "@/lib/client/chapter-generation";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
+import { isShortStoryWork } from "@/shared/work-type";
 
 import type {
   ChapterBootstrap,
   ChapterDetail,
   ChapterListItem,
+  WorkLite,
 } from "./chapter-editor-types";
 
 type UseChapterEditorAiParams = {
@@ -28,6 +30,7 @@ type UseChapterEditorAiParams = {
   mergeChapterListItem: (chapter: ChapterDetail) => void;
   saving: boolean;
   setError: (message: string) => void;
+  work: WorkLite | null;
   workId: string;
 };
 
@@ -45,7 +48,15 @@ function getBlockingPreviousChapterIndex(
   return blockingChapter?.index ?? null;
 }
 
-function getBlockedGenerationMessage(blockingChapterIndex: number, chapterIndex: number) {
+function getBlockedGenerationMessage(
+  blockingChapterIndex: number,
+  chapterIndex: number,
+  workType?: string | null,
+) {
+  if (isShortStoryWork(workType)) {
+    return `请先完成场景 ${blockingChapterIndex} 正文后，再生成场景 ${chapterIndex}。`;
+  }
+
   return `请先完成第${blockingChapterIndex}章正文后，再生成第${chapterIndex}章。`;
 }
 
@@ -61,6 +72,7 @@ export function useChapterEditorAi({
   mergeChapterListItem,
   saving,
   setError,
+  work,
   workId,
 }: UseChapterEditorAiParams) {
   const router = useRouter();
@@ -74,6 +86,7 @@ export function useChapterEditorAi({
   const effectiveAiBusy = sharedAiBusy;
   const effectiveAiProgress = Math.max(0, chapterGeneration?.progress ?? 0);
   const aiThinking = useChapterGenerationThinkingCopy(chapterGeneration);
+  const isShortStory = isShortStoryWork(work?.workType);
   const hasExistingDraft = useMemo(() => Boolean((content ?? "").trim()), [content]);
   const blockingPreviousChapterIndex = useMemo(
     () => getBlockingPreviousChapterIndex(chapterIndex, chapterList),
@@ -82,9 +95,9 @@ export function useChapterEditorAi({
   const blockedGenerationMessage = useMemo(
     () =>
       blockingPreviousChapterIndex
-        ? getBlockedGenerationMessage(blockingPreviousChapterIndex, chapterIndex)
+        ? getBlockedGenerationMessage(blockingPreviousChapterIndex, chapterIndex, work?.workType)
         : "",
-    [blockingPreviousChapterIndex, chapterIndex],
+    [blockingPreviousChapterIndex, chapterIndex, work?.workType],
   );
 
   const handleGenerateWithAi = useCallback(
@@ -122,7 +135,11 @@ export function useChapterEditorAi({
   const aiButtonLabel = useMemo(() => {
     if (effectiveAiBusy) return aiThinking.copy;
     if (blockingPreviousChapterIndex) {
+      if (isShortStory) return `请先完成场景 ${blockingPreviousChapterIndex}`;
       return aiZhCN.chapterGenerate.blockedPrevious(blockingPreviousChapterIndex);
+    }
+    if (isShortStory) {
+      return hasExistingDraft ? `重写场景 ${chapterIndex}` : `AI 生成场景 ${chapterIndex}`;
     }
     if (hasExistingDraft) {
       return aiZhCN.chapterGenerate.regenerateButton(chapterIndex);
@@ -134,6 +151,7 @@ export function useChapterEditorAi({
     chapterIndex,
     effectiveAiBusy,
     hasExistingDraft,
+    isShortStory,
   ]);
 
   const handleAiActionClick = useCallback(() => {

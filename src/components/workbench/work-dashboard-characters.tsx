@@ -87,7 +87,7 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
                   </div>
                 </div>
                 <p className="line-clamp-4 text-sm font-medium leading-7 text-zinc-500 dark:text-zinc-400">
-                  {char.desc || "暂无人物小传。"}
+                  {getCharacterDesc(char) || "暂无人物小传。"}
                 </p>
               </article>
             );
@@ -115,6 +115,10 @@ export function WorkCharactersPanel({ dashboard }: { dashboard: WorkDashboardCon
 
 type CharacterItem = NonNullable<WorkDashboardController["outline"]>["characters"][number];
 
+function getCharacterDesc(char: CharacterItem) {
+  return "desc" in char ? char.desc : char.description;
+}
+
 function CharacterManagerDialog({
   characters,
   onClose,
@@ -136,7 +140,9 @@ function CharacterManagerDialog({
     return characters.filter((char) => {
       const role = roleToDisplay(char.role);
       const matchesRole = roleFilter === "全部" || role === roleFilter;
-      const matchesQuery = !normalized || [char.name, role, char.desc].join(" ").toLowerCase().includes(normalized);
+      const matchesQuery =
+        !normalized ||
+        [char.name, role, getCharacterDesc(char)].join(" ").toLowerCase().includes(normalized);
       return matchesRole && matchesQuery;
     });
   }, [characters, query, roleFilter]);
@@ -144,7 +150,7 @@ function CharacterManagerDialog({
 
   async function handleCopy() {
     const content = characters
-      .map((char, index) => `${index + 1}. ${char.name} - ${roleToDisplay(char.role)}\n${char.desc}`)
+      .map((char, index) => `${index + 1}. ${char.name} - ${roleToDisplay(char.role)}\n${getCharacterDesc(char)}`)
       .join("\n\n");
     await navigator.clipboard?.writeText(content);
     setCopied(true);
@@ -293,7 +299,7 @@ function CharacterManagerDialog({
                   人物定位与动机
                 </div>
                 <p className="whitespace-pre-wrap text-sm font-medium leading-relaxed text-zinc-600 dark:text-zinc-300">
-                  {selected.desc || "暂无人物小传。"}
+                  {getCharacterDesc(selected) || "暂无人物小传。"}
                 </p>
               </div>
 

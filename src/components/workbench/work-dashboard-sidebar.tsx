@@ -8,6 +8,7 @@ import { DEFAULT_PLANNING_CONFIG, type PlanningPreset } from "@/lib/create/progr
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
 import { formatChapterCount, formatChapterLabel } from "@/lib/workbench/work-dashboard-format";
 import { cn } from "@/lib/utils";
+import { isShortStoryWork } from "@/shared/work-type";
 
 import { ChapterGenerationTopbarProgress } from "./chapter-generation-progress";
 
@@ -37,7 +38,10 @@ export function WorkDashboardSidebar({
   } = dashboard;
 
   const targetChapter = plannedChapterCount || maxChapterIndex || nextChapterIndex;
-  const currentChapterLabel = currentProgressChapter > 0 ? formatChapterLabel(currentProgressChapter) : "尚未开始";
+  const isShortStory = isShortStoryWork(work?.workType);
+  const formatUnitLabel = (index: number) =>
+    isShortStory ? `场景 ${index}` : formatChapterLabel(index);
+  const currentChapterLabel = currentProgressChapter > 0 ? formatUnitLabel(currentProgressChapter) : "尚未开始";
   const extensionPresets: PlanningPreset[] = ["short", "smart", "long"];
   const extendBlockedReason = !outlineExtensionState.allowed ? outlineExtensionState.reason : "";
 
@@ -54,11 +58,11 @@ export function WorkDashboardSidebar({
             tone="primary"
             icon={<PenLine className="h-4 w-4" />}
             label="继续写作"
-            meta={formatChapterLabel(nextChapterIndex)}
+            meta={formatUnitLabel(nextChapterIndex)}
             onClick={() => goToChapter(nextChapterIndex)}
           />
 
-          {extendBlockedReason ? (
+          {isShortStory ? null : extendBlockedReason ? (
             <Tooltip delay={0} closeDelay={0}>
               <TooltipTrigger>
                 <button
@@ -89,6 +93,7 @@ export function WorkDashboardSidebar({
             />
           )}
 
+          {isShortStory ? null : (
           <div className="grid grid-cols-3 gap-2">
             {extensionPresets.map((size) => (
               <button
@@ -106,6 +111,7 @@ export function WorkDashboardSidebar({
               </button>
             ))}
           </div>
+          )}
 
           {outlineRefineError ? (
             <div className="rounded-xl border border-red-200/60 bg-red-50/80 p-3 text-xs font-bold leading-5 text-red-600 shadow-inner dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-300">
@@ -128,13 +134,21 @@ export function WorkDashboardSidebar({
             ) : null}
 
             <div className="space-y-2">
-              <MetricRow label="大纲规划至" value={formatChapterLabel(targetChapter)} />
-              <MetricRow label="长期目标" value={targetChapterCount ? formatChapterLabel(targetChapterCount) : "未设定"} />
+              <MetricRow label={isShortStory ? "短篇拆分" : "大纲规划至"} value={formatUnitLabel(targetChapter)} />
+              <MetricRow label={isShortStory ? "场景总数" : "长期目标"} value={targetChapterCount ? formatUnitLabel(targetChapterCount) : "未设定"} />
               <MetricRow label="当前撰写至" value={currentChapterLabel} accent />
               <MetricRow
-                label="剩余缓冲量"
-                value={remainingBuffer ? formatChapterCount(remainingBuffer) : "需要补充"}
-                danger={!remainingBuffer || remainingBuffer < 5}
+                label={isShortStory ? "剩余场景" : "剩余缓冲量"}
+                value={
+                  remainingBuffer
+                    ? isShortStory
+                      ? `${remainingBuffer} 段`
+                      : formatChapterCount(remainingBuffer)
+                    : isShortStory
+                      ? "已到末段"
+                      : "需要补充"
+                }
+                danger={!isShortStory && (!remainingBuffer || remainingBuffer < 5)}
               />
             </div>
           </div>

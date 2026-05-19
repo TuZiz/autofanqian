@@ -11,16 +11,18 @@ import { WorkDashboardChaptersPanel } from "./work-dashboard-chapters";
 import { OutlineRefineDialog, WorkChapterCommandDialog } from "./work-dashboard-dialogs";
 import { WorkDashboardHeader } from "./work-dashboard-header";
 import { WorkDashboardHero } from "./work-dashboard-hero";
-import { WorkVolumesPanel } from "./work-dashboard-outline";
+import { WorkShortStoryOutlinePanel, WorkVolumesPanel } from "./work-dashboard-outline";
 import { WorkDashboardSidebar } from "./work-dashboard-sidebar";
+import { isShortStoryWork } from "@/shared/work-type";
 
 type WorkDashboardSectionId = "overview" | "chapters" | "outline" | "characters" | "context";
 
-const WORK_DASHBOARD_SECTIONS: Array<{
+function getWorkDashboardSections(isShortStory: boolean): Array<{
   id: WorkDashboardSectionId;
   label: string;
   getValue: (dashboard: WorkDashboardController) => string;
-}> = [
+}> {
+  return [
   {
     id: "overview",
     label: "总览",
@@ -28,13 +30,18 @@ const WORK_DASHBOARD_SECTIONS: Array<{
   },
   {
     id: "chapters",
-    label: "章节",
+    label: isShortStory ? "场景" : "章节",
     getValue: (dashboard) => `${dashboard.chapters.length}`,
   },
   {
     id: "outline",
-    label: "卷纲",
-    getValue: (dashboard) => (dashboard.outline?.volumes.length ? `${dashboard.outline.volumes.length}` : "0"),
+    label: isShortStory ? "结构" : "卷纲",
+    getValue: (dashboard) =>
+      isShortStory
+        ? `${dashboard.chapters.length}`
+        : dashboard.outline && "volumes" in dashboard.outline && dashboard.outline.volumes.length
+          ? `${dashboard.outline.volumes.length}`
+          : "0",
   },
   {
     id: "characters",
@@ -43,17 +50,20 @@ const WORK_DASHBOARD_SECTIONS: Array<{
   },
   {
     id: "context",
-    label: "伏笔设定",
+    label: isShortStory ? "设定" : "伏笔设定",
     getValue: (dashboard) => (dashboard.work ? "3类" : "0"),
   },
-];
+  ];
+}
 
 function isWorkDashboardSectionId(value: string): value is WorkDashboardSectionId {
-  return WORK_DASHBOARD_SECTIONS.some((section) => section.id === value);
+  return ["overview", "chapters", "outline", "characters", "context"].includes(value);
 }
 
 export function WorkDashboardView({ dashboard }: { dashboard: WorkDashboardController }) {
   const [activeSection, setActiveSection] = useState<WorkDashboardSectionId>("overview");
+  const isShortStory = isShortStoryWork(dashboard.work?.workType);
+  const sections = useMemo(() => getWorkDashboardSections(isShortStory), [isShortStory]);
 
   useEffect(() => {
     function syncFromHash() {
@@ -73,7 +83,11 @@ export function WorkDashboardView({ dashboard }: { dashboard: WorkDashboardContr
       case "chapters":
         return <WorkDashboardChaptersPanel dashboard={dashboard} />;
       case "outline":
-        return <WorkVolumesPanel dashboard={dashboard} />;
+        return isShortStory ? (
+          <WorkShortStoryOutlinePanel dashboard={dashboard} />
+        ) : (
+          <WorkVolumesPanel dashboard={dashboard} />
+        );
       case "characters":
         return <WorkCharactersPanel dashboard={dashboard} />;
       case "context":
@@ -82,7 +96,7 @@ export function WorkDashboardView({ dashboard }: { dashboard: WorkDashboardContr
       default:
         return <WorkDashboardHero key={dashboard.work?.id ?? "empty"} dashboard={dashboard} />;
     }
-  }, [activeSection, dashboard]);
+  }, [activeSection, dashboard, isShortStory]);
 
   function handleSectionChange(sectionId: WorkDashboardSectionId) {
     setActiveSection(sectionId);
@@ -101,6 +115,7 @@ export function WorkDashboardView({ dashboard }: { dashboard: WorkDashboardContr
             <WorkSectionNav
               activeSection={activeSection}
               dashboard={dashboard}
+              sections={sections}
               onSectionChange={handleSectionChange}
             />
 
@@ -126,10 +141,12 @@ export function WorkDashboardView({ dashboard }: { dashboard: WorkDashboardContr
 function WorkSectionNav({
   activeSection,
   dashboard,
+  sections,
   onSectionChange,
 }: {
   activeSection: WorkDashboardSectionId;
   dashboard: WorkDashboardController;
+  sections: ReturnType<typeof getWorkDashboardSections>;
   onSectionChange: (sectionId: WorkDashboardSectionId) => void;
 }) {
   return (
@@ -145,7 +162,7 @@ function WorkSectionNav({
         </div>
 
         <nav className="flex flex-col gap-2">
-          {WORK_DASHBOARD_SECTIONS.map((item) => {
+          {sections.map((item) => {
             const isActive = activeSection === item.id;
 
             return (

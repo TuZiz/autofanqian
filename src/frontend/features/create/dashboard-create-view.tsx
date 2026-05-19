@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { CreateActionSidebar } from "./create-action-sidebar";
 import { CreateBlueprintSection } from "./create-blueprint-section";
 import { CreateFormError } from "./create-form-error";
+import { CreateModeSwitch } from "./create-mode-switch";
 import { CreateSectionNav } from "./create-section-nav";
 import { SubmitOutlineButton } from "./submit-outline-button";
 
@@ -53,6 +54,9 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
                   选择模板，补齐设定，生成可继续编辑的大纲
                 </p>
               </div>
+              <div className="hidden md:block">
+                <CreateModeSwitch active="long" />
+              </div>
             </div>
 
             <div className="hidden justify-center lg:flex">
@@ -75,6 +79,9 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
         </header>
 
         <div className="flex-1 px-3.5 pb-20 pt-3.5 sm:px-4 lg:px-[18px]">
+          <div className="mb-3 md:hidden">
+            <CreateModeSwitch active="long" />
+          </div>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

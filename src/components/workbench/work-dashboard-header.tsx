@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LogoutConfirmDialog } from "@/components/ui/logout-confirm-dialog";
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
 import { cn } from "@/lib/utils";
+import { isShortStoryWork } from "@/shared/work-type";
 
 type HeaderSectionId = "overview" | "chapters" | "outline" | "characters" | "context";
 
@@ -28,15 +29,17 @@ export function WorkDashboardHeader({
     progressPercent,
     targetChapterCount,
     userEmail,
+    work,
   } = dashboard;
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const isShortStory = isShortStoryWork(work?.workType);
   const writtenChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
   const sectionTabs = [
     { label: "总览", value: `${progressPercent || 0}%`, sectionId: "overview" as const },
-    { label: "章节", value: `${writtenChapterCount} 章`, sectionId: "chapters" as const },
-    { label: "卷纲", value: `${plannedChapterCount || chapters.length} 章`, sectionId: "outline" as const },
+    { label: isShortStory ? "场景" : "章节", value: `${writtenChapterCount} ${isShortStory ? "段" : "章"}`, sectionId: "chapters" as const },
+    { label: isShortStory ? "结构" : "卷纲", value: `${plannedChapterCount || chapters.length} ${isShortStory ? "段" : "章"}`, sectionId: "outline" as const },
     { label: "人物", value: `${outline?.characters.length ?? 0} 人`, sectionId: "characters" as const },
-    { label: "设定", value: `${targetChapterCount || 0} 章`, sectionId: "context" as const },
+    { label: "设定", value: `${targetChapterCount || 0} ${isShortStory ? "段" : "章"}`, sectionId: "context" as const },
   ];
 
   return (

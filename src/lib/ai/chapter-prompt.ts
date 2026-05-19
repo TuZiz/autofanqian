@@ -1,4 +1,8 @@
 import type { StoryOutline, StoryOutlineRole } from "@/lib/create/outline-draft";
+import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
+import { isShortStoryWork } from "@/shared/work-type";
+
+type ChapterPromptOutline = StoryOutline | ShortStoryOutline;
 
 function clampInline(value: string | null | undefined, maxChars: number) {
   const normalized = (value ?? "").replace(/\s+/g, " ").trim();
@@ -8,7 +12,7 @@ function clampInline(value: string | null | undefined, maxChars: number) {
     : normalized;
 }
 
-function roleToChinese(role: StoryOutlineRole) {
+function roleToChinese(role: StoryOutlineRole | string) {
   switch (role) {
     case "protagonist":
       return "主角";
@@ -55,6 +59,10 @@ function findFocusVolumeIndex(
   );
 
   return planned >= 0 ? planned : 0;
+}
+
+function isShortStoryOutline(outline: ChapterPromptOutline): outline is ShortStoryOutline {
+  return Array.isArray((outline as Partial<ShortStoryOutline>).beats);
 }
 
 function getVisibleVolumes(
@@ -131,6 +139,14 @@ function formatOutlineVolume(params: {
     .join("\n");
 }
 
+function formatShortBeat(beat: ShortStoryOutline["beats"][number]) {
+  return [
+    `${beat.index}. ${beat.title}（约 ${beat.targetWords} 字）`,
+    `目的：${clampInline(beat.purpose, 96)}`,
+    `写作提示：${clampInline(beat.writingPrompt, 140)}`,
+  ].join("\n");
+}
+
 export function buildChapterSystemPrompt() {
   return [
     "你是一名资深中文网文作者与编辑。",
@@ -160,11 +176,12 @@ export function buildChapterUserPrompt(params: {
     platformLabel?: string | null;
     words?: string | null;
     dnaBookTitle?: string | null;
+    workType?: string | null;
     idea: string;
     title: string;
     synopsis: string;
   };
-  outline: StoryOutline;
+  outline: ChapterPromptOutline;
   context?: {
     previousSummary?: string | null;
     previousEnding?: string | null;
@@ -180,6 +197,7 @@ export function buildChapterUserPrompt(params: {
   const tags = (params.work.tags ?? []).filter(Boolean).slice(0, 5);
   const tagLine = tags.length ? `标签：${tags.join("、")}` : "";
   const extraPrompt = typeof params.extraPrompt === "string" ? params.extraPrompt.trim() : "";
+  const shortStory = isShortStoryWork(params.work.workType) || isShortStoryOutline(params.outline);
 
   const metaLines = [
     params.work.genreLabel || params.work.genreId ? `类型：${params.work.genreLabel || params.work.genreId}` : "",
@@ -189,20 +207,33 @@ export function buildChapterUserPrompt(params: {
     params.work.dnaBookTitle ? `参考书名：${params.work.dnaBookTitle}（只抽象写法与结构，不复刻原作剧情）` : "",
   ].filter(Boolean);
 
-  const volumes = getVisibleVolumes(params.outline, params.chapterIndex)
-    .map(({ volume, outlineIndex }) =>
-      formatOutlineVolume({
-        volume,
-        outlineIndex,
-        chapterIndex: params.chapterIndex,
-      }),
-    )
-    .join("\n\n");
+  const focusBeat = isShortStoryOutline(params.outline)
+    ? params.outline.beats.find((beat) => beat.index === params.chapterIndex)
+    : null;
+  const structure = isShortStoryOutline(params.outline)
+    ? params.outline.beats
+        .slice(Math.max(0, params.chapterIndex - 2), params.chapterIndex + 2)
+        .map(formatShortBeat)
+        .join("\n\n")
+    : getVisibleVolumes(params.outline, params.chapterIndex)
+        .map(({ volume, outlineIndex }) =>
+          formatOutlineVolume({
+            volume,
+            outlineIndex,
+            chapterIndex: params.chapterIndex,
+          }),
+        )
+        .join("\n\n");
 
-  const characters = params.outline.characters
-    .slice(0, 6)
-    .map((c) => `${c.name}（${roleToChinese(c.role)}）：${clampInline(c.desc, 72)}`)
-    .join("\n");
+  const characters = isShortStoryOutline(params.outline)
+    ? params.outline.characters
+        .slice(0, 5)
+        .map((c) => `${c.name}（${c.role}）：${clampInline(c.description, 72)}`)
+        .join("\n")
+    : params.outline.characters
+        .slice(0, 6)
+        .map((c) => `${c.name}（${roleToChinese(c.role)}）：${clampInline(c.desc, 72)}`)
+        .join("\n");
 
   const chapterIndex = params.chapterIndex;
   const previousContext = [
@@ -248,7 +279,8 @@ export function buildChapterUserPrompt(params: {
     "",
     `简介：${clampInline(params.work.synopsis, 320)}`,
     "",
-    `相关卷纲：\n${volumes}`,
+    shortStory ? "短篇模式：请写一个完整短篇中的场景/段落，不要写成长篇章节。" : "",
+    shortStory ? `相关短篇结构：\n${structure}` : `相关卷纲：\n${structure}`,
     "",
     `主要角色：\n${characters || "-"}`,
     "",
@@ -262,11 +294,19 @@ export function buildChapterUserPrompt(params: {
     writingMemories ? `长期写作记忆与约束：\n${writingMemories}` : "",
     libraryContext,
     previousContext.length || recentSummaries || writingMemories || libraryContext ? "" : "",
-    `现在请你生成第 ${chapterIndex} 章正文草稿。`,
-    "长度建议：约 2800-4500 字（中文字符）。",
-    chapterIndex === 1
-      ? "第 1 章重点：快速开场 + 主角登场 + 明确外部压力/危机 + 埋下主线悬念。"
-      : "非第 1 章必须自然承接上一章结尾，保持人物情绪、地点、冲突和未解决问题连续。",
+    shortStory
+      ? `现在请你生成场景 ${chapterIndex} 的正文草稿。`
+      : `现在请你生成第 ${chapterIndex} 章正文草稿。`,
+    focusBeat
+      ? `长度建议：约 ${focusBeat.targetWords} 字（中文字符），围绕「${focusBeat.title}」完成这一段目的。`
+      : shortStory
+        ? "长度建议：按短篇节奏写成完整场景，避免灌水和长篇铺设。"
+        : "长度建议：约 2800-4500 字（中文字符）。",
+    shortStory
+      ? "短篇写法重点：场景集中、信息有效、每段都推进冲突或情绪变化；结尾服务整体短篇落点。"
+      : chapterIndex === 1
+        ? "第 1 章重点：快速开场 + 主角登场 + 明确外部压力/危机 + 埋下主线悬念。"
+        : "非第 1 章必须自然承接上一章结尾，保持人物情绪、地点、冲突和未解决问题连续。",
     ...(extraPrompt ? ["", `补充要求（优先遵循）：${extraPrompt}`] : []),
     "注意：只输出严格合法 JSON（换行用 \\n，需要的双引号要转义）。",
   ].join("\n");

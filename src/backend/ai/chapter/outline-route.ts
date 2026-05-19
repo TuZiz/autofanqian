@@ -19,9 +19,11 @@ import { getCurrentUser } from "@/lib/auth/service";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { isShortStoryWork } from "@/shared/work-type";
 
 export const runtime = "nodejs";
 
@@ -66,6 +68,14 @@ function formatOutlineVolume(volume: StoryOutline["volumes"][number], index: num
     .join("\n");
 }
 
+function formatShortStoryBeat(beat: ShortStoryOutline["beats"][number]) {
+  return [
+    `${beat.index}. ${beat.title}（约 ${beat.targetWords} 字）`,
+    `目的：${clampText(beat.purpose, 160)}`,
+    `提示：${clampText(beat.writingPrompt, 220)}`,
+  ].join("\n");
+}
+
 export async function POST(request: Request) {
   try {
     assertSameOriginRequest(request);
@@ -100,6 +110,7 @@ export async function POST(request: Request) {
       select: {
         id: true,
         userId: true,
+        workType: true,
         tag: true,
         title: true,
         synopsis: true,
@@ -161,7 +172,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const outline = work.outline as unknown as StoryOutline;
+    const outline = work.outline as unknown as StoryOutline | ShortStoryOutline;
+    const isShortStory = isShortStoryWork(work.workType);
+    const outlineText = isShortStory && "beats" in outline
+      ? outline.beats.map(formatShortStoryBeat).join("\n\n")
+      : "volumes" in outline
+        ? outline.volumes.map(formatOutlineVolume).join("\n\n")
+        : "-";
 
     const providersFromEnv = getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();
@@ -191,8 +208,8 @@ export async function POST(request: Request) {
     const systemPrompt = [
       "你是一名资深小说编剧/编辑。",
       hasContent
-        ? "请根据章节正文，提炼出【章节大纲】（也可理解为情节节拍/场景列表）。"
-        : "请根据作品信息与全书大纲，为指定章节生成【写作大纲】（本章计划要写什么）。",
+        ? `请根据${isShortStory ? "场景" : "章节"}正文，提炼出【${isShortStory ? "段落提示" : "章节大纲"}】（也可理解为情节节拍/场景列表）。`
+        : `请根据作品信息与${isShortStory ? "短篇结构" : "全书大纲"}，为指定${isShortStory ? "场景" : "章节"}生成【写作大纲】。`,
       "",
       "输出要求：",
       "1) 只输出要点列表（纯文本），不要标题，不要 Markdown 代码块。",
@@ -203,13 +220,13 @@ export async function POST(request: Request) {
     const userPrompt = [
       `作品：${work.title}`,
       `标签：${work.tag || "-"}`,
-      `章节：第 ${body.index} 章`,
-      `章标题：${chapter.title || "-"}`,
+      `${isShortStory ? "场景" : "章节"}：${isShortStory ? `场景 ${body.index}` : `第 ${body.index} 章`}`,
+      `${isShortStory ? "场景标题" : "章标题"}：${chapter.title || "-"}`,
       "",
       `作品简介：${clampText(work.synopsis ?? "", 600) || "-"}`,
       extraPrompt ? `补充要求（优先遵循）：${extraPrompt}` : "",
       "",
-      `全书大纲（卷结构）：\n${outline?.volumes?.map(formatOutlineVolume).join("\n\n") || "-"}`,
+      `${isShortStory ? "短篇结构（场景/段落）" : "全书大纲（卷结构）"}：\n${outlineText || "-"}`,
       "",
       previous?.summary
         ? `上一章摘要：\n${clampText(previous.summary, 900)}\n`
@@ -218,7 +235,7 @@ export async function POST(request: Request) {
           : "",
       hasContent
         ? ["章节正文：", clampText((chapter.content ?? "").trim(), 14_000)].join("\n")
-        : "本章正文：暂无（请生成写作大纲）。",
+        : `${isShortStory ? "本场景" : "本章"}正文：暂无（请生成写作大纲）。`,
     ]
       .filter(Boolean)
       .join("\n");

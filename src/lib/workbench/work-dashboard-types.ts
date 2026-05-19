@@ -1,5 +1,7 @@
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
 import type { SessionAccessFields } from "@/lib/auth/session-user-types";
+import type { WorkTypeValue } from "@/shared/work-type";
 
 export type SessionUser = SessionAccessFields & {
   email: string;
@@ -7,6 +9,7 @@ export type SessionUser = SessionAccessFields & {
 
 export type WorkDetail = {
   id: string;
+  workType: WorkTypeValue;
   genreId: string;
   genreLabel: string | null;
   idea: string;
@@ -18,11 +21,11 @@ export type WorkDetail = {
   tag: string;
   title: string;
   synopsis: string;
-  outline: StoryOutline;
+  outline: StoryOutline | ShortStoryOutline;
   targetChapters?: number | null;
   plannedUntilChapter?: number | null;
   planningMode?: "progressive" | string | null;
-  rawOutline?: StoryOutline | null;
+  rawOutline?: StoryOutline | ShortStoryOutline | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -39,6 +42,7 @@ export type ChapterListItem = {
 export type ChaptersOverview = {
   work: {
     id: string;
+    workType: WorkTypeValue;
     title: string;
     tag: string;
     targetChapters?: number | null;

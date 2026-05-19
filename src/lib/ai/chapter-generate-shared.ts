@@ -14,11 +14,13 @@ import { AuthApiError } from "@/lib/auth/errors";
 import type { SessionUser } from "@/lib/auth/user";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import type { StoryOutline } from "@/lib/create/outline-draft";
+import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
 import {
   getEffectivePlannedUntil,
   isChapterWithinPlanning,
 } from "@/lib/create/progressive-planning";
 import { prisma } from "@/lib/prisma";
+import { isShortStoryWork } from "@/shared/work-type";
 
 export {
   chapterGenerateBodySchema,
@@ -111,6 +113,7 @@ export async function prepareChapterGeneration(params: {
     select: {
       id: true,
       userId: true,
+      workType: true,
       genreId: true,
       genreLabel: true,
       idea: true,
@@ -136,22 +139,32 @@ export async function prepareChapterGeneration(params: {
     throw new AuthApiError(403, "无权限访问该作品。");
   }
 
-  const outline = work.outline as unknown as StoryOutline;
-  const plannedUntilChapter = getEffectivePlannedUntil({
-    outline,
-    plannedUntilChapter: work.plannedUntilChapter,
-  });
+  const outline = work.outline as unknown as StoryOutline | ShortStoryOutline;
+  const plannedUntilChapter = isShortStoryWork(work.workType)
+    ? Math.max(1, work.plannedUntilChapter || 0, work.targetChapters || 0)
+    : getEffectivePlannedUntil({
+        outline: outline as StoryOutline,
+        plannedUntilChapter: work.plannedUntilChapter,
+      });
 
-  if (
-    !isChapterWithinPlanning({
-      index: input.index,
-      outline,
-      plannedUntilChapter,
-    })
-  ) {
+  const planned = isShortStoryWork(work.workType)
+    ? input.index <= plannedUntilChapter
+    : isChapterWithinPlanning({
+        index: input.index,
+        outline: outline as StoryOutline,
+        plannedUntilChapter,
+      });
+
+  if (!planned) {
+    const currentLabel = isShortStoryWork(work.workType)
+      ? `场景 ${input.index}`
+      : `第${input.index}章`;
+    const limitLabel = isShortStoryWork(work.workType)
+      ? `场景 ${plannedUntilChapter}`
+      : `第${plannedUntilChapter}章`;
     throw new AuthApiError(
       423,
-      `第${input.index}章尚未规划，当前只开放到第${plannedUntilChapter}章。请先在作品页点击“规划下一段”。`,
+      `${currentLabel}尚未规划，当前只开放到${limitLabel}。`,
     );
   }
 
@@ -182,9 +195,15 @@ export async function prepareChapterGeneration(params: {
 
     const blockingPreviousChapter = findBlockingPreviousChapter(previousChapters);
     if (blockingPreviousChapter) {
+      const previousLabel = isShortStoryWork(work.workType)
+        ? `场景 ${blockingPreviousChapter.index}`
+        : `第${blockingPreviousChapter.index}章`;
+      const currentLabel = isShortStoryWork(work.workType)
+        ? `场景 ${input.index}`
+        : `第${input.index}章`;
       throw new AuthApiError(
         422,
-        `请先完成第${blockingPreviousChapter.index}章正文后，再生成第${input.index}章。`,
+        `请先完成${previousLabel}正文后，再生成${currentLabel}。`,
       );
     }
   }
@@ -214,7 +233,7 @@ export async function prepareChapterGeneration(params: {
     const envKey = getProviderApiKeyEnvName(target.providerId);
     throw new AuthApiError(
       500,
-      `AI 未配置：当前“生成第一章”使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
+      `AI 未配置：当前“生成正文”使用 ${target.providerId}，但未检测到 ${envKey}。请在 web/.env 或 web/.env.local 中配置后重启，或到后台“AI 模型配置”切换线路。`,
     );
   }
 
@@ -225,13 +244,13 @@ export async function prepareChapterGeneration(params: {
     .slice()
     .filter((chapter) => chapter.summary?.trim() || chapter.content.trim())
     .sort((left, right) => right.index - left.index)
-      .slice(0, input.index === 1 ? 0 : 3)
-      .map((chapter) => ({
-        index: chapter.index,
-        title: chapter.title,
-        summary: clampText(chapter.summary || chapter.content, 220),
-      }))
-      .reverse();
+    .slice(0, input.index === 1 ? 0 : 3)
+    .map((chapter) => ({
+      index: chapter.index,
+      title: chapter.title,
+      summary: clampText(chapter.summary || chapter.content, 220),
+    }))
+    .reverse();
 
   const writingMemories = await prisma.writingMemory.findMany({
     where: { novelId: work.id, isActive: true },
@@ -292,6 +311,7 @@ export async function prepareChapterGeneration(params: {
   const promptSnapshot = buildChapterUserPrompt({
     chapterIndex: input.index,
     work: {
+      workType: work.workType,
       genreId: work.genreId,
       genreLabel: work.genreLabel,
       tags: work.tags ?? [],
@@ -338,6 +358,7 @@ export async function prepareChapterGeneration(params: {
     work: {
       id: work.id,
       userId: work.userId,
+      workType: work.workType,
       genreId: work.genreId,
       genreLabel: work.genreLabel,
       idea: work.idea,

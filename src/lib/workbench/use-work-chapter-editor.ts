@@ -185,6 +185,7 @@ export function useWorkChapterEditor(params: {
     mergeChapterListItem,
     saving,
     setError,
+    work,
     workId,
   });
   const {

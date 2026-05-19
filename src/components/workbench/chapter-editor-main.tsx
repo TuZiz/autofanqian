@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 import { cn } from "@/lib/utils";
+import { isShortStoryWork } from "@/shared/work-type";
 
 export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorController }) {
   const {
@@ -29,11 +30,14 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
     work,
   } = editor;
 
-  const currentChapterLabel = formatChapterLabel(chapterIndex);
+  const isShortStory = isShortStoryWork(work?.workType);
+  const currentChapterLabel = formatChapterLabel(chapterIndex, work?.workType);
   const contextPreview =
     summaryPreview ||
     outlinePreviewLines.join("；") ||
-    "暂无本章上下文。可在右侧生成摘要、大纲或细节设定后继续写作。";
+    (isShortStory
+      ? "暂无本场景上下文。可在右侧生成摘要、段落提示或细节设定后继续写作。"
+      : "暂无本章上下文。可在右侧生成摘要、大纲或细节设定后继续写作。");
   const contextChips = outlinePreviewLines.length
     ? outlinePreviewLines.slice(0, 3)
     : [work?.tag || "写作", currentChapterLabel].filter(Boolean);
@@ -55,7 +59,7 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
                 {currentChapterLabel}
               </span>
               <span className="rounded-md bg-zinc-200/50 px-2 py-0.5 text-[10px] font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                {work?.tag || "章节"}
+                {work?.tag || (isShortStory ? "场景" : "章节")}
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs font-semibold text-[var(--theme-text-muted)]">
@@ -298,6 +302,7 @@ function SaveInlineStatus({
   );
 }
 
-function formatChapterLabel(index: number) {
+function formatChapterLabel(index: number, workType?: string | null) {
+  if (isShortStoryWork(workType)) return `场景 ${Math.max(1, index)}`;
   return `第 ${Math.max(1, index)} 章`;
 }

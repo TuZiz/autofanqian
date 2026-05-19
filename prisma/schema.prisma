@@ -47,6 +47,11 @@ enum PlanningMode {
   progressive
 }
 
+enum WorkType {
+  long_novel
+  short_story
+}
+
 enum VolumeDetailLevel {
   macro
   detailed
@@ -251,6 +256,7 @@ model AiUsageEvent {
 model Work {
   id                  String       @id @default(cuid())
   userId              String
+  workType            WorkType     @default(long_novel)
   genreId             String
   genreLabel          String?
   idea                String
@@ -287,6 +293,7 @@ model Work {
   generationJobs   GenerationJob[]
 
   @@index([userId, updatedAt(sort: Desc)])
+  @@index([workType, updatedAt(sort: Desc)])
   @@index([deletedAt])
 }
 

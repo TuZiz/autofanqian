@@ -5,6 +5,7 @@ import { Check, Compass, Gauge, Loader2, PencilLine, Save, Sparkles, X } from "l
 
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
 import { cn } from "@/lib/utils";
+import { isShortStoryWork } from "@/shared/work-type";
 
 export function WorkDashboardHero({ dashboard }: { dashboard: WorkDashboardController }) {
   const {
@@ -33,6 +34,7 @@ export function WorkDashboardHero({ dashboard }: { dashboard: WorkDashboardContr
     displayOverviewText.length > 320 || displayOverviewText.split(/\r?\n/).length > 6;
   const writtenChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
   const tagSummary = work?.tags?.slice(0, 5).join("、");
+  const isShortStory = isShortStoryWork(work?.workType);
 
   function openTitleDialog() {
     if (!work || workTitleSaving) return;
@@ -84,7 +86,7 @@ export function WorkDashboardHero({ dashboard }: { dashboard: WorkDashboardContr
           {outline ? (
             <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-[rgba(16,185,129,0.14)] bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(246,249,244,0.92))] px-3 text-[11px] font-bold tracking-wide text-emerald-700 shadow-[0_10px_22px_-18px_rgba(16,185,129,0.2),inset_0_1px_0_rgba(255,255,255,0.96)] dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
               <Check className="h-3.5 w-3.5" />
-              大纲已锁定
+              {isShortStory ? "短篇结构已锁定" : "大纲已锁定"}
             </span>
           ) : null}
         </div>
@@ -157,10 +159,10 @@ export function WorkDashboardHero({ dashboard }: { dashboard: WorkDashboardContr
 
           <div className="mt-3 grid gap-2 sm:grid-cols-2 min-[1200px]:hidden">
             <HeroMetricCard label="总进度" value={`${progressPercent || 0}%`} tone="brand" />
-            <HeroMetricCard label="已写章节" value={`${writtenChapterCount} 章`} />
-            <HeroMetricCard label="已规划" value={`${plannedChapterCount || chapters.length} 章`} />
+            <HeroMetricCard label={isShortStory ? "已写场景" : "已写章节"} value={`${writtenChapterCount} ${isShortStory ? "段" : "章"}`} />
+            <HeroMetricCard label={isShortStory ? "已拆场景" : "已规划"} value={`${plannedChapterCount || chapters.length} ${isShortStory ? "段" : "章"}`} />
             <HeroMetricCard label="角色档案" value={`${outline?.characters.length ?? 0} 人`} />
-            <HeroMetricCard label="长期目标" value={`${targetChapterCount || 0} 章`} />
+            <HeroMetricCard label={isShortStory ? "短篇目标" : "长期目标"} value={`${targetChapterCount || 0} ${isShortStory ? "段" : "章"}`} />
           </div>
         </div>
 

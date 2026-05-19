@@ -3,13 +3,15 @@ import { Search } from "lucide-react";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 import { cn } from "@/lib/utils";
+import { isShortStoryWork } from "@/shared/work-type";
 
-function chapterLabel(index: number) {
+function chapterLabel(index: number, workType?: string | null) {
+  if (isShortStoryWork(workType)) return `场景 ${index}`;
   return `第${index}章`;
 }
 
-function chapterDisplayTitle(item: { index: number; title: string | null }) {
-  return `${chapterLabel(item.index)}：${item.title?.trim() || "未命名章节"}`;
+function chapterDisplayTitle(item: { index: number; title: string | null }, workType?: string | null) {
+  return `${chapterLabel(item.index, workType)}：${item.title?.trim() || (isShortStoryWork(workType) ? "未命名场景" : "未命名章节")}`;
 }
 
 function getDisabledReason({
@@ -47,6 +49,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
   } = editor;
 
   if (!commandOpen) return null;
+  const isShortStory = isShortStoryWork(work?.workType);
 
   const disabledReason = getDisabledReason({
     dirty,
@@ -66,7 +69,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
     <div className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-[10vh] sm:pt-[14vh]">
       <button
         type="button"
-        aria-label="关闭章节命令面板"
+        aria-label={isShortStory ? "关闭场景命令面板" : "关闭章节命令面板"}
         className="absolute inset-0 cursor-pointer bg-black/30 backdrop-blur-sm transition-opacity"
         onClick={closeDialog}
       />
@@ -86,14 +89,14 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
               id="chapter-command-title"
               className="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--theme-text-muted)]"
             >
-              章节导航
+              {isShortStory ? "场景导航" : "章节导航"}
             </p>
             <input
               autoFocus
               value={commandQuery}
               onChange={(event) => setCommandQuery(event.target.value)}
               className="mt-1 w-full bg-transparent text-lg font-medium tracking-tight text-[var(--theme-text-strong)] outline-none placeholder:text-[var(--theme-text-muted)]"
-              placeholder="搜索章节标题、作品名或第1章"
+              placeholder={isShortStory ? "搜索场景标题、作品名或场景1" : "搜索章节标题、作品名或第1章"}
             />
           </div>
           <kbd className="hidden rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-[var(--theme-text-muted)] shadow-sm sm:block">
@@ -110,7 +113,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
         <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="px-3 py-2">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--theme-text-muted)]">
-              {commandQuery.trim() ? "匹配章节" : "按章节顺序"}
+              {commandQuery.trim() ? (isShortStory ? "匹配场景" : "匹配章节") : isShortStory ? "按场景顺序" : "按章节顺序"}
               {work?.title ? ` · ${work.title}` : ""}
             </span>
           </div>
@@ -125,7 +128,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
                   key={item.id}
                   type="button"
                   disabled={navigationDisabled}
-                  title={navigationDisabled ? disabledReason : chapterDisplayTitle(item)}
+                  title={navigationDisabled ? disabledReason : chapterDisplayTitle(item, work?.workType)}
                   aria-current={active ? "page" : undefined}
                   onClick={() => {
                     closeDialog();
@@ -151,7 +154,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
                           : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] ring-[var(--theme-border)] group-hover:text-[var(--theme-brand-600)]",
                       )}
                     >
-                      {chapterLabel(item.index)}
+                      {chapterLabel(item.index, work?.workType)}
                     </span>
                     <span
                       className={cn(
@@ -161,7 +164,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
                           : "text-[var(--theme-text-primary)] group-hover:text-[var(--theme-text-strong)]",
                       )}
                     >
-                      {item.title?.trim() || "未命名章节"}
+                      {item.title?.trim() || (isShortStory ? "未命名场景" : "未命名章节")}
                     </span>
                   </div>
 
@@ -188,16 +191,16 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
             })
           ) : (
             <div className="px-4 py-12 text-center text-sm font-semibold text-[var(--theme-text-muted)]">
-              没有匹配的章节。
+              {isShortStory ? "没有匹配的场景。" : "没有匹配的章节。"}
             </div>
           )}
         </div>
 
         <div className="flex flex-col gap-2 border-t border-[var(--theme-divider)] bg-[var(--theme-surface-overlay)] px-5 py-4 text-xs text-[var(--theme-text-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span className="font-semibold">
-            当前定位：{chapterLabel(chapterIndex)}
+            当前定位：{chapterLabel(chapterIndex, work?.workType)}
           </span>
-          <span>{navigationDisabled ? "先处理上方提示后再切换章节" : "点击任一章节打开"}</span>
+          <span>{navigationDisabled ? `先处理上方提示后再切换${isShortStory ? "场景" : "章节"}` : `点击任一${isShortStory ? "场景" : "章节"}打开`}</span>
         </div>
       </div>
     </div>

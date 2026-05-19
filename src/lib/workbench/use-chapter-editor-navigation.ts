@@ -13,6 +13,7 @@ import type {
   ChapterOverview,
   WorkLite,
 } from "./chapter-editor-types";
+import { isShortStoryWork } from "@/shared/work-type";
 
 type UseChapterEditorNavigationParams = {
   chapter: ChapterDetail | null;
@@ -42,7 +43,8 @@ export function resolveBatchChapterCount(id: string, count: number | null) {
   resolve(count);
 }
 
-function formatChapterLabel(index: number) {
+function formatChapterLabel(index: number, workType?: string | null) {
+  if (isShortStoryWork(workType)) return `场景 ${index}`;
   return `第${index}章`;
 }
 
@@ -116,14 +118,14 @@ export function useChapterEditorNavigation({
         const searchable = normalizeSearchText(
           [
             String(item.index),
-            formatChapterLabel(item.index),
+            formatChapterLabel(item.index, work?.workType),
             item.title ?? "",
             work?.title ?? "",
           ].join(" "),
         );
         return searchable.includes(query);
       });
-  }, [chapterList, commandQuery, work?.title]);
+  }, [chapterList, commandQuery, work?.title, work?.workType]);
 
   const requestChapterMenuSearchFocus = useCallback(() => {
     setChapterMenuFocusNonce((current) => current + 1);
@@ -177,10 +179,14 @@ export function useChapterEditorNavigation({
     setMaxChapterIndex((current) => Math.max(current, startIndex + count - 1));
   }, [chapterIndex, maxChapterIndex, workId]);
 
-  const chapterLabel = formatChapterLabel(chapterIndex);
+  const chapterLabel = formatChapterLabel(chapterIndex, work?.workType);
   const chapterMenuVolumeLabel = chapterList.length
-    ? `全部章节（${chapterList.length}章）`
-    : "全部章节";
+    ? isShortStoryWork(work?.workType)
+      ? `全部场景（${chapterList.length}段）`
+      : `全部章节（${chapterList.length}章）`
+    : isShortStoryWork(work?.workType)
+      ? "全部场景"
+      : "全部章节";
   const chapterMenuChapters = commandChapters;
   const currentChapterItem = chapterList.find((item) => item.index === chapterIndex);
   const currentChapterEdited = Boolean((currentChapterItem?.wordCount ?? wordCount) > 0);
