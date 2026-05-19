@@ -28,6 +28,55 @@ export type AiQuotaReservationHandle = {
 } | null;
 
 type QuotaClient = typeof prisma | Prisma.TransactionClient;
+type AiQuotaReservationStatusValue =
+  | "pending"
+  | "committed"
+  | "committed_failed"
+  | "cancelled";
+type AiUsageEventData = ReturnType<typeof buildAiUsageEventData>;
+type FinalizeAiQuotaTransactionClient = {
+  aiUsageEvent: {
+    create(args: { data: AiUsageEventData; select: { id: true } }): Promise<unknown>;
+  };
+  aiQuotaReservation: {
+    findUnique(args: {
+      where: { id: string };
+      select: { status: true };
+    }): Promise<{ status: AiQuotaReservationStatusValue } | null>;
+    update(args: {
+      where: { id: string };
+      data: { status: AiQuotaReservationStatusValue };
+    }): Promise<unknown>;
+  };
+};
+type FinalizeAiQuotaClient = {
+  $transaction<T>(
+    fn: (tx: FinalizeAiQuotaTransactionClient) => Promise<T>,
+  ): Promise<T>;
+  aiUsageEvent: {
+    create(args: { data: AiUsageEventData; select: { id: true } }): Promise<unknown>;
+  };
+  aiQuotaReservation: {
+    updateMany(args: {
+      where: { id: string; status: "pending" };
+      data: { status: "committed_failed" | "cancelled" };
+    }): Promise<unknown>;
+  };
+};
+type RunWithAiQuotaReservationOps = {
+  reserve(
+    user: AiQuotaUser,
+    action: string,
+    options?: { estimatedTokens?: number | null },
+  ): Promise<AiQuotaReservationHandle>;
+  finalize(params: {
+    reservation: AiQuotaReservationHandle;
+    result: UpstreamTextResult;
+    action: string;
+    userId?: string | null;
+  }): Promise<void>;
+  cancel(reservation: AiQuotaReservationHandle): Promise<void>;
+};
 
 const RESERVATION_TTL_MS = 5 * 60_000;
 
@@ -329,12 +378,15 @@ function isSuccessfulAiResult(result: UpstreamTextResult) {
   return Boolean(result.ok && result.text);
 }
 
-export async function finalizeAiQuotaUsage(params: {
-  reservation: AiQuotaReservationHandle;
-  result: UpstreamTextResult;
-  action: string;
-  userId?: string | null;
-}) {
+export async function finalizeAiQuotaUsageWithClient(
+  client: FinalizeAiQuotaClient,
+  params: {
+    reservation: AiQuotaReservationHandle;
+    result: UpstreamTextResult;
+    action: string;
+    userId?: string | null;
+  },
+) {
   const { reservation, result } = params;
   const shouldCreateUsageEvent =
     isSuccessfulAiResult(result) || shouldPersistFailedUsage(result);
@@ -342,7 +394,7 @@ export async function finalizeAiQuotaUsage(params: {
   if (!reservation) {
     if (shouldCreateUsageEvent) {
       try {
-        await prisma.aiUsageEvent.create({
+        await client.aiUsageEvent.create({
           data: buildAiUsageEventData({
             userId: params.userId ?? null,
             action: params.action,
@@ -358,7 +410,7 @@ export async function finalizeAiQuotaUsage(params: {
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await client.$transaction(async (tx) => {
       const currentReservation = await tx.aiQuotaReservation.findUnique({
         where: { id: reservation.id },
         select: { status: true },
@@ -390,7 +442,7 @@ export async function finalizeAiQuotaUsage(params: {
       return;
     }
 
-    await prisma.aiQuotaReservation.updateMany({
+    await client.aiQuotaReservation.updateMany({
       where: {
         id: reservation.id,
         status: "pending",
@@ -400,6 +452,18 @@ export async function finalizeAiQuotaUsage(params: {
 
     console.warn("Failed to finalize AI quota usage:", error);
   }
+}
+
+export async function finalizeAiQuotaUsage(params: {
+  reservation: AiQuotaReservationHandle;
+  result: UpstreamTextResult;
+  action: string;
+  userId?: string | null;
+}) {
+  await finalizeAiQuotaUsageWithClient(
+    prisma as unknown as FinalizeAiQuotaClient,
+    params,
+  );
 }
 
 export async function cancelAiQuotaReservation(
@@ -449,16 +513,35 @@ export async function runWithAiQuotaReservation<T extends UpstreamTextResult>(
   execute: () => Promise<T>,
   options?: { estimatedTokens?: number | null },
 ): Promise<T> {
-  const reservation = await reserveAiQuota(user, action, options);
+  return runWithAiQuotaReservationUsingOps(user, action, execute, {
+    options,
+    ops: {
+      reserve: reserveAiQuota,
+      finalize: finalizeAiQuotaUsage,
+      cancel: cancelAiQuotaReservation,
+    },
+  });
+}
+
+export async function runWithAiQuotaReservationUsingOps<T extends UpstreamTextResult>(
+  user: AiQuotaUser,
+  action: string,
+  execute: () => Promise<T>,
+  params: {
+    options?: { estimatedTokens?: number | null };
+    ops: RunWithAiQuotaReservationOps;
+  },
+): Promise<T> {
+  const reservation = await params.ops.reserve(user, action, params.options);
   let result: T;
   try {
     result = await execute();
   } catch (error) {
-    await cancelAiQuotaReservation(reservation);
+    await params.ops.cancel(reservation);
     throw error;
   }
 
-  await finalizeAiQuotaUsage({
+  await params.ops.finalize({
     reservation,
     result,
     action,

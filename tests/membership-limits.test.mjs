@@ -8,6 +8,8 @@ import {
   assertMembershipCountAvailable,
 } from "../src/lib/membership/rules.ts";
 
+process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/test";
+
 const rootDir = process.cwd();
 
 function read(relativePath) {
@@ -40,6 +42,72 @@ function makeLimits(overrides) {
     dailyChapterOutlines: overrides.dailyChapterOutlines ?? 10,
     dailyChapterDetails: overrides.dailyChapterDetails ?? 10,
   };
+}
+
+function makeUpstreamResult(overrides = {}) {
+  return {
+    ok: true,
+    text: "ok",
+    status: 200,
+    routeId: "test-route",
+    providerId: "test-provider",
+    modelUsed: "test-model",
+    usage: {
+      inputTokens: 10,
+      outputTokens: 20,
+      totalTokens: 30,
+    },
+    durationMs: 123,
+    ...overrides,
+  };
+}
+
+function makeFinalizeClient(options = {}) {
+  const events = [];
+  const updates = [];
+  const fallbackUpdates = [];
+  const client = {
+    async $transaction(fn) {
+      if (options.failTransactionBeforeCallback) {
+        throw new Error("transaction failed");
+      }
+
+      return fn({
+        aiUsageEvent: {
+          async create(args) {
+            if (options.failUsageCreate) {
+              throw new Error("usage create failed");
+            }
+            events.push(args.data);
+            return { id: `event-${events.length}` };
+          },
+        },
+        aiQuotaReservation: {
+          async findUnique() {
+            return { status: options.status ?? "pending" };
+          },
+          async update(args) {
+            updates.push(args.data.status);
+            return { id: "reservation-1" };
+          },
+        },
+      });
+    },
+    aiUsageEvent: {
+      async create(args) {
+        events.push(args.data);
+        return { id: `event-${events.length}` };
+      },
+    },
+    aiQuotaReservation: {
+      async updateMany(args) {
+        fallbackUpdates.push(args.data.status);
+        return { count: 1 };
+      },
+    },
+  };
+
+  return { client, events, updates, fallbackUpdates };
 }
 
 test("default membership tier is displayed as Free without enum rename", () => {
@@ -334,19 +402,19 @@ test("AI quota reservation is committed on success and released on failure", () 
 
   assertBefore(
     quotaSource,
-    "const reservation = await reserveAiQuota(user, action, options);",
+    "const reservation = await params.ops.reserve(user, action, params.options);",
     "result = await execute();",
     "reservation before upstream call",
   );
-  const runSource = quotaSource.slice(quotaSource.indexOf("export async function runWithAiQuotaReservation"));
+  const runSource = quotaSource.slice(quotaSource.indexOf("export async function runWithAiQuotaReservationUsingOps"));
   assertBefore(
     runSource,
     "result = await execute();",
-    "await finalizeAiQuotaUsage({",
+    "await params.ops.finalize({",
     "finalization after upstream call",
   );
   assert.match(quotaSource, /export async function finalizeAiQuotaUsage/);
-  assert.match(quotaSource, /await prisma\.\$transaction\(async \(tx\) =>/);
+  assert.match(quotaSource, /await client\.\$transaction\(async \(tx\) =>/);
   assert.match(quotaSource, /await tx\.aiUsageEvent\.create/);
   assert.match(quotaSource, /await tx\.aiQuotaReservation\.update/);
   assert.match(quotaSource, /status: isSuccessfulAiResult\(result\) \? "committed" : "cancelled"/);
@@ -375,6 +443,175 @@ test("reservation finalization owns usage logging for protected AI calls", () =>
     const source = read(file);
     assert.doesNotMatch(source, /logAiUsage/, `${file} must not double-write usage`);
   }
+});
+
+test("reservation-protected AI actions are not followed by manual usage logging", () => {
+  const protectedActions = [
+    ["src/backend/ai/idea/generate-route.ts", "idea_generate"],
+    ["src/backend/ai/idea/generate-route.ts", "idea_generate_expand"],
+    ["src/backend/ai/idea/analyze-route.ts", "idea_analyze"],
+    ["src/backend/ai/outline/generate-route.ts", "outline_generate"],
+    ["src/backend/ai/outline/generate-route.ts", "outline_generate_retry"],
+    ["src/backend/ai/short-story/outline-route.ts", "short_story_outline_generate"],
+    ["src/backend/ai/short-story/outline-route.ts", "short_story_outline_generate_retry"],
+    ["src/backend/ai/chapter/generate-service.ts", "chapter_generate"],
+    ["src/backend/ai/chapter/summary-route.ts", "chapter_summary"],
+    ["src/backend/ai/chapter/outline-route.ts", "chapter_outline"],
+    ["src/backend/ai/chapter/details-route.ts", "chapter_details"],
+  ];
+
+  for (const [file, action] of protectedActions) {
+    const source = read(file);
+    const callIndex = source.indexOf(`runWithAiQuotaReservation(user, "${action}"`);
+    assert.notEqual(callIndex, -1, `${file} must reserve quota for ${action}`);
+
+    const nextProtectedCallIndex = source.indexOf("runWithAiQuotaReservation(", callIndex + 1);
+    const searchEnd = nextProtectedCallIndex === -1 ? source.length : nextProtectedCallIndex;
+    const blockAfterCall = source.slice(callIndex, searchEnd);
+    assert.doesNotMatch(
+      blockAfterCall,
+      /logAiUsage\(/,
+      `${file} must not log ${action} outside reservation finalization`,
+    );
+  }
+});
+
+test("chapter provider probes keep manual usage logging outside reserved generation calls", () => {
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const probeLogIndex = generateSource.indexOf("await logAiUsage({");
+  const generationIndex = generateSource.indexOf(
+    'runWithAiQuotaReservation(user, "chapter_generate"',
+  );
+
+  assert.notEqual(probeLogIndex, -1);
+  assert.ok(probeLogIndex < generationIndex);
+  assert.match(generateSource, /action: `chapter_generate_\$\{input\.index\}_probe`/);
+});
+
+test("quota finalization creates one usage event for one reserved successful call", async () => {
+  const { finalizeAiQuotaUsageWithClient } = await import("../src/lib/ai/quota.ts");
+  const { client, events, updates, fallbackUpdates } = makeFinalizeClient();
+
+  await finalizeAiQuotaUsageWithClient(client, {
+    reservation: { id: "reservation-1", userId: "user-1", action: "idea_generate" },
+    result: makeUpstreamResult(),
+    action: "idea_generate",
+    userId: "user-1",
+  });
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].action, "idea_generate");
+  assert.equal(events[0].success, true);
+  assert.deepEqual(updates, ["committed"]);
+  assert.deepEqual(fallbackUpdates, []);
+});
+
+test("runWithAiQuotaReservation success delegates to exactly one finalization", async () => {
+  const { runWithAiQuotaReservationUsingOps } = await import("../src/lib/ai/quota.ts");
+  const result = makeUpstreamResult();
+  const calls = [];
+  const user = {
+    id: "user-1",
+    email: "user@example.test",
+    membershipTier: "default",
+  };
+
+  const returned = await runWithAiQuotaReservationUsingOps(
+    user,
+    "idea_generate",
+    async () => result,
+    {
+      ops: {
+        async reserve(reservedUser, action) {
+          calls.push(["reserve", reservedUser.id, action]);
+          return { id: "reservation-1", userId: reservedUser.id, action };
+        },
+        async finalize(params) {
+          calls.push([
+            "finalize",
+            params.reservation?.id,
+            params.action,
+            params.userId,
+            params.result,
+          ]);
+        },
+        async cancel() {
+          calls.push(["cancel"]);
+        },
+      },
+    },
+  );
+
+  assert.equal(returned, result);
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[0], ["reserve", "user-1", "idea_generate"]);
+  assert.deepEqual(calls[1], [
+    "finalize",
+    "reservation-1",
+    "idea_generate",
+    "user-1",
+    result,
+  ]);
+});
+
+test("failed quota finalization with consumed tokens creates one failed usage event", async () => {
+  const { finalizeAiQuotaUsageWithClient } = await import("../src/lib/ai/quota.ts");
+  const { client, events, updates, fallbackUpdates } = makeFinalizeClient();
+
+  await finalizeAiQuotaUsageWithClient(client, {
+    reservation: {
+      id: "reservation-1",
+      userId: "user-1",
+      action: "chapter_summary",
+    },
+    result: makeUpstreamResult({
+      ok: false,
+      text: "",
+      status: 502,
+      usage: { inputTokens: 10, outputTokens: 2, totalTokens: 12 },
+    }),
+    action: "chapter_summary",
+    userId: "user-1",
+  });
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].action, "chapter_summary");
+  assert.equal(events[0].success, false);
+  assert.equal(events[0].totalTokens, 12);
+  assert.deepEqual(updates, ["cancelled"]);
+  assert.deepEqual(fallbackUpdates, []);
+});
+
+test("quota finalization transaction failure marks committed_failed without duplicate usage", async () => {
+  const { finalizeAiQuotaUsageWithClient } = await import("../src/lib/ai/quota.ts");
+  const { client, events, updates, fallbackUpdates } = makeFinalizeClient({
+    failUsageCreate: true,
+  });
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (...args) => {
+    warnings.push(args);
+  };
+
+  try {
+    await finalizeAiQuotaUsageWithClient(client, {
+      reservation: {
+        id: "reservation-1",
+        userId: "user-1",
+        action: "chapter_generate",
+      },
+      result: makeUpstreamResult(),
+      action: "chapter_generate",
+      userId: "user-1",
+    });
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.equal(events.length, 0);
+  assert.deepEqual(updates, []);
+  assert.deepEqual(fallbackUpdates, ["committed_failed"]);
+  assert.equal(warnings.length, 1);
 });
 
 test("chapter generation and stream generation use aggregated action names", () => {

@@ -112,7 +112,7 @@ export function LoginForm() {
               aria-invalid={!!fieldErrors.password}
               aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
               className="min-w-0 flex-1 bg-transparent px-3 py-3 pr-12 text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-white"
-              placeholder="••••••••"
+              placeholder="请输入访问密码"
             />
             <div className="absolute right-2 top-0 h-full flex items-center">
               <PasswordVisibilityToggle
