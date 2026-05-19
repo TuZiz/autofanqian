@@ -8,7 +8,6 @@ import {
   assertAiQuotaAvailable,
   runWithAiQuotaReservation,
 } from "@/lib/ai/quota";
-import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildAiProviderChain,
   callAiText,
@@ -211,12 +210,6 @@ export async function POST(request: Request) {
         maxTokens: 850,
       }),
     );
-
-    await logAiUsage({
-      userId: user.id,
-      action: "chapter_details",
-      result,
-    });
 
     if (!result.ok || !result.text) {
       return NextResponse.json(

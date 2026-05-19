@@ -5,8 +5,8 @@ import { errorResponse } from "@/lib/auth/api";
 import {
   assertAiQuotaAvailable,
   cancelAiQuotaReservation,
+  finalizeAiQuotaUsage,
   reserveAiQuota,
-  settleAiQuotaReservation,
 } from "@/lib/ai/quota";
 import { runChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
 import {
@@ -253,23 +253,19 @@ export async function POST(request: Request) {
                 }
               },
             });
-            await settleAiQuotaReservation(quotaReservation, usageResult);
+            usageResult.selectedProviderId = selected.provider.id;
+            usageResult.probeDurationMs = selected.probeDurationMs;
+            usageResult.fallbackCount = selected.fallbackCount;
+            await finalizeAiQuotaUsage({
+              reservation: quotaReservation,
+              result: usageResult,
+              action: "chapter_generate_stream",
+              userId: prepared.user.id,
+            });
           } catch (error) {
             await cancelAiQuotaReservation(quotaReservation);
             throw error;
           }
-
-          if (usageResult) {
-            usageResult.selectedProviderId = selected.provider.id;
-            usageResult.probeDurationMs = selected.probeDurationMs;
-            usageResult.fallbackCount = selected.fallbackCount;
-          }
-
-          await logAiUsage({
-            userId: prepared.user.id,
-            action: "chapter_generate_stream",
-            result: usageResult,
-          });
 
           if (!usageResult.ok || !usageResult.text) {
             writeEvent(

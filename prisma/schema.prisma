@@ -91,6 +91,7 @@ enum GenerationJobStatus {
 enum AiQuotaReservationStatus {
   pending
   committed
+  committed_failed
   cancelled
 }
 

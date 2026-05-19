@@ -12,7 +12,6 @@ import {
   buildIdeaSystemPrompt,
   buildIdeaUserPrompt,
 } from "@/lib/ai/idea-prompt";
-import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildAiProviderChain,
   callAiText,
@@ -217,8 +216,6 @@ export async function POST(request: Request) {
     }),
   );
 
-  await logAiUsage({ userId: user.id, action: "idea_generate", result: first });
-
   if (!first.ok || !first.text) {
     console.warn("AI idea generation failed", {
       status: first.status,
@@ -263,7 +260,6 @@ export async function POST(request: Request) {
       }),
     );
 
-    await logAiUsage({ userId: user.id, action: "idea_generate_expand", result: second });
     if (second.ok && second.text) {
       const expanded = normalizeIdeaOutput(second.text);
       if (nonWhitespaceLength(expanded) > nonWhitespaceLength(content)) {

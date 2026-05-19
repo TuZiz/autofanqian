@@ -9,7 +9,6 @@ import {
   buildShortStoryOutlineSystemPrompt,
   buildShortStoryOutlineUserPrompt,
 } from "@/lib/ai/short-story-outline-prompt";
-import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildAiProviderChain,
   callAiText,
@@ -96,12 +95,6 @@ export async function POST(request: Request) {
       }),
     );
 
-    await logAiUsage({
-      userId: user.id,
-      action: "short_story_outline_generate",
-      result: first,
-    });
-
     if (!first.ok || !first.text) {
       return NextResponse.json(
         {
@@ -137,12 +130,6 @@ export async function POST(request: Request) {
           attempts: 1,
         }),
       );
-
-      await logAiUsage({
-        userId: user.id,
-        action: "short_story_outline_generate_retry",
-        result: retry,
-      });
 
       if (retry.ok && retry.text) {
         rawOutline = extractJson(retry.text);

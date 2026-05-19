@@ -45,26 +45,39 @@ export function getAiActionLimit(params: {
   dailyChapterOutlines: number;
   dailyChapterDetails: number;
 }): ActionLimit | null {
-  if (params.action === "short_story_outline_generate") {
+  if (
+    params.action === "short_story_outline_generate" ||
+    params.action === "short_story_outline_generate_retry"
+  ) {
     return {
       actionName: "短篇大纲",
-      actions: ["short_story_outline_generate"],
+      actions: ["short_story_outline_generate", "short_story_outline_generate_retry"],
       limit: params.dailyShortStoryOutlines,
     };
   }
 
-  if (params.action === "outline_generate" || params.action === "outline_extend") {
+  if (
+    params.action === "outline_generate" ||
+    params.action === "outline_generate_retry" ||
+    params.action === "outline_extend" ||
+    params.action === "outline_extend_retry"
+  ) {
     return {
       actionName: "长篇大纲",
-      actions: ["outline_generate", "outline_extend"],
+      actions: [
+        "outline_generate",
+        "outline_generate_retry",
+        "outline_extend",
+        "outline_extend_retry",
+      ],
       limit: params.dailyLongNovelOutlines,
     };
   }
 
-  if (params.action === "idea_generate") {
+  if (params.action === "idea_generate" || params.action === "idea_generate_expand") {
     return {
       actionName: "创意生成",
-      actions: ["idea_generate"],
+      actions: ["idea_generate", "idea_generate_expand"],
       limit: params.dailyIdeaGenerations,
     };
   }
@@ -77,10 +90,20 @@ export function getAiActionLimit(params: {
     };
   }
 
-  if (params.action === "chapter_generate" || params.action === "chapter_generate_stream") {
+  if (
+    params.action === "chapter_generate" ||
+    params.action === "chapter_generate_stream" ||
+    params.action === "chapter_generate_length_repair" ||
+    params.action === "chapter_generate_stream_length_repair"
+  ) {
     return {
       actionName: "章节生成",
-      actions: ["chapter_generate", "chapter_generate_stream"],
+      actions: [
+        "chapter_generate",
+        "chapter_generate_stream",
+        "chapter_generate_length_repair",
+        "chapter_generate_stream_length_repair",
+      ],
       limit: params.dailyChapterGenerations,
     };
   }
@@ -225,9 +248,11 @@ export async function assertCanUseAiAction(
       where: {
         userId: user.id,
         action: actionFilter,
-        status: "pending",
+        OR: [
+          { status: "pending", expiresAt: { gt: now } },
+          { status: "committed_failed" },
+        ],
         createdAt: { gte: start, lt: end },
-        expiresAt: { gt: now },
       },
     }),
   ]);

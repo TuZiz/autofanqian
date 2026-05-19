@@ -10,7 +10,6 @@ import {
   assertAiQuotaAvailable,
   runWithAiQuotaReservation,
 } from "@/lib/ai/quota";
-import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   getReadableAiErrorMessage,
   type UpstreamProvider,
@@ -191,14 +190,6 @@ export async function completeSuccessfulStreamGeneration(params: {
     usageResult,
     lengthRepair.repairResult,
   ]);
-
-  if (lengthRepair.repairResult) {
-    await logAiUsage({
-      userId: prepared.user.id,
-      action: `chapter_generate_stream_length_repair_${index}`,
-      result: lengthRepair.repairResult,
-    });
-  }
 
   if (prepared.existingChapter?.content?.trim()) {
     try {

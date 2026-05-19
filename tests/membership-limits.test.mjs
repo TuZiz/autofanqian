@@ -187,12 +187,29 @@ test("membership guards define configurable limits for all billable AI actions",
   assert.match(guardsSource, /usedCount \+ pendingReservationCount >= actionLimit\.limit/);
 });
 
+test("retry, expand and repair actions roll up into their primary action limits", () => {
+  const guardsSource = read("src/lib/membership/guards.ts");
+
+  const expectedRollups = [
+    ["idea_generate_expand", "dailyIdeaGenerations"],
+    ["outline_generate_retry", "dailyLongNovelOutlines"],
+    ["short_story_outline_generate_retry", "dailyShortStoryOutlines"],
+    ["chapter_generate_length_repair", "dailyChapterGenerations"],
+  ];
+
+  for (const [action, limitKey] of expectedRollups) {
+    assert.match(guardsSource, new RegExp(`params\\.action === "${action}"`));
+    assert.match(guardsSource, new RegExp(`limit: params\\.${limitKey}`));
+  }
+});
+
 test("AI quota reservations are schema-backed, expiring and concurrency-safe", () => {
   const schemaSource = read("prisma/schema.prisma");
   const quotaSource = read("src/lib/ai/quota.ts");
 
   assert.match(schemaSource, /enum AiQuotaReservationStatus/);
   assert.match(schemaSource, /model AiQuotaReservation/);
+  assert.match(schemaSource, /committed_failed/);
   assert.match(schemaSource, /status\s+AiQuotaReservationStatus\s+@default\(pending\)/);
   assert.match(schemaSource, /expiresAt\s+DateTime/);
   assert.match(schemaSource, /@@index\(\[userId, status, expiresAt\]\)/);
@@ -200,6 +217,9 @@ test("AI quota reservations are schema-backed, expiring and concurrency-safe", (
   assert.match(quotaSource, /RESERVATION_TTL_MS = 5 \* 60_000/);
   assert.match(quotaSource, /Prisma\.TransactionIsolationLevel\.Serializable/);
   assert.match(quotaSource, /expiresAt: \{ gt: now \}/);
+  assert.match(quotaSource, /\{ status: "pending", expiresAt: \{ gt: now \} \}/);
+  assert.match(quotaSource, /\{ status: "pending", expiresAt: \{ gt: params\.now \} \}/);
+  assert.match(quotaSource, /\{ status: "committed_failed" \}/);
   assert.match(quotaSource, /pendingMinuteReservations/);
   assert.match(quotaSource, /minuteCalls: recentSuccessCount \+ pendingMinuteReservations/);
   assert.match(quotaSource, /dailyCalls: successCallCount \+ pendingDailyReservations/);
@@ -274,7 +294,6 @@ test("quota checks happen before every explicit retry or expansion call", () => 
     "short outline retry",
   );
   assert.match(shortOutlineSource, /runWithAiQuotaReservation\(user, "short_story_outline_generate"[\s\S]*callAiText\(/);
-  assert.match(shortOutlineSource, /action: "short_story_outline_generate_retry"/);
 });
 
 test("chapter metadata routes verify access before quota and AI calls", () => {
@@ -293,7 +312,7 @@ test("chapter metadata routes verify access before quota and AI calls", () => {
       `const result = await runWithAiQuotaReservation(user, "${action}"`,
       file,
     );
-    assert.match(source, new RegExp(`action: "${action}"`));
+    assert.match(source, new RegExp(`runWithAiQuotaReservation\\(user, "${action}"`));
     assert.doesNotMatch(source, new RegExp(`action: \\\`${action}_\\$\\{body\\.index\\}`));
   }
 });
@@ -316,13 +335,46 @@ test("AI quota reservation is committed on success and released on failure", () 
   assertBefore(
     quotaSource,
     "const reservation = await reserveAiQuota(user, action, options);",
-    "const result = await execute();",
+    "result = await execute();",
     "reservation before upstream call",
   );
-  assert.match(quotaSource, /await settleAiQuotaReservation\(reservation, result\)/);
+  const runSource = quotaSource.slice(quotaSource.indexOf("export async function runWithAiQuotaReservation"));
+  assertBefore(
+    runSource,
+    "result = await execute();",
+    "await finalizeAiQuotaUsage({",
+    "finalization after upstream call",
+  );
+  assert.match(quotaSource, /export async function finalizeAiQuotaUsage/);
+  assert.match(quotaSource, /await prisma\.\$transaction\(async \(tx\) =>/);
+  assert.match(quotaSource, /await tx\.aiUsageEvent\.create/);
+  assert.match(quotaSource, /await tx\.aiQuotaReservation\.update/);
+  assert.match(quotaSource, /status: isSuccessfulAiResult\(result\) \? "committed" : "cancelled"/);
+  assert.match(quotaSource, /status: "committed_failed"/);
+  assert.match(quotaSource, /shouldPersistFailedUsage\(result\)/);
+  assert.match(quotaSource, /console\.warn\("Failed to finalize AI quota usage:"/);
   assert.match(quotaSource, /await cancelAiQuotaReservation\(reservation\)/);
   assert.match(quotaSource, /if \(result\.ok && result\.text\)/);
   assert.match(quotaSource, /await commitAiQuotaReservation\(reservation\)/);
+});
+
+test("reservation finalization owns usage logging for protected AI calls", () => {
+  const protectedFiles = [
+    "src/backend/ai/idea/generate-route.ts",
+    "src/backend/ai/idea/analyze-route.ts",
+    "src/backend/ai/outline/generate-route.ts",
+    "src/backend/ai/outline/refine-route.ts",
+    "src/backend/ai/short-story/outline-route.ts",
+    "src/backend/ai/chapter/summary-route.ts",
+    "src/backend/ai/chapter/outline-route.ts",
+    "src/backend/ai/chapter/details-route.ts",
+    "src/backend/ai/chapter/rewrite-route.ts",
+  ];
+
+  for (const file of protectedFiles) {
+    const source = read(file);
+    assert.doesNotMatch(source, /logAiUsage/, `${file} must not double-write usage`);
+  }
 });
 
 test("chapter generation and stream generation use aggregated action names", () => {
@@ -330,11 +382,12 @@ test("chapter generation and stream generation use aggregated action names", () 
   const streamSource = read("src/backend/ai/chapter/stream-route.ts");
 
   assert.match(generateSource, /runWithAiQuotaReservation\(user, "chapter_generate"[\s\S]*callAiText\(/);
-  assert.match(generateSource, /action: "chapter_generate"/);
+  assert.match(generateSource, /generated\.selectedProviderId = selected\.provider\.id/);
   assert.doesNotMatch(generateSource, /action: `chapter_generate_\$\{input\.index\}`/);
+  assert.doesNotMatch(generateSource, /action: `chapter_generate_length_repair_\$\{input\.index\}`/);
 
   assert.match(streamSource, /reserveAiQuota\([\s\S]*"chapter_generate_stream"/);
-  assert.match(streamSource, /settleAiQuotaReservation\(quotaReservation, usageResult\)/);
-  assert.match(streamSource, /action: "chapter_generate_stream"/);
+  assert.match(streamSource, /finalizeAiQuotaUsage\(\{[\s\S]*action: "chapter_generate_stream"/);
   assert.doesNotMatch(streamSource, /action: `chapter_generate_stream_\$\{parsedBody\.data\.index\}`/);
+  assert.doesNotMatch(streamSource, /settleAiQuotaReservation\(quotaReservation, usageResult\)/);
 });

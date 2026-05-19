@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import type { UpstreamTextResult } from "@/lib/ai/upstream-text";
 import { isAdminUser } from "@/lib/auth/admin";
 import { AuthApiError } from "@/lib/auth/errors";
+import { buildAiUsageEventData } from "@/lib/ai/usage-log";
 import { getMembershipLimits } from "@/lib/membership/limits";
 import {
   assertMembershipAiUsageAvailable,
@@ -68,10 +69,12 @@ async function getAiQuotaUsageSnapshot(params: {
   const { client, userId, now } = params;
   const { start, end } = getTodayRange(now);
   const minuteStart = new Date(now.getTime() - 60_000);
-  const pendingBaseWhere = {
+  const reservationWhere: Prisma.AiQuotaReservationWhereInput = {
     userId,
-    status: "pending" as const,
-    expiresAt: { gt: now },
+    OR: [
+      { status: "pending", expiresAt: { gt: now } },
+      { status: "committed_failed" },
+    ],
   };
 
   const [
@@ -105,7 +108,7 @@ async function getAiQuotaUsageSnapshot(params: {
     !isUnlimitedMembershipLimit(params.dailyCallLimit)
       ? client.aiQuotaReservation.count({
           where: {
-            ...pendingBaseWhere,
+            ...reservationWhere,
             createdAt: { gte: start, lt: end },
           },
         })
@@ -113,7 +116,7 @@ async function getAiQuotaUsageSnapshot(params: {
     !isUnlimitedMembershipLimit(params.dailyTokenLimit)
       ? client.aiQuotaReservation.aggregate({
           where: {
-            ...pendingBaseWhere,
+            ...reservationWhere,
             createdAt: { gte: start, lt: end },
           },
           _sum: { estimatedTokens: true },
@@ -131,7 +134,7 @@ async function getAiQuotaUsageSnapshot(params: {
     !isUnlimitedMembershipLimit(params.minuteCallLimit)
       ? client.aiQuotaReservation.count({
           where: {
-            ...pendingBaseWhere,
+            ...reservationWhere,
             createdAt: { gte: minuteStart },
           },
         })
@@ -186,9 +189,11 @@ async function assertAiActionQuotaAvailable(params: {
       where: {
         userId: params.user.id,
         action: actionFilter,
-        status: "pending",
+        OR: [
+          { status: "pending", expiresAt: { gt: params.now } },
+          { status: "committed_failed" },
+        ],
         createdAt: { gte: start, lt: end },
-        expiresAt: { gt: params.now },
       },
     }),
   ]);
@@ -316,6 +321,87 @@ export async function commitAiQuotaReservation(
   }
 }
 
+function shouldPersistFailedUsage(result: UpstreamTextResult) {
+  return typeof result.usage?.totalTokens === "number" && result.usage.totalTokens > 0;
+}
+
+function isSuccessfulAiResult(result: UpstreamTextResult) {
+  return Boolean(result.ok && result.text);
+}
+
+export async function finalizeAiQuotaUsage(params: {
+  reservation: AiQuotaReservationHandle;
+  result: UpstreamTextResult;
+  action: string;
+  userId?: string | null;
+}) {
+  const { reservation, result } = params;
+  const shouldCreateUsageEvent =
+    isSuccessfulAiResult(result) || shouldPersistFailedUsage(result);
+
+  if (!reservation) {
+    if (shouldCreateUsageEvent) {
+      try {
+        await prisma.aiUsageEvent.create({
+          data: buildAiUsageEventData({
+            userId: params.userId ?? null,
+            action: params.action,
+            result,
+          }),
+          select: { id: true },
+        });
+      } catch (error) {
+        console.warn("Failed to log admin AI usage:", error);
+      }
+    }
+    return;
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const currentReservation = await tx.aiQuotaReservation.findUnique({
+        where: { id: reservation.id },
+        select: { status: true },
+      });
+
+      if (!currentReservation || currentReservation.status !== "pending") return;
+
+      if (shouldCreateUsageEvent) {
+        await tx.aiUsageEvent.create({
+          data: buildAiUsageEventData({
+            userId: params.userId ?? reservation.userId,
+            action: params.action,
+            result,
+          }),
+          select: { id: true },
+        });
+      }
+
+      await tx.aiQuotaReservation.update({
+        where: { id: reservation.id },
+        data: {
+          status: isSuccessfulAiResult(result) ? "committed" : "cancelled",
+        },
+      });
+    });
+  } catch (error) {
+    if (!shouldCreateUsageEvent) {
+      await cancelAiQuotaReservation(reservation);
+      return;
+    }
+
+    await prisma.aiQuotaReservation.updateMany({
+      where: {
+        id: reservation.id,
+        status: "pending",
+      },
+      data: { status: "committed_failed" },
+    });
+
+    console.warn("Failed to finalize AI quota usage:", error);
+  }
+}
+
 export async function cancelAiQuotaReservation(
   reservation: AiQuotaReservationHandle,
 ) {
@@ -337,7 +423,18 @@ export async function cancelAiQuotaReservation(
 export async function settleAiQuotaReservation(
   reservation: AiQuotaReservationHandle,
   result: UpstreamTextResult,
+  action?: string,
 ) {
+  if (action) {
+    await finalizeAiQuotaUsage({
+      reservation,
+      result,
+      action,
+      userId: reservation?.userId ?? null,
+    });
+    return;
+  }
+
   if (result.ok && result.text) {
     await commitAiQuotaReservation(reservation);
     return;
@@ -353,13 +450,19 @@ export async function runWithAiQuotaReservation<T extends UpstreamTextResult>(
   options?: { estimatedTokens?: number | null },
 ): Promise<T> {
   const reservation = await reserveAiQuota(user, action, options);
-
+  let result: T;
   try {
-    const result = await execute();
-    await settleAiQuotaReservation(reservation, result);
-    return result;
+    result = await execute();
   } catch (error) {
     await cancelAiQuotaReservation(reservation);
     throw error;
   }
+
+  await finalizeAiQuotaUsage({
+    reservation,
+    result,
+    action,
+    userId: user.id,
+  });
+  return result;
 }

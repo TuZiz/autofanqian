@@ -6,7 +6,6 @@ import {
   assertAiQuotaAvailable,
   runWithAiQuotaReservation,
 } from "@/lib/ai/quota";
-import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildAiProviderChain,
   callAiText,
@@ -236,12 +235,6 @@ export async function POST(request: Request) {
         maxTokens: body.action === "logic_check" ? 1800 : 5200,
       }),
     );
-
-    await logAiUsage({
-      userId: user.id,
-      action: usageAction,
-      result,
-    });
 
     if (!result.ok || !result.text) {
       await prisma.generationJob.update({

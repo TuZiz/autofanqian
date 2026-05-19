@@ -142,8 +142,8 @@ export async function generateChapterForUser(params: {
       selected.provider,
       ...providers.filter((provider) => provider.id !== selected.provider?.id),
     ];
-    const result = await runWithAiQuotaReservation(user, "chapter_generate", () =>
-      callAiText({
+    const result = await runWithAiQuotaReservation(user, "chapter_generate", async () => {
+      const generated = await callAiText({
         providers: orderedProviders,
         routeId: "gpt",
         preferredProviderId: selected.provider.id,
@@ -152,17 +152,12 @@ export async function generateChapterForUser(params: {
         maxTokens: prepared.maxTokens,
         attempts: 1,
         reasoningEffort: "low",
-      }),
-    );
+      });
 
-    result.selectedProviderId = selected.provider.id;
-    result.probeDurationMs = selected.probeDurationMs;
-    result.fallbackCount = selected.fallbackCount;
-
-    await logAiUsage({
-      userId: user.id,
-      action: "chapter_generate",
-      result,
+      generated.selectedProviderId = selected.provider.id;
+      generated.probeDurationMs = selected.probeDurationMs;
+      generated.fallbackCount = selected.fallbackCount;
+      return generated;
     });
 
     if (!result.ok || !result.text) {
@@ -205,14 +200,6 @@ export async function generateChapterForUser(params: {
       runRepairAiCall: (execute) =>
         runWithAiQuotaReservation(user, "chapter_generate_length_repair", execute),
     });
-
-    if (lengthRepair.repairResult) {
-      await logAiUsage({
-        userId: user.id,
-        action: `chapter_generate_length_repair_${input.index}`,
-        result: lengthRepair.repairResult,
-      });
-    }
 
     if (prepared.existingChapter?.content?.trim()) {
       try {
