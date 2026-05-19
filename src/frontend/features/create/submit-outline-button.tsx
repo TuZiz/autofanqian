@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ArrowRight, Sparkles } from "lucide-react";
 
@@ -28,12 +28,12 @@ export function SubmitOutlineButton({
       disabled={disabled}
       title={title}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition-all active:scale-[0.98] disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold transition-all active:scale-[0.98] disabled:cursor-not-allowed",
         sidebar ? "h-11 w-full" : "h-10 px-4",
         compact ? "hidden min-[480px]:flex" : "flex flex-[1.5]",
         create.canSubmitOutline
-          ? "bg-slate-950 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.7)] hover:-translate-y-0.5 hover:bg-slate-800"
-          : "border border-slate-200 bg-slate-100 text-slate-400 shadow-none hover:border-slate-300",
+          ? "create-accent text-white shadow-[0_16px_28px_-20px_rgba(20,32,29,0.86)] hover:-translate-y-0.5"
+          : "border border-slate-200 bg-slate-100/80 text-slate-400 shadow-none hover:border-slate-300",
       )}
     >
       {create.submitBusy ? (
@@ -51,3 +51,4 @@ export function SubmitOutlineButton({
     </button>
   );
 }
+

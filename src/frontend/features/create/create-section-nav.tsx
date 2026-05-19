@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { BookOpen, ChevronRight, PenLine, RefreshCw } from "lucide-react";
 
@@ -17,9 +17,9 @@ export function CreateSectionNav({
   ].filter(Boolean).length;
 
   return (
-    <aside className="min-w-0 min-[1040px]:sticky min-[1040px]:top-[64px] min-[1040px]:h-[calc(100dvh-82px)] min-[1040px]:w-[240px] min-[1440px]:w-[248px]">
-      <div className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200/70 bg-white/92 shadow-[0_8px_22px_-20px_rgba(15,23,42,0.24)] backdrop-blur-xl">
-        <div className="shrink-0 border-b border-slate-100 px-2.5 py-2">
+    <aside className="min-w-0 min-[1040px]:sticky min-[1040px]:top-[76px] min-[1040px]:h-[calc(100dvh-96px)] min-[1040px]:w-[232px] min-[1440px]:w-[240px]">
+      <div className="flex h-full flex-col overflow-hidden rounded-[18px] border border-slate-200/70 bg-white/88 shadow-[0_18px_44px_-36px_rgba(20,32,29,0.38)] backdrop-blur-xl">
+        <div className="shrink-0 border-b border-slate-100/80 px-2.5 py-2.5">
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <div className="min-w-0">
               <h2 className="truncate text-base font-extrabold tracking-tight text-slate-950">
@@ -47,16 +47,16 @@ export function CreateSectionNav({
             onClick={create.handleUseCustomStart}
             aria-pressed={create.isCustomGenre}
             className={cn(
-              "group relative flex h-[52px] w-full items-center gap-2 overflow-hidden rounded-lg px-2 text-left transition-all duration-200",
+                "group relative flex h-[54px] w-full items-center gap-2 overflow-hidden rounded-xl px-2 text-left transition-all duration-200",
               create.isCustomGenre
-                ? "bg-slate-950 text-white"
-                : "bg-slate-50/80 text-slate-700 hover:bg-slate-100/80",
+                ? "create-accent text-white shadow-[0_14px_24px_-20px_rgba(20,32,29,0.78)]"
+                : "create-tint text-slate-700 ring-1 ring-slate-200/70 hover:bg-white hover:ring-slate-300/80",
             )}
           >
             <span
               className={cn(
                 "absolute left-0 top-2 h-[calc(100%-16px)] w-[2px] rounded-r-full transition-colors",
-                create.isCustomGenre ? "bg-slate-300" : "bg-transparent",
+                create.isCustomGenre ? "bg-emerald-200/80" : "bg-transparent",
               )}
             />
             <span
@@ -116,16 +116,16 @@ export function CreateSectionNav({
                 }
                 aria-pressed={isActive}
                 className={cn(
-                  "group relative flex h-12 w-full items-center gap-2 overflow-hidden rounded-lg px-2 text-left transition-all duration-200",
+                  "group relative flex h-[50px] w-full items-center gap-2 overflow-hidden rounded-xl px-2 text-left transition-all duration-200",
                   isActive
-                    ? "bg-slate-950 text-white"
-                    : "border border-transparent text-slate-600 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-slate-50",
+                    ? "create-accent text-white shadow-[0_14px_24px_-20px_rgba(20,32,29,0.78)]"
+                    : "border border-transparent text-slate-600 hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white",
                 )}
               >
                 <span
                   className={cn(
                     "absolute left-0 top-2 h-[calc(100%-16px)] w-[2px] rounded-r-full transition-colors",
-                    isActive ? "bg-slate-300" : "bg-transparent",
+                    isActive ? "bg-emerald-200/80" : "bg-transparent",
                   )}
                 />
                 <span
@@ -175,3 +175,4 @@ export function CreateSectionNav({
     </aside>
   );
 }
+

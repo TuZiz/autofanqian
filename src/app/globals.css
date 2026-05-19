@@ -991,6 +991,24 @@
       radial-gradient(circle at 12% 6%, rgba(16, 185, 129, 0.055), transparent 24rem),
       linear-gradient(180deg, #f7f8fa, #f7f8fa);
     color: var(--theme-text-primary);
+    --create-tint: #f8faf8;
+    --create-tint-strong: #f1f6f3;
+    --create-accent: #31524a;
+    --create-accent-strong: #14201d;
+    --create-accent-gradient: linear-gradient(135deg, #14201d, #31524a);
+    --create-focus: rgba(49, 82, 74, 0.12);
+  }
+
+  .create-tint {
+    background: var(--create-tint);
+  }
+
+  .create-tint-strong {
+    background: var(--create-tint-strong);
+  }
+
+  .create-accent {
+    background: var(--create-accent-gradient);
   }
 
   .create-scrollbar {
@@ -1019,6 +1037,12 @@ html.dark .create-modern-shell,
     radial-gradient(circle at 84% 0%, rgba(96, 165, 250, 0.08), transparent 28rem),
     linear-gradient(180deg, #0f1117 0%, #11131b 100%) !important;
   color: var(--theme-text-primary);
+  --create-tint: rgba(255, 255, 255, 0.045);
+  --create-tint-strong: rgba(255, 255, 255, 0.065);
+  --create-accent: #5a8f80;
+  --create-accent-strong: #192822;
+  --create-accent-gradient: linear-gradient(135deg, #192822, #31524a);
+  --create-focus: rgba(94, 151, 135, 0.18);
 }
 
 html.dark .create-modern-shell > .pointer-events-none.fixed.inset-0,

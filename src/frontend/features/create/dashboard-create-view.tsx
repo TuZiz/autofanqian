@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import {
@@ -37,20 +37,20 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
       <div className="pointer-events-none fixed inset-0 opacity-[0.16] [background-image:linear-gradient(to_right,rgba(51,65,85,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(51,65,85,0.035)_1px,transparent_1px)] [background-size:56px_56px]" />
       <div className="relative mx-auto flex min-h-dvh w-full max-w-[1480px] flex-col">
         <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/92 backdrop-blur-xl">
-          <div className="grid min-h-[64px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3.5 py-2 sm:px-4 lg:px-[18px]">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="grid min-h-[68px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3.5 py-2 sm:px-4 lg:px-[18px]">
+            <div className="flex min-w-0 items-center gap-3.5">
               <Link
                 href="/dashboard"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200/70 bg-white text-slate-500 transition-all duration-200 hover:-translate-x-0.5 hover:border-slate-300 hover:text-slate-900"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200/70 bg-white text-slate-500 transition-all duration-200 hover:-translate-x-0.5 hover:border-slate-300 hover:text-slate-900"
                 title="返回控制台"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Link>
               <div className="min-w-0">
-                <h1 className="truncate text-[20px] font-extrabold tracking-tight text-slate-950">
+                <h1 className="truncate text-[22px] font-extrabold tracking-tight text-slate-950">
                   开始创作
                 </h1>
-                <p className="hidden truncate text-[12px] font-medium text-slate-500 sm:block">
+                <p className="hidden truncate text-[13px] font-medium text-slate-500 sm:block">
                   选择模板，补齐设定，生成可继续编辑的大纲
                 </p>
               </div>
@@ -67,13 +67,13 @@ export function DashboardCreateView({ create }: DashboardCreateViewProps) {
               {create.isAdmin ? (
                 <Link
                   href="/dashboard/admin"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200/70 bg-white px-3 text-xs font-semibold text-slate-500 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-full border border-slate-200/70 bg-white px-3.5 text-xs font-semibold text-slate-500 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
                 >
                   <ShieldCheck className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">管理</span>
                 </Link>
               ) : null}
-              <ThemeToggle className="h-9 w-9 rounded-xl border border-slate-200/70 bg-white text-slate-500 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" />
+              <ThemeToggle className="h-10 w-10 rounded-full border border-slate-200/70 bg-white text-slate-500 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" />
             </div>
           </div>
         </header>
@@ -130,7 +130,7 @@ function CreateStepIndicator() {
   const currentStep = 0;
 
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-xl border border-slate-200/70 bg-slate-50/90 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+    <div className="inline-flex items-center gap-0.5 rounded-full border border-slate-200/70 bg-white/82 p-1 shadow-[0_12px_30px_-26px_rgba(15,23,42,0.34),inset_0_1px_0_rgba(255,255,255,0.9)]">
       {CREATE_STEPS.map((step, index) => {
         const Icon = step.icon;
         const isDone = index < currentStep;
@@ -141,9 +141,9 @@ function CreateStepIndicator() {
             {index > 0 && <div className="h-4 w-px bg-slate-200" />}
             <div
               className={cn(
-                "flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-semibold transition-all duration-200",
+                "flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold transition-all duration-200",
                 isCurrent
-                  ? "bg-slate-950 text-white shadow-[0_8px_18px_-12px_rgba(15,23,42,0.9)]"
+                  ? "create-accent text-white shadow-[0_12px_24px_-16px_rgba(20,32,29,0.88)]"
                   : isDone
                     ? "text-slate-600"
                     : "text-slate-400 hover:bg-white hover:text-slate-600",
@@ -159,3 +159,4 @@ function CreateStepIndicator() {
     </div>
   );
 }
+

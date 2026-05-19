@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AlertCircle, ChevronDown, ChevronUp, Sparkles, Wand2, Zap } from "lucide-react";
 
@@ -50,7 +50,7 @@ export function CreateIdeaComposer({
   return (
     <section
       id="create-idea-section"
-      className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+      className="rounded-[20px] border border-slate-200/70 bg-white/94 p-4 shadow-[0_18px_44px_-36px_rgba(20,32,29,0.38)] sm:p-5"
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
@@ -61,7 +61,7 @@ export function CreateIdeaComposer({
             故事创意
           </h2>
         </div>
-        <span className="max-w-[45%] truncate rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+        <span className="max-w-[45%] truncate rounded-full border border-slate-200/80 create-tint px-2.5 py-1 text-[11px] font-semibold text-slate-500">
           {helperTitle}
         </span>
       </div>
@@ -73,11 +73,11 @@ export function CreateIdeaComposer({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={aiProgressPercent}
-          className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"
+          className="mb-3 rounded-2xl border border-slate-200 create-tint px-3 py-2.5"
         >
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg create-accent text-white">
                 <Sparkles className="h-3.5 w-3.5 animate-pulse" />
               </span>
               <span
@@ -93,7 +93,7 @@ export function CreateIdeaComposer({
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-white/90">
             <div
-              className="h-full rounded-full bg-slate-950 transition-[width] duration-300 ease-linear"
+              className="h-full rounded-full bg-[linear-gradient(90deg,var(--create-accent),#79a89b)] transition-[width] duration-300 ease-linear"
               style={{ width: `${aiProgressValue}%` }}
             />
           </div>
@@ -118,7 +118,7 @@ export function CreateIdeaComposer({
                 ? "根据当前设定生成完整简介"
                 : "请先补充题材、标签和故事创意"
             }
-            className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 create-tint px-3 text-xs font-bold text-slate-700 transition-all hover:bg-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
           >
             {aiBusy ? (
               <Sparkles className="h-3.5 w-3.5 animate-pulse" />
@@ -137,7 +137,7 @@ export function CreateIdeaComposer({
           type="button"
           onClick={() => void handleAnalyzeIdea(idea)}
           disabled={analyzeBlockedByAiThinking || analysisBusy || !canAnalyzeIdea}
-          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-700 transition-all hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 create-tint px-3 text-xs font-bold text-slate-700 transition-all hover:bg-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
         >
           <Wand2
             className={cn(
@@ -157,7 +157,7 @@ export function CreateIdeaComposer({
 
       <div
         className={cn(
-          "overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 transition-all focus-within:border-slate-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-950/10",
+          "overflow-hidden rounded-2xl border border-slate-200/80 create-tint transition-all focus-within:border-[var(--create-accent)] focus-within:bg-white focus-within:ring-4 focus-within:ring-[var(--create-focus)]",
           hasIdeaError && "border-red-300 focus-within:border-red-300 focus-within:ring-red-500/15",
         )}
       >
@@ -183,7 +183,7 @@ export function CreateIdeaComposer({
             className={cn(
               "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold",
               wordCount >= MIN_IDEA_LENGTH_FOR_OUTLINE
-                ? "bg-slate-950 text-white"
+                ? "create-accent text-white"
                 : "bg-slate-100 text-slate-500",
             )}
           >
@@ -196,7 +196,7 @@ export function CreateIdeaComposer({
         <button
           type="button"
           onClick={() => setAnalysisOpen(!analysisPanelVisible)}
-          className="inline-flex h-8 items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 text-xs font-bold text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900"
+          className="inline-flex h-8 items-center gap-2 rounded-full border border-slate-200/80 create-tint px-3 text-xs font-bold text-slate-600 transition-all hover:border-slate-300 hover:bg-white hover:text-slate-900"
         >
           <Wand2 className="h-3.5 w-3.5 text-slate-500" />
           创意分析
@@ -211,7 +211,7 @@ export function CreateIdeaComposer({
         </button>
 
         {analysisPanelVisible && (analysisBusy || ideaAnalysis) && (
-          <div className="mt-3 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="mt-3 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-[0_12px_28px_-24px_rgba(20,32,29,0.32)]">
             {analysisBusy ? (
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                 <Sparkles className="h-4 w-4 animate-pulse" />
@@ -226,3 +226,5 @@ export function CreateIdeaComposer({
     </section>
   );
 }
+
+

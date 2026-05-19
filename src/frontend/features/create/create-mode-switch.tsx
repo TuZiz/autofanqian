@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { BookOpen, Feather } from "lucide-react";
 import Link from "next/link";
@@ -19,7 +19,7 @@ const modes: Array<{
 
 export function CreateModeSwitch({ active }: { active: CreateMode }) {
   return (
-    <div className="inline-flex items-center rounded-xl border border-slate-200/80 bg-slate-50/90 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+    <div className="inline-flex shrink-0 items-center rounded-full border border-slate-200/80 bg-white/82 p-1 shadow-[0_12px_30px_-26px_rgba(15,23,42,0.38),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl">
       {modes.map((mode) => {
         const Icon = mode.icon;
         const selected = active === mode.id;
@@ -30,10 +30,10 @@ export function CreateModeSwitch({ active }: { active: CreateMode }) {
             href={mode.href}
             aria-current={selected ? "page" : undefined}
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-bold transition-all duration-200",
+              "inline-flex h-9 min-w-[104px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-[13px] font-bold transition-all duration-200",
               selected
-                ? "bg-slate-950 text-white shadow-[0_8px_18px_-12px_rgba(15,23,42,0.9)]"
-                : "text-slate-500 hover:bg-white hover:text-slate-900",
+                ? "create-accent text-white shadow-[0_12px_24px_-16px_rgba(20,32,29,0.88)]"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
             )}
           >
             <Icon className="h-3.5 w-3.5" />
@@ -44,3 +44,4 @@ export function CreateModeSwitch({ active }: { active: CreateMode }) {
     </div>
   );
 }
+

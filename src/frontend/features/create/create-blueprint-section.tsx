@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { type ComponentType, type ReactNode } from "react";
 import { AlertCircle, BookType, Library, Tags } from "lucide-react";
@@ -66,7 +66,7 @@ export function CreateBlueprintSection({
           hasGenreError || hasIdeaError ? "create-form-error" : undefined
         }
         data-invalid={hasGenreError || hasIdeaError ? "true" : undefined}
-        className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+        className="rounded-[20px] border border-slate-200/70 bg-white/94 p-4 shadow-[0_18px_44px_-36px_rgba(20,32,29,0.38)] sm:p-5"
       >
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -81,8 +81,8 @@ export function CreateBlueprintSection({
             className={cn(
               "rounded-full px-2.5 py-1 text-[11px] font-bold",
               isCustomGenre
-                ? "bg-slate-950 text-white"
-                : "bg-slate-50 text-slate-500 ring-1 ring-slate-200/80",
+                ? "create-accent text-white shadow-[0_12px_22px_-18px_rgba(20,32,29,0.78)]"
+                : "create-tint text-slate-500 ring-1 ring-slate-200/80",
             )}
           >
             {isCustomGenre ? "自定义" : "模板"}
@@ -105,7 +105,7 @@ export function CreateBlueprintSection({
               onChange={(event) => setCustomGenreLabel(event.target.value)}
               disabled={!isCustomGenre}
               placeholder="请输入题材，如赛博修仙、古风悬疑、都市经营"
-              className="h-10 w-full rounded-xl border border-slate-200/80 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-950/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-10 w-full rounded-xl border border-slate-200/80 create-tint px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)] disabled:cursor-not-allowed disabled:opacity-60"
             />
           </FieldBlock>
 
@@ -115,7 +115,7 @@ export function CreateBlueprintSection({
               onChange={(event) => setCustomTagsInput(event.target.value)}
               disabled={!isCustomGenre}
               placeholder="请输入至少两个核心标签，用空格分隔"
-              className="h-10 w-full rounded-xl border border-slate-200/80 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-950/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-10 w-full rounded-xl border border-slate-200/80 create-tint px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)] disabled:cursor-not-allowed disabled:opacity-60"
             />
             <div className="mt-2 flex flex-wrap gap-1.5">
               {TAG_SUGGESTIONS.map((tag) => (
@@ -124,7 +124,7 @@ export function CreateBlueprintSection({
                   type="button"
                   onClick={() => handleTagSuggestionClick(tag)}
                   disabled={!isCustomGenre}
-                  className="h-7 rounded-full border border-slate-200/80 bg-slate-50 px-2.5 text-xs font-semibold text-slate-500 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-7 rounded-full border border-slate-200/80 create-tint px-2.5 text-xs font-semibold text-slate-500 transition-all hover:border-slate-300 hover:bg-white hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {tag}
                 </button>
@@ -139,7 +139,7 @@ export function CreateBlueprintSection({
               value={customWorldDetails}
               onChange={(event) => setCustomWorldDetails(event.target.value)}
               placeholder="请用一句话说清主角、处境和故事引擎"
-              className="h-10 w-full rounded-xl border border-slate-200/80 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-950/10"
+              className="h-10 w-full rounded-xl border border-slate-200/80 create-tint px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)]"
             />
           </FieldBlock>
         )}
@@ -177,7 +177,7 @@ function FieldBlock({
   return (
     <label className={cn("block", className)}>
       <span className="mb-1.5 flex items-center gap-2 text-sm font-bold text-slate-800">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg create-tint-strong text-slate-600">
           <Icon className="h-3.5 w-3.5" />
         </span>
         <span>{label}</span>
@@ -186,3 +186,5 @@ function FieldBlock({
     </label>
   );
 }
+
+
