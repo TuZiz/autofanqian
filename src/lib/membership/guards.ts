@@ -18,17 +18,11 @@ export type MembershipGuardUser = {
   membershipTier?: string | null;
 };
 
-type ActionLimit =
-  | {
-      actionName: "短篇大纲";
-      actions: string[];
-      limit: number;
-    }
-  | {
-      actionName: "长篇大纲";
-      actions: string[];
-      limit: number;
-    };
+type ActionLimit = {
+  actionName: string;
+  actions: string[];
+  limit: number;
+};
 
 function getTodayRange() {
   const start = new Date();
@@ -40,10 +34,16 @@ function getTodayRange() {
   return { start, end };
 }
 
-function getActionLimit(params: {
+export function getAiActionLimit(params: {
   action: string;
   dailyLongNovelOutlines: number;
   dailyShortStoryOutlines: number;
+  dailyIdeaGenerations: number;
+  dailyIdeaAnalyses: number;
+  dailyChapterGenerations: number;
+  dailyChapterSummaries: number;
+  dailyChapterOutlines: number;
+  dailyChapterDetails: number;
 }): ActionLimit | null {
   if (params.action === "short_story_outline_generate") {
     return {
@@ -58,6 +58,54 @@ function getActionLimit(params: {
       actionName: "长篇大纲",
       actions: ["outline_generate", "outline_extend"],
       limit: params.dailyLongNovelOutlines,
+    };
+  }
+
+  if (params.action === "idea_generate") {
+    return {
+      actionName: "创意生成",
+      actions: ["idea_generate"],
+      limit: params.dailyIdeaGenerations,
+    };
+  }
+
+  if (params.action === "idea_analyze") {
+    return {
+      actionName: "创意分析",
+      actions: ["idea_analyze"],
+      limit: params.dailyIdeaAnalyses,
+    };
+  }
+
+  if (params.action === "chapter_generate" || params.action === "chapter_generate_stream") {
+    return {
+      actionName: "章节生成",
+      actions: ["chapter_generate", "chapter_generate_stream"],
+      limit: params.dailyChapterGenerations,
+    };
+  }
+
+  if (params.action === "chapter_summary") {
+    return {
+      actionName: "章节摘要",
+      actions: ["chapter_summary"],
+      limit: params.dailyChapterSummaries,
+    };
+  }
+
+  if (params.action === "chapter_outline") {
+    return {
+      actionName: "章节大纲",
+      actions: ["chapter_outline"],
+      limit: params.dailyChapterOutlines,
+    };
+  }
+
+  if (params.action === "chapter_details") {
+    return {
+      actionName: "细节提取",
+      actions: ["chapter_details"],
+      limit: params.dailyChapterDetails,
     };
   }
 
@@ -143,33 +191,51 @@ export async function assertCanUseAiAction(
   if (isAdminUser(user)) return;
 
   const limits = await getMembershipLimits(user.membershipTier ?? "default");
-  const actionLimit = getActionLimit({
+  const actionLimit = getAiActionLimit({
     action,
     dailyLongNovelOutlines: limits.dailyLongNovelOutlines,
     dailyShortStoryOutlines: limits.dailyShortStoryOutlines,
+    dailyIdeaGenerations: limits.dailyIdeaGenerations,
+    dailyIdeaAnalyses: limits.dailyIdeaAnalyses,
+    dailyChapterGenerations: limits.dailyChapterGenerations,
+    dailyChapterSummaries: limits.dailyChapterSummaries,
+    dailyChapterOutlines: limits.dailyChapterOutlines,
+    dailyChapterDetails: limits.dailyChapterDetails,
   });
 
   if (!actionLimit || isUnlimitedMembershipLimit(actionLimit.limit)) return;
 
   const { start, end } = getTodayRange();
+  const now = new Date();
   const actionFilter: Prisma.StringFilter =
     actionLimit.actions.length === 1
       ? { equals: actionLimit.actions[0] }
       : { in: actionLimit.actions };
 
-  const usedCount = await prisma.aiUsageEvent.count({
-    where: {
-      userId: user.id,
-      action: actionFilter,
-      success: true,
-      createdAt: { gte: start, lt: end },
-    },
-  });
+  const [usedCount, pendingReservationCount] = await Promise.all([
+    prisma.aiUsageEvent.count({
+      where: {
+        userId: user.id,
+        action: actionFilter,
+        success: true,
+        createdAt: { gte: start, lt: end },
+      },
+    }),
+    prisma.aiQuotaReservation.count({
+      where: {
+        userId: user.id,
+        action: actionFilter,
+        status: "pending",
+        createdAt: { gte: start, lt: end },
+        expiresAt: { gt: now },
+      },
+    }),
+  ]);
 
-  if (usedCount >= actionLimit.limit) {
+  if (usedCount + pendingReservationCount >= actionLimit.limit) {
     throw new AuthApiError(
       429,
-      `${limits.label} 今日${actionLimit.actionName}生成次数已用完，请升级套餐或明天再试。`,
+      `${limits.label} 今日${actionLimit.actionName}次数已用完，请升级套餐或明天再试。`,
     );
   }
 }

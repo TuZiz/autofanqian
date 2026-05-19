@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import {
   buildShortStoryOutlineSystemPrompt,
   buildShortStoryOutlineUserPrompt,
@@ -82,14 +85,16 @@ export async function POST(request: Request) {
       { role: "user", content: buildShortStoryOutlineUserPrompt(input) },
     ];
 
-    const first = await callAiText({
-      providers,
-      messages,
-      temperature: 0.78,
-      maxTokens: 3200,
-      attempts: 1,
-      preferredProviderId: target.providerId,
-    });
+    const first = await runWithAiQuotaReservation(user, "short_story_outline_generate", () =>
+      callAiText({
+        providers,
+        messages,
+        temperature: 0.78,
+        maxTokens: 3200,
+        attempts: 1,
+        preferredProviderId: target.providerId,
+      }),
+    );
 
     await logAiUsage({
       userId: user.id,
@@ -107,17 +112,20 @@ export async function POST(request: Request) {
       );
     }
 
-    let rawOutline = extractJson(first.text);
+    const firstText = first.text;
+    const firstProviderId = first.providerId ?? target.providerId;
+    let rawOutline = extractJson(firstText);
 
     if (!rawOutline) {
       await assertAiQuotaAvailable(user);
 
-      const retry = await callAiText({
+      const retry = await runWithAiQuotaReservation(user, "short_story_outline_generate_retry", () =>
+        callAiText({
         providers,
-        preferredProviderId: first.providerId,
+        preferredProviderId: firstProviderId,
         messages: [
           ...messages,
-          { role: "assistant", content: first.text },
+          { role: "assistant", content: firstText },
           {
             role: "user",
             content:
@@ -126,8 +134,9 @@ export async function POST(request: Request) {
         ],
         temperature: 0.42,
         maxTokens: 3200,
-        attempts: 1,
-      });
+          attempts: 1,
+        }),
+      );
 
       await logAiUsage({
         userId: user.id,

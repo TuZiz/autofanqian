@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/auth/api";
 import { z } from "zod";
 
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import {
   buildIdeaExistingIdeaPrompt,
   buildIdeaSystemPrompt,
@@ -203,14 +206,16 @@ export async function POST(request: Request) {
     }),
   });
 
-  const first = await callAiText({
+  const first = await runWithAiQuotaReservation(user, "idea_generate", () =>
+    callAiText({
     providers,
     messages,
     temperature: 0.8,
     maxTokens: isCustomGenre ? 1500 : 1200,
     attempts: 1,
-    preferredProviderId: target.providerId,
-  });
+      preferredProviderId: target.providerId,
+    }),
+  );
 
   await logAiUsage({ userId: user.id, action: "idea_generate", result: first });
 
@@ -240,7 +245,8 @@ export async function POST(request: Request) {
       return errorResponse(error);
     }
 
-    const second = await callAiText({
+    const second = await runWithAiQuotaReservation(user, "idea_generate_expand", () =>
+      callAiText({
       providers,
       preferredProviderId: first.providerId,
       messages: [
@@ -253,8 +259,9 @@ export async function POST(request: Request) {
       ],
       temperature: 0.75,
       maxTokens: isCustomGenre ? 1500 : 1200,
-      attempts: 1,
-    });
+        attempts: 1,
+      }),
+    );
 
     await logAiUsage({ userId: user.id, action: "idea_generate_expand", result: second });
     if (second.ok && second.text) {

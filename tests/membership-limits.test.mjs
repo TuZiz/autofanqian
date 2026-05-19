@@ -33,6 +33,12 @@ function makeLimits(overrides) {
     maxChaptersPerWork: overrides.maxChaptersPerWork ?? 20,
     dailyShortStoryOutlines: overrides.dailyShortStoryOutlines ?? 3,
     dailyLongNovelOutlines: overrides.dailyLongNovelOutlines ?? 1,
+    dailyIdeaGenerations: overrides.dailyIdeaGenerations ?? 10,
+    dailyIdeaAnalyses: overrides.dailyIdeaAnalyses ?? 10,
+    dailyChapterGenerations: overrides.dailyChapterGenerations ?? 10,
+    dailyChapterSummaries: overrides.dailyChapterSummaries ?? 10,
+    dailyChapterOutlines: overrides.dailyChapterOutlines ?? 10,
+    dailyChapterDetails: overrides.dailyChapterDetails ?? 10,
   };
 }
 
@@ -50,10 +56,19 @@ test("membership limits define Free, Plus, Pro and Max quotas", () => {
   assert.match(limitsSource, /default: \{[\s\S]*dailyTokens: 30_000/);
   assert.match(limitsSource, /default: \{[\s\S]*dailyShortStoryOutlines: 3/);
   assert.match(limitsSource, /default: \{[\s\S]*dailyLongNovelOutlines: 1/);
+  assert.match(limitsSource, /default: \{[\s\S]*dailyIdeaGenerations: 10/);
+  assert.match(limitsSource, /default: \{[\s\S]*dailyIdeaAnalyses: 10/);
+  assert.match(limitsSource, /default: \{[\s\S]*dailyChapterGenerations: 10/);
+  assert.match(limitsSource, /default: \{[\s\S]*dailyChapterSummaries: 10/);
+  assert.match(limitsSource, /default: \{[\s\S]*dailyChapterOutlines: 10/);
+  assert.match(limitsSource, /default: \{[\s\S]*dailyChapterDetails: 10/);
 
   assert.match(limitsSource, /plus: \{[\s\S]*dailyAiCalls: 100/);
+  assert.match(limitsSource, /plus: \{[\s\S]*dailyIdeaGenerations: 100/);
   assert.match(limitsSource, /pro: \{[\s\S]*dailyAiCalls: 500/);
+  assert.match(limitsSource, /pro: \{[\s\S]*dailyChapterGenerations: 500/);
   assert.match(limitsSource, /max: \{[\s\S]*dailyAiCalls: 3_000/);
+  assert.match(limitsSource, /max: \{[\s\S]*dailyChapterDetails: 3_000/);
   assert.match(limitsSource, /maxWorks: -1/);
   assert.match(limitsSource, /maxChaptersPerWork: -1/);
   assert.match(limitsSource, /MEMBERSHIP_LIMITS_CONFIG_KEY = "membership_limits"/);
@@ -68,7 +83,7 @@ test("quota and membership guards return 429 and keep admins unlimited", () => {
   assert.match(guardsSource, /if \(isAdminUser\(user\)\) return/);
   assert.match(rulesSource, /new AuthApiError\(\s*429,[\s\S]*今日 AI 调用次数已用完/);
   assert.match(rulesSource, /throw new AuthApiError\(429, params\.message\(params\.limit\)\)/);
-  assert.match(guardsSource, /new AuthApiError\(\s*429,[\s\S]*今日.*生成次数已用完/);
+  assert.match(guardsSource, /new AuthApiError\(\s*429,[\s\S]*今日.*次数已用完/);
 });
 
 test("default user exceeding dailyAiCalls receives 429", () => {
@@ -142,6 +157,7 @@ test("membership guards enforce works, chapters and outline action limits server
   assert.match(guardsSource, /isUnlimitedMembershipLimit\(limits\.maxWorks\)/);
   assert.match(guardsSource, /isUnlimitedMembershipLimit\(limits\.maxChaptersPerWork\)/);
   assert.match(guardsSource, /prisma\.aiUsageEvent\.count/);
+  assert.match(guardsSource, /prisma\.aiQuotaReservation\.count/);
   assert.match(guardsSource, /success: true/);
 
   assert.match(workRouteSource, /await assertCanCreateWork\(user\)/);
@@ -149,6 +165,44 @@ test("membership guards enforce works, chapters and outline action limits server
   assert.match(chapterRouteSource, /await assertCanCreateChapter\(user, work\.id/);
   assert.match(outlineRouteSource, /await assertCanUseAiAction\(user, "outline_generate"\)/);
   assert.match(shortOutlineRouteSource, /await assertCanUseAiAction\(user, "short_story_outline_generate"\)/);
+});
+
+test("membership guards define configurable limits for all billable AI actions", () => {
+  const guardsSource = read("src/lib/membership/guards.ts");
+
+  const expectedMappings = [
+    ["idea_generate", "dailyIdeaGenerations"],
+    ["idea_analyze", "dailyIdeaAnalyses"],
+    ["chapter_generate", "dailyChapterGenerations"],
+    ["chapter_summary", "dailyChapterSummaries"],
+    ["chapter_outline", "dailyChapterOutlines"],
+    ["chapter_details", "dailyChapterDetails"],
+  ];
+
+  for (const [action, limitKey] of expectedMappings) {
+    assert.match(guardsSource, new RegExp(`params\\.action === "${action}"`));
+    assert.match(guardsSource, new RegExp(`limit: params\\.${limitKey}`));
+  }
+
+  assert.match(guardsSource, /usedCount \+ pendingReservationCount >= actionLimit\.limit/);
+});
+
+test("AI quota reservations are schema-backed, expiring and concurrency-safe", () => {
+  const schemaSource = read("prisma/schema.prisma");
+  const quotaSource = read("src/lib/ai/quota.ts");
+
+  assert.match(schemaSource, /enum AiQuotaReservationStatus/);
+  assert.match(schemaSource, /model AiQuotaReservation/);
+  assert.match(schemaSource, /status\s+AiQuotaReservationStatus\s+@default\(pending\)/);
+  assert.match(schemaSource, /expiresAt\s+DateTime/);
+  assert.match(schemaSource, /@@index\(\[userId, status, expiresAt\]\)/);
+
+  assert.match(quotaSource, /RESERVATION_TTL_MS = 5 \* 60_000/);
+  assert.match(quotaSource, /Prisma\.TransactionIsolationLevel\.Serializable/);
+  assert.match(quotaSource, /expiresAt: \{ gt: now \}/);
+  assert.match(quotaSource, /pendingMinuteReservations/);
+  assert.match(quotaSource, /minuteCalls: recentSuccessCount \+ pendingMinuteReservations/);
+  assert.match(quotaSource, /dailyCalls: successCallCount \+ pendingDailyReservations/);
 });
 
 test("App Router AI routes delegate to backend quota-protected handlers", () => {
@@ -180,41 +234,46 @@ test("quota checks happen before every explicit retry or expansion call", () => 
   assertBefore(
     ideaSource,
     "await assertAiQuotaAvailable(user);",
-    "const second = await callAiText",
+    'const second = await runWithAiQuotaReservation(user, "idea_generate_expand"',
     "idea expansion",
   );
+  assert.match(ideaSource, /runWithAiQuotaReservation\(user, "idea_generate"[\s\S]*callAiText\(/);
 
   assert.ok((analyzeSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
   assertBefore(
     analyzeSource,
     "await assertAiQuotaAvailable(user);",
-    "const second = await callAiText",
+    'const second = await runWithAiQuotaReservation(user, "idea_analyze_retry"',
     "idea analyze retry",
   );
+  assert.match(analyzeSource, /runWithAiQuotaReservation\(user, "idea_analyze"[\s\S]*callAiText\(/);
 
   assert.ok((outlineSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
   assertBefore(
     outlineSource,
     "await assertAiQuotaAvailable(user);",
-    "const second = await callAiText",
+    'const second = await runWithAiQuotaReservation(user, "outline_generate_retry"',
     "long outline retry",
   );
+  assert.match(outlineSource, /runWithAiQuotaReservation\(user, "outline_generate"[\s\S]*callAiText\(/);
 
   assert.ok((refineSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
   assertBefore(
     refineSource,
     "await assertAiQuotaAvailable(user);",
-    "const second = await callAiText",
+    'const second = await runWithAiQuotaReservation(user, "outline_extend_retry"',
     "outline extend retry",
   );
+  assert.match(refineSource, /runWithAiQuotaReservation\(user, "outline_extend"[\s\S]*callAiText\(/);
 
   assert.ok((shortOutlineSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
   assertBefore(
     shortOutlineSource,
     "await assertAiQuotaAvailable(user);",
-    "const retry = await callAiText",
+    'const retry = await runWithAiQuotaReservation(user, "short_story_outline_generate_retry"',
     "short outline retry",
   );
+  assert.match(shortOutlineSource, /runWithAiQuotaReservation\(user, "short_story_outline_generate"[\s\S]*callAiText\(/);
   assert.match(shortOutlineSource, /action: "short_story_outline_generate_retry"/);
 });
 
@@ -228,7 +287,14 @@ test("chapter metadata routes verify access before quota and AI calls", () => {
   for (const [file, action] of checks) {
     const source = read(file);
     assertBefore(source, "const work = await prisma.work.findUnique", "await assertAiQuotaAvailable(user);", file);
-    assertBefore(source, `await assertCanUseAiAction(user, "${action}")`, "const result = await callAiText", file);
+    assertBefore(
+      source,
+      `await assertCanUseAiAction(user, "${action}")`,
+      `const result = await runWithAiQuotaReservation(user, "${action}"`,
+      file,
+    );
+    assert.match(source, new RegExp(`action: "${action}"`));
+    assert.doesNotMatch(source, new RegExp(`action: \\\`${action}_\\$\\{body\\.index\\}`));
   }
 });
 
@@ -237,7 +303,38 @@ test("chapter generation repair checks quota before optional repair AI call", ()
   const generateSource = read("src/backend/ai/chapter/generate-service.ts");
   const streamPersistenceSource = read("src/backend/ai/chapter/stream-persistence.ts");
 
-  assertBefore(repairSource, "await params.beforeRepairAiCall?.();", "const repairResult = await callAiText", "repair quota");
+  assertBefore(repairSource, "await params.beforeRepairAiCall?.();", "const repairResult = await executeRepairAiCall", "repair quota");
   assert.match(generateSource, /beforeRepairAiCall: \(\) => assertAiQuotaAvailable\(user\)/);
+  assert.match(generateSource, /runRepairAiCall: \(execute\) =>[\s\S]*runWithAiQuotaReservation\(user, "chapter_generate_length_repair", execute\)/);
   assert.match(streamPersistenceSource, /beforeRepairAiCall: \(\) => assertAiQuotaAvailable\(prepared\.user\)/);
+  assert.match(streamPersistenceSource, /runWithAiQuotaReservation\([\s\S]*prepared\.user,[\s\S]*"chapter_generate_stream_length_repair"/);
+});
+
+test("AI quota reservation is committed on success and released on failure", () => {
+  const quotaSource = read("src/lib/ai/quota.ts");
+
+  assertBefore(
+    quotaSource,
+    "const reservation = await reserveAiQuota(user, action, options);",
+    "const result = await execute();",
+    "reservation before upstream call",
+  );
+  assert.match(quotaSource, /await settleAiQuotaReservation\(reservation, result\)/);
+  assert.match(quotaSource, /await cancelAiQuotaReservation\(reservation\)/);
+  assert.match(quotaSource, /if \(result\.ok && result\.text\)/);
+  assert.match(quotaSource, /await commitAiQuotaReservation\(reservation\)/);
+});
+
+test("chapter generation and stream generation use aggregated action names", () => {
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const streamSource = read("src/backend/ai/chapter/stream-route.ts");
+
+  assert.match(generateSource, /runWithAiQuotaReservation\(user, "chapter_generate"[\s\S]*callAiText\(/);
+  assert.match(generateSource, /action: "chapter_generate"/);
+  assert.doesNotMatch(generateSource, /action: `chapter_generate_\$\{input\.index\}`/);
+
+  assert.match(streamSource, /reserveAiQuota\([\s\S]*"chapter_generate_stream"/);
+  assert.match(streamSource, /settleAiQuotaReservation\(quotaReservation, usageResult\)/);
+  assert.match(streamSource, /action: "chapter_generate_stream"/);
+  assert.doesNotMatch(streamSource, /action: `chapter_generate_stream_\$\{parsedBody\.data\.index\}`/);
 });

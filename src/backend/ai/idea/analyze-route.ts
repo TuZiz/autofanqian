@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/auth/api";
 import { z } from "zod";
 
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import {
   buildIdeaAnalysisSystemPrompt,
   buildIdeaAnalysisUserPrompt,
@@ -186,14 +189,16 @@ export async function POST(request: Request) {
       },
     ];
 
-  const first = await callAiText({
-    providers: analysisProviders,
-    preferredProviderId: target.providerId,
-    messages,
-    temperature: 0.35,
-    maxTokens: 650,
-    attempts: 1,
-  });
+  const first = await runWithAiQuotaReservation(user, "idea_analyze", () =>
+    callAiText({
+      providers: analysisProviders,
+      preferredProviderId: target.providerId,
+      messages,
+      temperature: 0.35,
+      maxTokens: 650,
+      attempts: 1,
+    }),
+  );
 
   await logAiUsage({ userId: user.id, action: "idea_analyze", result: first });
 
@@ -217,7 +222,8 @@ export async function POST(request: Request) {
       return errorResponse(error);
     }
 
-    const second = await callAiText({
+    const second = await runWithAiQuotaReservation(user, "idea_analyze_retry", () =>
+      callAiText({
       providers: analysisProviders,
       messages: [
         ...messages,
@@ -230,8 +236,9 @@ export async function POST(request: Request) {
       ],
       temperature: 0.2,
       maxTokens: 650,
-      attempts: 1,
-    });
+        attempts: 1,
+      }),
+    );
 
     await logAiUsage({ userId: user.id, action: "idea_analyze_retry", result: second });
 

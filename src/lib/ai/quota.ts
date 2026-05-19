@@ -1,28 +1,204 @@
 import "server-only";
 
+import { Prisma } from "@prisma/client";
+
+import type { UpstreamTextResult } from "@/lib/ai/upstream-text";
 import { isAdminUser } from "@/lib/auth/admin";
+import { AuthApiError } from "@/lib/auth/errors";
 import { getMembershipLimits } from "@/lib/membership/limits";
 import {
   assertMembershipAiUsageAvailable,
   isUnlimitedMembershipLimit,
 } from "@/lib/membership/rules";
+import { getAiActionLimit } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 
-type AiQuotaUser = {
+export type AiQuotaUser = {
   id: string;
   email: string;
   role?: string | null;
   membershipTier?: string | null;
 };
 
-function getTodayRange() {
-  const start = new Date();
+export type AiQuotaReservationHandle = {
+  id: string;
+  userId: string;
+  action: string;
+} | null;
+
+type QuotaClient = typeof prisma | Prisma.TransactionClient;
+
+const RESERVATION_TTL_MS = 5 * 60_000;
+
+function getTodayRange(now = new Date()) {
+  const start = new Date(now);
   start.setHours(0, 0, 0, 0);
 
   const end = new Date(start);
   end.setDate(end.getDate() + 1);
 
   return { start, end };
+}
+
+function getActionLimitForTier(
+  action: string,
+  limits: Awaited<ReturnType<typeof getMembershipLimits>>,
+) {
+  return getAiActionLimit({
+    action,
+    dailyLongNovelOutlines: limits.dailyLongNovelOutlines,
+    dailyShortStoryOutlines: limits.dailyShortStoryOutlines,
+    dailyIdeaGenerations: limits.dailyIdeaGenerations,
+    dailyIdeaAnalyses: limits.dailyIdeaAnalyses,
+    dailyChapterGenerations: limits.dailyChapterGenerations,
+    dailyChapterSummaries: limits.dailyChapterSummaries,
+    dailyChapterOutlines: limits.dailyChapterOutlines,
+    dailyChapterDetails: limits.dailyChapterDetails,
+  });
+}
+
+async function getAiQuotaUsageSnapshot(params: {
+  client: QuotaClient;
+  userId: string;
+  now: Date;
+  dailyCallLimit: number;
+  dailyTokenLimit: number;
+  minuteCallLimit: number;
+}) {
+  const { client, userId, now } = params;
+  const { start, end } = getTodayRange(now);
+  const minuteStart = new Date(now.getTime() - 60_000);
+  const pendingBaseWhere = {
+    userId,
+    status: "pending" as const,
+    expiresAt: { gt: now },
+  };
+
+  const [
+    successCallCount,
+    tokenUsage,
+    pendingDailyReservations,
+    pendingTokenEstimate,
+    recentSuccessCount,
+    pendingMinuteReservations,
+    activeJobCount,
+  ] = await Promise.all([
+    !isUnlimitedMembershipLimit(params.dailyCallLimit)
+      ? client.aiUsageEvent.count({
+          where: {
+            userId,
+            createdAt: { gte: start, lt: end },
+            success: true,
+          },
+        })
+      : Promise.resolve(0),
+    !isUnlimitedMembershipLimit(params.dailyTokenLimit)
+      ? client.aiUsageEvent.aggregate({
+          where: {
+            userId,
+            createdAt: { gte: start, lt: end },
+            OR: [{ success: true }, { totalTokens: { gt: 0 } }],
+          },
+          _sum: { totalTokens: true },
+        })
+      : Promise.resolve({ _sum: { totalTokens: null } }),
+    !isUnlimitedMembershipLimit(params.dailyCallLimit)
+      ? client.aiQuotaReservation.count({
+          where: {
+            ...pendingBaseWhere,
+            createdAt: { gte: start, lt: end },
+          },
+        })
+      : Promise.resolve(0),
+    !isUnlimitedMembershipLimit(params.dailyTokenLimit)
+      ? client.aiQuotaReservation.aggregate({
+          where: {
+            ...pendingBaseWhere,
+            createdAt: { gte: start, lt: end },
+          },
+          _sum: { estimatedTokens: true },
+        })
+      : Promise.resolve({ _sum: { estimatedTokens: null } }),
+    !isUnlimitedMembershipLimit(params.minuteCallLimit)
+      ? client.aiUsageEvent.count({
+          where: {
+            userId,
+            createdAt: { gte: minuteStart },
+            success: true,
+          },
+        })
+      : Promise.resolve(0),
+    !isUnlimitedMembershipLimit(params.minuteCallLimit)
+      ? client.aiQuotaReservation.count({
+          where: {
+            ...pendingBaseWhere,
+            createdAt: { gte: minuteStart },
+          },
+        })
+      : Promise.resolve(0),
+    !isUnlimitedMembershipLimit(params.minuteCallLimit)
+      ? client.generationJob.count({
+          where: {
+            createdAt: { gte: minuteStart },
+            status: { in: ["queued", "running"] },
+            novel: { userId },
+          },
+        })
+      : Promise.resolve(0),
+  ]);
+
+  return {
+    activeJobs: activeJobCount,
+    dailyCalls: successCallCount + pendingDailyReservations,
+    dailyTokens:
+      (tokenUsage._sum.totalTokens ?? 0) +
+      (pendingTokenEstimate._sum.estimatedTokens ?? 0),
+    minuteCalls: recentSuccessCount + pendingMinuteReservations,
+  };
+}
+
+async function assertAiActionQuotaAvailable(params: {
+  client: QuotaClient;
+  user: AiQuotaUser;
+  action: string;
+  now: Date;
+  limits: Awaited<ReturnType<typeof getMembershipLimits>>;
+}) {
+  const actionLimit = getActionLimitForTier(params.action, params.limits);
+  if (!actionLimit || isUnlimitedMembershipLimit(actionLimit.limit)) return;
+
+  const { start, end } = getTodayRange(params.now);
+  const actionFilter: Prisma.StringFilter =
+    actionLimit.actions.length === 1
+      ? { equals: actionLimit.actions[0] }
+      : { in: actionLimit.actions };
+
+  const [usedCount, pendingReservationCount] = await Promise.all([
+    params.client.aiUsageEvent.count({
+      where: {
+        userId: params.user.id,
+        action: actionFilter,
+        success: true,
+        createdAt: { gte: start, lt: end },
+      },
+    }),
+    params.client.aiQuotaReservation.count({
+      where: {
+        userId: params.user.id,
+        action: actionFilter,
+        status: "pending",
+        createdAt: { gte: start, lt: end },
+        expiresAt: { gt: params.now },
+      },
+    }),
+  ]);
+
+  if (usedCount + pendingReservationCount >= actionLimit.limit) {
+    throw new AuthApiError(
+      429,
+      `${params.limits.label} 今日${actionLimit.actionName}次数已用完，请升级套餐或明天再试。`,
+    );
+  }
 }
 
 export async function assertAiQuotaAvailable(user: AiQuotaUser) {
@@ -41,52 +217,149 @@ export async function assertAiQuotaAvailable(user: AiQuotaUser) {
     return;
   }
 
-  const { start, end } = getTodayRange();
-  const minuteStart = new Date(Date.now() - 60_000);
-  const [callCount, tokenUsage, recentSuccessCount, activeJobCount] = await Promise.all([
-    !isUnlimitedMembershipLimit(dailyCallLimit)
-      ? prisma.aiUsageEvent.count({
-          where: {
-            userId: user.id,
-            createdAt: { gte: start, lt: end },
-            success: true,
-          },
-        })
-      : Promise.resolve(0),
-    !isUnlimitedMembershipLimit(dailyTokenLimit)
-      ? prisma.aiUsageEvent.aggregate({
-          where: {
-            userId: user.id,
-            createdAt: { gte: start, lt: end },
-            success: true,
-          },
-          _sum: { totalTokens: true },
-        })
-      : Promise.resolve({ _sum: { totalTokens: null } }),
-    !isUnlimitedMembershipLimit(minuteCallLimit)
-      ? prisma.aiUsageEvent.count({
-          where: {
-            userId: user.id,
-            createdAt: { gte: minuteStart },
-            success: true,
-          },
-        })
-      : Promise.resolve(0),
-    !isUnlimitedMembershipLimit(minuteCallLimit)
-      ? prisma.generationJob.count({
-          where: {
-            createdAt: { gte: minuteStart },
-            status: { in: ["queued", "running"] },
-            novel: { userId: user.id },
-          },
-        })
-      : Promise.resolve(0),
-  ]);
-
-  assertMembershipAiUsageAvailable(limits, {
-    activeJobs: activeJobCount,
-    dailyCalls: callCount,
-    dailyTokens: tokenUsage._sum.totalTokens ?? 0,
-    minuteCalls: recentSuccessCount,
+  const usage = await getAiQuotaUsageSnapshot({
+    client: prisma,
+    userId: user.id,
+    now: new Date(),
+    dailyCallLimit,
+    dailyTokenLimit,
+    minuteCallLimit,
   });
+
+  assertMembershipAiUsageAvailable(limits, usage);
+}
+
+export async function reserveAiQuota(
+  user: AiQuotaUser,
+  action: string,
+  options?: { estimatedTokens?: number | null },
+): Promise<AiQuotaReservationHandle> {
+  if (isAdminUser(user)) return null;
+
+  const limits = await getMembershipLimits(user.membershipTier ?? "default");
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + RESERVATION_TTL_MS);
+  const estimatedTokens =
+    typeof options?.estimatedTokens === "number" && options.estimatedTokens > 0
+      ? Math.round(options.estimatedTokens)
+      : null;
+
+  try {
+    const reservation = await prisma.$transaction(
+      async (tx) => {
+        const usage = await getAiQuotaUsageSnapshot({
+          client: tx,
+          userId: user.id,
+          now,
+          dailyCallLimit: limits.dailyAiCalls,
+          dailyTokenLimit: limits.dailyTokens,
+          minuteCallLimit: limits.minuteAiCalls,
+        });
+
+        assertMembershipAiUsageAvailable(limits, usage);
+        await assertAiActionQuotaAvailable({
+          client: tx,
+          user,
+          action,
+          now,
+          limits,
+        });
+
+        return tx.aiQuotaReservation.create({
+          data: {
+            userId: user.id,
+            action,
+            estimatedTokens,
+            expiresAt,
+          },
+          select: {
+            id: true,
+            userId: true,
+            action: true,
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    return reservation;
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2034"
+    ) {
+      throw new AuthApiError(
+        429,
+        `${limits.label} 当前请求过于密集，请稍后再试。`,
+      );
+    }
+
+    throw error;
+  }
+}
+
+export async function commitAiQuotaReservation(
+  reservation: AiQuotaReservationHandle,
+) {
+  if (!reservation) return;
+
+  try {
+    await prisma.aiQuotaReservation.updateMany({
+      where: {
+        id: reservation.id,
+        status: "pending",
+      },
+      data: { status: "committed" },
+    });
+  } catch (error) {
+    console.warn("Failed to commit AI quota reservation:", error);
+  }
+}
+
+export async function cancelAiQuotaReservation(
+  reservation: AiQuotaReservationHandle,
+) {
+  if (!reservation) return;
+
+  try {
+    await prisma.aiQuotaReservation.updateMany({
+      where: {
+        id: reservation.id,
+        status: "pending",
+      },
+      data: { status: "cancelled" },
+    });
+  } catch (error) {
+    console.warn("Failed to cancel AI quota reservation:", error);
+  }
+}
+
+export async function settleAiQuotaReservation(
+  reservation: AiQuotaReservationHandle,
+  result: UpstreamTextResult,
+) {
+  if (result.ok && result.text) {
+    await commitAiQuotaReservation(reservation);
+    return;
+  }
+
+  await cancelAiQuotaReservation(reservation);
+}
+
+export async function runWithAiQuotaReservation<T extends UpstreamTextResult>(
+  user: AiQuotaUser,
+  action: string,
+  execute: () => Promise<T>,
+  options?: { estimatedTokens?: number | null },
+): Promise<T> {
+  const reservation = await reserveAiQuota(user, action, options);
+
+  try {
+    const result = await execute();
+    await settleAiQuotaReservation(reservation, result);
+    return result;
+  } catch (error) {
+    await cancelAiQuotaReservation(reservation);
+    throw error;
+  }
 }

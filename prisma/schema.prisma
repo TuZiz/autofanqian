@@ -88,6 +88,12 @@ enum GenerationJobStatus {
   failed
 }
 
+enum AiQuotaReservationStatus {
+  pending
+  committed
+  cancelled
+}
+
 enum PromptTemplateCategory {
   idea
   outline
@@ -118,6 +124,7 @@ model User {
   templateUsages       CreateTemplateUsage[]
   ideaGenerationEvents IdeaGenerationEvent[]
   aiUsageEvents        AiUsageEvent[]
+  aiQuotaReservations  AiQuotaReservation[]
   works                Work[]
   adminAuditLogs       AdminAuditLog[]
 }
@@ -251,6 +258,22 @@ model AiUsageEvent {
   @@index([action, createdAt(sort: Desc)])
   @@index([routeId, createdAt(sort: Desc)])
   @@index([userId, createdAt(sort: Desc)])
+}
+
+model AiQuotaReservation {
+  id              String                   @id @default(cuid())
+  userId          String
+  action          String
+  status          AiQuotaReservationStatus @default(pending)
+  estimatedTokens Int?
+  createdAt       DateTime                 @default(now())
+  expiresAt       DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, expiresAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action, status, createdAt(sort: Desc)])
 }
 
 model Work {

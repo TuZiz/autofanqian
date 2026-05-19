@@ -4,7 +4,10 @@ import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/auth/api";
 import { z } from "zod";
 
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildAiProviderChain,
@@ -174,7 +177,8 @@ export async function POST(request: Request) {
 
     const primaryProvider = providers[0];
 
-    const result = await callAiText({
+    const result = await runWithAiQuotaReservation(user, "chapter_details", () =>
+      callAiText({
       providers,
       preferredProviderId: primaryProvider.id,
       messages: [
@@ -204,12 +208,13 @@ export async function POST(request: Request) {
         },
       ],
       temperature: 0.3,
-      maxTokens: 850,
-    });
+        maxTokens: 850,
+      }),
+    );
 
     await logAiUsage({
       userId: user.id,
-      action: `chapter_details_${body.index}`,
+      action: "chapter_details",
       result,
     });
 

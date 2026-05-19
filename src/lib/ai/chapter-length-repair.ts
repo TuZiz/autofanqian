@@ -203,6 +203,7 @@ export async function repairChapterLengthIfNeeded(params: {
   workWords?: string | null;
   targetChapters?: number | null;
   beforeRepairAiCall?: () => Promise<void>;
+  runRepairAiCall?: (execute: () => Promise<UpstreamTextResult>) => Promise<UpstreamTextResult>;
 }) {
   const policy = resolveChapterLengthPolicy({
     workWords: params.workWords,
@@ -236,24 +237,27 @@ export async function repairChapterLengthIfNeeded(params: {
     } satisfies ChapterLengthRepairOutcome;
   }
 
-  const repairResult = await callAiText({
-    providers: params.providers,
-    routeId: params.routeId,
-    preferredProviderId: params.preferredProviderId,
-    messages: buildRepairMessages({
-      index: params.index,
-      draft: params.draft,
-      generationMode: params.generationMode,
-      issue,
-      policy,
-      promptSnapshot: params.promptSnapshot,
-      wordCount: initialWordCount,
+  const executeRepairAiCall = params.runRepairAiCall ?? ((execute) => execute());
+  const repairResult = await executeRepairAiCall(() =>
+    callAiText({
+      providers: params.providers,
+      routeId: params.routeId,
+      preferredProviderId: params.preferredProviderId,
+      messages: buildRepairMessages({
+        index: params.index,
+        draft: params.draft,
+        generationMode: params.generationMode,
+        issue,
+        policy,
+        promptSnapshot: params.promptSnapshot,
+        wordCount: initialWordCount,
+      }),
+      temperature: 0.55,
+      maxTokens: 3200,
+      attempts: 1,
+      reasoningEffort: "low",
     }),
-    temperature: 0.55,
-    maxTokens: 3200,
-    attempts: 1,
-    reasoningEffort: "low",
-  });
+  );
 
   if (!repairResult.ok || !repairResult.text) {
     return {

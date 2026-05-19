@@ -4,7 +4,10 @@ import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/auth/api";
 import { z } from "zod";
 
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildAiProviderChain,
@@ -247,20 +250,22 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
-    const result = await callAiText({
-      providers,
-      preferredProviderId: primaryProvider.id,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: hasContent ? 0.35 : 0.55,
-      maxTokens: 900,
-    });
+    const result = await runWithAiQuotaReservation(user, "chapter_outline", () =>
+      callAiText({
+        providers,
+        preferredProviderId: primaryProvider.id,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: hasContent ? 0.35 : 0.55,
+        maxTokens: 900,
+      }),
+    );
 
     await logAiUsage({
       userId: user.id,
-      action: `chapter_outline_${body.index}`,
+      action: "chapter_outline",
       result,
     });
 

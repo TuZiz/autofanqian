@@ -99,7 +99,8 @@ test("AI quota includes minute limit and active generation jobs", () => {
   assert.doesNotMatch(quotaSource, /AI_MINUTE_CALL_LIMIT/);
   assert.match(quotaSource, /createdAt: \{ gte: minuteStart \}/);
   assert.match(quotaSource, /success: true/);
-  assert.match(quotaSource, /prisma\.generationJob\.count/);
+  assert.match(quotaSource, /client\.generationJob\.count/);
+  assert.match(quotaSource, /pendingMinuteReservations/);
   assert.match(quotaSource, /status: \{ in: \["queued", "running"\] \}/);
   assert.match(quotaSource, /assertMembershipAiUsageAvailable\(limits/);
 });

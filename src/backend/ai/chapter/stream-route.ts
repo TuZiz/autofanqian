@@ -2,7 +2,12 @@ import { after, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { errorResponse } from "@/lib/auth/api";
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  cancelAiQuotaReservation,
+  reserveAiQuota,
+  settleAiQuotaReservation,
+} from "@/lib/ai/quota";
 import { runChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
 import {
   prepareChapterGeneration,
@@ -224,25 +229,35 @@ export async function POST(request: Request) {
           });
           writeEvent({ type: "progress", progress: 8, message: "已开始生成正文…" });
 
-          usageResult = await streamAiText({
-            providers: orderedProviders,
-            routeId: "gpt",
-            preferredProviderId: selected.provider.id,
-            messages: buildStreamMessages({
-              baseUserPrompt: prepared.promptSnapshot,
-              generationMode: prepared.generationMode,
-            }),
-            temperature: prepared.temperature,
-            maxTokens: prepared.maxTokens,
-            signal: abortController.signal,
-            reasoningEffort: "low",
-            onChunk: async (chunk) => {
-              if (chunk.deltaText) {
-                streamedText += chunk.deltaText;
-                flushPreviewDelta();
-              }
-            },
-          });
+          const quotaReservation = await reserveAiQuota(
+            prepared.user,
+            "chapter_generate_stream",
+          );
+          try {
+            usageResult = await streamAiText({
+              providers: orderedProviders,
+              routeId: "gpt",
+              preferredProviderId: selected.provider.id,
+              messages: buildStreamMessages({
+                baseUserPrompt: prepared.promptSnapshot,
+                generationMode: prepared.generationMode,
+              }),
+              temperature: prepared.temperature,
+              maxTokens: prepared.maxTokens,
+              signal: abortController.signal,
+              reasoningEffort: "low",
+              onChunk: async (chunk) => {
+                if (chunk.deltaText) {
+                  streamedText += chunk.deltaText;
+                  flushPreviewDelta();
+                }
+              },
+            });
+            await settleAiQuotaReservation(quotaReservation, usageResult);
+          } catch (error) {
+            await cancelAiQuotaReservation(quotaReservation);
+            throw error;
+          }
 
           if (usageResult) {
             usageResult.selectedProviderId = selected.provider.id;
@@ -252,7 +267,7 @@ export async function POST(request: Request) {
 
           await logAiUsage({
             userId: prepared.user.id,
-            action: `chapter_generate_stream_${parsedBody.data.index}`,
+            action: "chapter_generate_stream",
             result: usageResult,
           });
 

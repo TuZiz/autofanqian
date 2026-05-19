@@ -22,6 +22,12 @@ export type MembershipTierLimits = {
   maxChaptersPerWork: number;
   dailyShortStoryOutlines: number;
   dailyLongNovelOutlines: number;
+  dailyIdeaGenerations: number;
+  dailyIdeaAnalyses: number;
+  dailyChapterGenerations: number;
+  dailyChapterSummaries: number;
+  dailyChapterOutlines: number;
+  dailyChapterDetails: number;
 };
 
 export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTierLimits> = {
@@ -35,6 +41,12 @@ export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTi
     maxChaptersPerWork: 20,
     dailyShortStoryOutlines: 3,
     dailyLongNovelOutlines: 1,
+    dailyIdeaGenerations: 10,
+    dailyIdeaAnalyses: 10,
+    dailyChapterGenerations: 10,
+    dailyChapterSummaries: 10,
+    dailyChapterOutlines: 10,
+    dailyChapterDetails: 10,
   },
   plus: {
     tier: "plus",
@@ -46,6 +58,12 @@ export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTi
     maxChaptersPerWork: 200,
     dailyShortStoryOutlines: 30,
     dailyLongNovelOutlines: 10,
+    dailyIdeaGenerations: 100,
+    dailyIdeaAnalyses: 100,
+    dailyChapterGenerations: 100,
+    dailyChapterSummaries: 100,
+    dailyChapterOutlines: 100,
+    dailyChapterDetails: 100,
   },
   pro: {
     tier: "pro",
@@ -57,6 +75,12 @@ export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTi
     maxChaptersPerWork: 1_000,
     dailyShortStoryOutlines: 150,
     dailyLongNovelOutlines: 50,
+    dailyIdeaGenerations: 500,
+    dailyIdeaAnalyses: 500,
+    dailyChapterGenerations: 500,
+    dailyChapterSummaries: 500,
+    dailyChapterOutlines: 500,
+    dailyChapterDetails: 500,
   },
   max: {
     tier: "max",
@@ -68,6 +92,12 @@ export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTi
     maxChaptersPerWork: -1,
     dailyShortStoryOutlines: 1_000,
     dailyLongNovelOutlines: 300,
+    dailyIdeaGenerations: 3_000,
+    dailyIdeaAnalyses: 3_000,
+    dailyChapterGenerations: 3_000,
+    dailyChapterSummaries: 3_000,
+    dailyChapterOutlines: 3_000,
+    dailyChapterDetails: 3_000,
   },
 };
 
@@ -81,6 +111,12 @@ const tierLimitOverrideSchema = z.object({
   maxChaptersPerWork: limitValueSchema.optional(),
   dailyShortStoryOutlines: limitValueSchema.optional(),
   dailyLongNovelOutlines: limitValueSchema.optional(),
+  dailyIdeaGenerations: limitValueSchema.optional(),
+  dailyIdeaAnalyses: limitValueSchema.optional(),
+  dailyChapterGenerations: limitValueSchema.optional(),
+  dailyChapterSummaries: limitValueSchema.optional(),
+  dailyChapterOutlines: limitValueSchema.optional(),
+  dailyChapterDetails: limitValueSchema.optional(),
 });
 
 const tierOverridesSchema = z.object({
@@ -126,6 +162,17 @@ function applyOverride(
       override.dailyShortStoryOutlines ?? limits.dailyShortStoryOutlines,
     dailyLongNovelOutlines:
       override.dailyLongNovelOutlines ?? limits.dailyLongNovelOutlines,
+    dailyIdeaGenerations:
+      override.dailyIdeaGenerations ?? limits.dailyIdeaGenerations,
+    dailyIdeaAnalyses: override.dailyIdeaAnalyses ?? limits.dailyIdeaAnalyses,
+    dailyChapterGenerations:
+      override.dailyChapterGenerations ?? limits.dailyChapterGenerations,
+    dailyChapterSummaries:
+      override.dailyChapterSummaries ?? limits.dailyChapterSummaries,
+    dailyChapterOutlines:
+      override.dailyChapterOutlines ?? limits.dailyChapterOutlines,
+    dailyChapterDetails:
+      override.dailyChapterDetails ?? limits.dailyChapterDetails,
   };
 }
 

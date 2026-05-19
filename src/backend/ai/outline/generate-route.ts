@@ -4,7 +4,10 @@ import { errorResponse } from "@/lib/auth/api";
 import { randomInt, randomUUID } from "crypto";
 import { z } from "zod";
 
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import {
   buildOutlineSystemPrompt,
   buildOutlineUserPrompt,
@@ -364,14 +367,16 @@ export async function POST(request: Request) {
       { role: "user", content: userPrompt },
     ];
 
-  const first = await callAiText({
-    providers,
-    messages,
-    temperature: 0.86,
-    maxTokens: 4200,
-    attempts: 1,
-    preferredProviderId: target.providerId,
-  });
+  const first = await runWithAiQuotaReservation(user, "outline_generate", () =>
+    callAiText({
+      providers,
+      messages,
+      temperature: 0.86,
+      maxTokens: 4200,
+      attempts: 1,
+      preferredProviderId: target.providerId,
+    }),
+  );
 
   await logAiUsage({ userId: user.id, action: "outline_generate", result: first });
 
@@ -395,7 +400,8 @@ export async function POST(request: Request) {
       return errorResponse(error);
     }
 
-    const second = await callAiText({
+    const second = await runWithAiQuotaReservation(user, "outline_generate_retry", () =>
+      callAiText({
       providers,
       preferredProviderId: first.providerId,
       messages: [
@@ -409,8 +415,9 @@ export async function POST(request: Request) {
       ],
       temperature: 0.5,
       maxTokens: 4200,
-      attempts: 1,
-    });
+        attempts: 1,
+      }),
+    );
 
     await logAiUsage({
       userId: user.id,

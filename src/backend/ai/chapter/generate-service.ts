@@ -13,7 +13,10 @@ import {
   beginChapterGenerationLock,
   endChapterGenerationLock,
 } from "@/lib/ai/chapter-generation-lock";
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildChapterSmartProviderChain,
@@ -139,16 +142,18 @@ export async function generateChapterForUser(params: {
       selected.provider,
       ...providers.filter((provider) => provider.id !== selected.provider?.id),
     ];
-    const result = await callAiText({
-      providers: orderedProviders,
-      routeId: "gpt",
-      preferredProviderId: selected.provider.id,
-      messages: prepared.messages,
-      temperature: prepared.temperature,
-      maxTokens: prepared.maxTokens,
-      attempts: 1,
-      reasoningEffort: "low",
-    });
+    const result = await runWithAiQuotaReservation(user, "chapter_generate", () =>
+      callAiText({
+        providers: orderedProviders,
+        routeId: "gpt",
+        preferredProviderId: selected.provider.id,
+        messages: prepared.messages,
+        temperature: prepared.temperature,
+        maxTokens: prepared.maxTokens,
+        attempts: 1,
+        reasoningEffort: "low",
+      }),
+    );
 
     result.selectedProviderId = selected.provider.id;
     result.probeDurationMs = selected.probeDurationMs;
@@ -156,7 +161,7 @@ export async function generateChapterForUser(params: {
 
     await logAiUsage({
       userId: user.id,
-      action: `chapter_generate_${input.index}`,
+      action: "chapter_generate",
       result,
     });
 
@@ -197,6 +202,8 @@ export async function generateChapterForUser(params: {
       workWords: prepared.work.words,
       targetChapters: prepared.work.targetChapters,
       beforeRepairAiCall: () => assertAiQuotaAvailable(user),
+      runRepairAiCall: (execute) =>
+        runWithAiQuotaReservation(user, "chapter_generate_length_repair", execute),
     });
 
     if (lengthRepair.repairResult) {

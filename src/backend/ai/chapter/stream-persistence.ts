@@ -6,7 +6,10 @@ import {
   finalizeGeneratedDraft,
   type PreparedChapterGeneration,
 } from "@/lib/ai/chapter-generate-shared";
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   getReadableAiErrorMessage,
@@ -175,6 +178,12 @@ export async function completeSuccessfulStreamGeneration(params: {
     workWords: prepared.work.words,
     targetChapters: prepared.work.targetChapters,
     beforeRepairAiCall: () => assertAiQuotaAvailable(prepared.user),
+    runRepairAiCall: (execute) =>
+      runWithAiQuotaReservation(
+        prepared.user,
+        "chapter_generate_stream_length_repair",
+        execute,
+      ),
   });
   const finalDraft = lengthRepair.draft;
   const finalWordCount = lengthRepair.wordCount;

@@ -4,7 +4,10 @@ import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/auth/api";
 import { z } from "zod";
 
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildAiProviderChain,
@@ -305,14 +308,16 @@ export async function POST(request: Request) {
     { role: "user", content: userPrompt },
   ];
 
-  const first = await callAiText({
-    providers,
-    preferredProviderId: target.providerId,
-    messages,
-    temperature: 0.68,
-    maxTokens: 4200,
-    attempts: 1,
-  });
+  const first = await runWithAiQuotaReservation(user, "outline_extend", () =>
+    callAiText({
+      providers,
+      preferredProviderId: target.providerId,
+      messages,
+      temperature: 0.68,
+      maxTokens: 4200,
+      attempts: 1,
+    }),
+  );
 
   await logAiUsage({ userId: user.id, action: "outline_extend", result: first });
 
@@ -336,7 +341,8 @@ export async function POST(request: Request) {
       return errorResponse(error);
     }
 
-    const second = await callAiText({
+    const second = await runWithAiQuotaReservation(user, "outline_extend_retry", () =>
+      callAiText({
       providers,
       preferredProviderId: first.providerId ?? target.providerId,
       messages: [
@@ -350,8 +356,9 @@ export async function POST(request: Request) {
       ],
       temperature: 0.45,
       maxTokens: 4200,
-      attempts: 1,
-    });
+        attempts: 1,
+      }),
+    );
 
     await logAiUsage({ userId: user.id, action: "outline_extend_retry", result: second });
 

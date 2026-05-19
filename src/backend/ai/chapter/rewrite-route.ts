@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { queueChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
-import { assertAiQuotaAvailable } from "@/lib/ai/quota";
+import {
+  assertAiQuotaAvailable,
+  runWithAiQuotaReservation,
+} from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
 import {
   buildAiProviderChain,
@@ -219,7 +222,9 @@ export async function POST(request: Request) {
       },
     });
 
-    const result = await callAiText({
+    const usageAction = `chapter_rewrite_${body.action}`;
+    const result = await runWithAiQuotaReservation(user, usageAction, () =>
+      callAiText({
       providers,
       routeId,
       preferredProviderId: primaryProvider.id,
@@ -228,12 +233,13 @@ export async function POST(request: Request) {
         { role: "user", content: prompt },
       ],
       temperature: body.action === "logic_check" ? 0.3 : 0.75,
-      maxTokens: body.action === "logic_check" ? 1800 : 5200,
-    });
+        maxTokens: body.action === "logic_check" ? 1800 : 5200,
+      }),
+    );
 
     await logAiUsage({
       userId: user.id,
-      action: `chapter_rewrite_${body.action}`,
+      action: usageAction,
       result,
     });
 
