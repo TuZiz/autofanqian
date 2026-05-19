@@ -250,6 +250,8 @@ model AiUsageEvent {
   inputTokens  Int?
   outputTokens Int?
   totalTokens  Int?
+  inputChars   Int?
+  outputChars  Int?
   durationMs   Int?
   createdAt    DateTime @default(now())
 
@@ -267,6 +269,7 @@ model AiQuotaReservation {
   action          String
   status          AiQuotaReservationStatus @default(pending)
   estimatedTokens Int?
+  estimatedOutputChars Int?
   createdAt       DateTime                 @default(now())
   expiresAt       DateTime
 

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { UpstreamTextResult } from "@/lib/ai/upstream-text";
+import { countNovelChars } from "@/lib/membership/chars";
 import { prisma } from "@/lib/prisma";
 
 export type AiUsageLogParams = {
@@ -24,6 +25,9 @@ export function buildAiUsageEventData(params: AiUsageLogParams) {
     inputTokens: result.usage?.inputTokens ?? null,
     outputTokens: result.usage?.outputTokens ?? null,
     totalTokens: result.usage?.totalTokens ?? null,
+    inputChars: null,
+    outputChars:
+      typeof result.text === "string" ? countNovelChars(result.text) : null,
     durationMs:
       typeof result.durationMs === "number"
         ? Math.max(0, Math.round(result.durationMs))

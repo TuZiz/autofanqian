@@ -90,7 +90,7 @@ export async function generateChapterForUser(params: {
     });
 
     await logAiUsage({
-      userId: user.id,
+      userId: null,
       action: `chapter_generate_${input.index}_probe`,
       result: {
         ok: Boolean(selected.provider),

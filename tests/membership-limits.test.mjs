@@ -485,6 +485,7 @@ test("chapter provider probes keep manual usage logging outside reserved generat
 
   assert.notEqual(probeLogIndex, -1);
   assert.ok(probeLogIndex < generationIndex);
+  assertBefore(generateSource, "await logAiUsage({", "userId: null,", "chapter probe user id");
   assert.match(generateSource, /action: `chapter_generate_\$\{input\.index\}_probe`/);
 });
 

@@ -16,6 +16,9 @@ export type MembershipTierLimits = {
   tier: MembershipTierValue;
   label: string;
   dailyAiCalls: number;
+  dailyGeneratedChars: number;
+  monthlyGeneratedChars: number;
+  /** Backend cost guardrail. User-facing plans should present generated characters instead. */
   dailyTokens: number;
   minuteAiCalls: number;
   maxWorks: number;
@@ -35,6 +38,8 @@ export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTi
     tier: "default",
     label: membershipTierLabels.default,
     dailyAiCalls: 10,
+    dailyGeneratedChars: 10_000,
+    monthlyGeneratedChars: 50_000,
     dailyTokens: 30_000,
     minuteAiCalls: 1,
     maxWorks: 3,
@@ -52,6 +57,8 @@ export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTi
     tier: "plus",
     label: membershipTierLabels.plus,
     dailyAiCalls: 100,
+    dailyGeneratedChars: 100_000,
+    monthlyGeneratedChars: 1_000_000,
     dailyTokens: 500_000,
     minuteAiCalls: 3,
     maxWorks: 20,
@@ -69,6 +76,8 @@ export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTi
     tier: "pro",
     label: membershipTierLabels.pro,
     dailyAiCalls: 500,
+    dailyGeneratedChars: 500_000,
+    monthlyGeneratedChars: 5_000_000,
     dailyTokens: 2_000_000,
     minuteAiCalls: 8,
     maxWorks: 100,
@@ -86,6 +95,8 @@ export const DEFAULT_MEMBERSHIP_LIMITS: Record<MembershipTierValue, MembershipTi
     tier: "max",
     label: membershipTierLabels.max,
     dailyAiCalls: 3_000,
+    dailyGeneratedChars: 2_000_000,
+    monthlyGeneratedChars: 20_000_000,
     dailyTokens: 10_000_000,
     minuteAiCalls: 20,
     maxWorks: -1,
@@ -105,6 +116,8 @@ const limitValueSchema = z.coerce.number().int().min(-1).max(100_000_000);
 const tierLimitOverrideSchema = z.object({
   label: z.string().trim().min(1).max(40).optional(),
   dailyAiCalls: limitValueSchema.optional(),
+  dailyGeneratedChars: limitValueSchema.optional(),
+  monthlyGeneratedChars: limitValueSchema.optional(),
   dailyTokens: limitValueSchema.optional(),
   minuteAiCalls: limitValueSchema.optional(),
   maxWorks: limitValueSchema.optional(),
@@ -154,6 +167,10 @@ function applyOverride(
     ...limits,
     label: override.label?.trim() || limits.label,
     dailyAiCalls: override.dailyAiCalls ?? limits.dailyAiCalls,
+    dailyGeneratedChars:
+      override.dailyGeneratedChars ?? limits.dailyGeneratedChars,
+    monthlyGeneratedChars:
+      override.monthlyGeneratedChars ?? limits.monthlyGeneratedChars,
     dailyTokens: override.dailyTokens ?? limits.dailyTokens,
     minuteAiCalls: override.minuteAiCalls ?? limits.minuteAiCalls,
     maxWorks: override.maxWorks ?? limits.maxWorks,

@@ -90,6 +90,17 @@ function getTodayRange(now = new Date()) {
   return { start, end };
 }
 
+function getMonthRange(now = new Date()) {
+  const start = new Date(now);
+  start.setDate(1);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + 1);
+
+  return { start, end };
+}
+
 function getActionLimitForTier(
   action: string,
   limits: Awaited<ReturnType<typeof getMembershipLimits>>,
@@ -112,11 +123,14 @@ async function getAiQuotaUsageSnapshot(params: {
   userId: string;
   now: Date;
   dailyCallLimit: number;
+  dailyGeneratedCharLimit: number;
   dailyTokenLimit: number;
   minuteCallLimit: number;
+  monthlyGeneratedCharLimit: number;
 }) {
   const { client, userId, now } = params;
   const { start, end } = getTodayRange(now);
+  const { start: monthStart, end: monthEnd } = getMonthRange(now);
   const minuteStart = new Date(now.getTime() - 60_000);
   const reservationWhere: Prisma.AiQuotaReservationWhereInput = {
     userId,
@@ -131,6 +145,10 @@ async function getAiQuotaUsageSnapshot(params: {
     tokenUsage,
     pendingDailyReservations,
     pendingTokenEstimate,
+    dailyCharUsage,
+    pendingDailyCharEstimate,
+    monthlyCharUsage,
+    pendingMonthlyCharEstimate,
     recentSuccessCount,
     pendingMinuteReservations,
     activeJobCount,
@@ -171,6 +189,44 @@ async function getAiQuotaUsageSnapshot(params: {
           _sum: { estimatedTokens: true },
         })
       : Promise.resolve({ _sum: { estimatedTokens: null } }),
+    !isUnlimitedMembershipLimit(params.dailyGeneratedCharLimit)
+      ? client.aiUsageEvent.aggregate({
+          where: {
+            userId,
+            createdAt: { gte: start, lt: end },
+            outputChars: { gt: 0 },
+          },
+          _sum: { outputChars: true },
+        })
+      : Promise.resolve({ _sum: { outputChars: null } }),
+    !isUnlimitedMembershipLimit(params.dailyGeneratedCharLimit)
+      ? client.aiQuotaReservation.aggregate({
+          where: {
+            ...reservationWhere,
+            createdAt: { gte: start, lt: end },
+          },
+          _sum: { estimatedOutputChars: true },
+        })
+      : Promise.resolve({ _sum: { estimatedOutputChars: null } }),
+    !isUnlimitedMembershipLimit(params.monthlyGeneratedCharLimit)
+      ? client.aiUsageEvent.aggregate({
+          where: {
+            userId,
+            createdAt: { gte: monthStart, lt: monthEnd },
+            outputChars: { gt: 0 },
+          },
+          _sum: { outputChars: true },
+        })
+      : Promise.resolve({ _sum: { outputChars: null } }),
+    !isUnlimitedMembershipLimit(params.monthlyGeneratedCharLimit)
+      ? client.aiQuotaReservation.aggregate({
+          where: {
+            ...reservationWhere,
+            createdAt: { gte: monthStart, lt: monthEnd },
+          },
+          _sum: { estimatedOutputChars: true },
+        })
+      : Promise.resolve({ _sum: { estimatedOutputChars: null } }),
     !isUnlimitedMembershipLimit(params.minuteCallLimit)
       ? client.aiUsageEvent.count({
           where: {
@@ -202,10 +258,16 @@ async function getAiQuotaUsageSnapshot(params: {
   return {
     activeJobs: activeJobCount,
     dailyCalls: successCallCount + pendingDailyReservations,
+    dailyGeneratedChars:
+      (dailyCharUsage._sum.outputChars ?? 0) +
+      (pendingDailyCharEstimate._sum.estimatedOutputChars ?? 0),
     dailyTokens:
       (tokenUsage._sum.totalTokens ?? 0) +
       (pendingTokenEstimate._sum.estimatedTokens ?? 0),
     minuteCalls: recentSuccessCount + pendingMinuteReservations,
+    monthlyGeneratedChars:
+      (monthlyCharUsage._sum.outputChars ?? 0) +
+      (pendingMonthlyCharEstimate._sum.estimatedOutputChars ?? 0),
   };
 }
 
@@ -276,8 +338,10 @@ export async function assertAiQuotaAvailable(user: AiQuotaUser) {
     userId: user.id,
     now: new Date(),
     dailyCallLimit,
+    dailyGeneratedCharLimit: limits.dailyGeneratedChars,
     dailyTokenLimit,
     minuteCallLimit,
+    monthlyGeneratedCharLimit: limits.monthlyGeneratedChars,
   });
 
   assertMembershipAiUsageAvailable(limits, usage);
@@ -306,8 +370,10 @@ export async function reserveAiQuota(
           userId: user.id,
           now,
           dailyCallLimit: limits.dailyAiCalls,
+          dailyGeneratedCharLimit: limits.dailyGeneratedChars,
           dailyTokenLimit: limits.dailyTokens,
           minuteCallLimit: limits.minuteAiCalls,
+          monthlyGeneratedCharLimit: limits.monthlyGeneratedChars,
         });
 
         assertMembershipAiUsageAvailable(limits, usage);

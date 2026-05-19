@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { isShortStoryWork } from "@/shared/work-type";
 import { DashboardProfileModal } from "./dashboard-profile-modal";
 import { DashboardSidebar } from "./dashboard-sidebar";
+import { DashboardUpgradeModal } from "./dashboard-upgrade-modal";
 import { DashboardWorksSection } from "./dashboard-works-section";
 
 type DashboardShellProps = {
@@ -39,6 +40,7 @@ export function DashboardShell({ dashboard }: DashboardShellProps) {
   const { handleLogout, logoutBusy, overview, updateUser, user } = dashboard;
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const works = overview?.works ?? [];
@@ -145,10 +147,21 @@ export function DashboardShell({ dashboard }: DashboardShellProps) {
           <DashboardProfileModal
             user={user}
             onClose={() => setProfileOpen(false)}
+            onUpgradeOpen={() => {
+              setProfileOpen(false);
+              setUpgradeOpen(true);
+            }}
             onUserUpdated={updateUser}
           />
         )}
       </AnimatePresence>
+
+      <DashboardUpgradeModal
+        isOpen={upgradeOpen}
+        currentTier={user?.membershipTier}
+        isAdmin={Boolean(user?.isAdmin)}
+        onClose={() => setUpgradeOpen(false)}
+      />
 
       <LogoutConfirmDialog
         open={logoutConfirmOpen}

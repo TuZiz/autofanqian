@@ -9,6 +9,7 @@ import {
   Save,
   Send,
   Shield,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 
@@ -34,15 +35,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { PUBLIC_MEMBERSHIP_PLAN_MAP } from "@/shared/membership-public-plans";
 
 type DashboardProfileModalProps = {
   onClose: () => void;
+  onUpgradeOpen?: () => void;
   onUserUpdated: (user: SessionUser) => void;
   user: SessionUser;
 };
 
 export function DashboardProfileModal({
   onClose,
+  onUpgradeOpen,
   onUserUpdated,
   user,
 }: DashboardProfileModalProps) {
@@ -64,6 +68,7 @@ export function DashboardProfileModal({
 
   const displayName = user.name?.trim() || "未设置昵称";
   const groupLabel = user.displayGroup ?? (user.isAdmin ? "管理员" : "Free");
+  const currentPlan = PUBLIC_MEMBERSHIP_PLAN_MAP[user.membershipTier ?? "default"];
   const closeDisabled = profileBusy || codeBusy || passwordBusy;
 
   const passwordMismatch = useMemo(() => {
@@ -228,13 +233,39 @@ export function DashboardProfileModal({
         </DialogHeader>
 
         {/* Info badges */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1.45fr_0.85fr_1fr]">
           <div className="rounded-lg bg-[var(--theme-surface-soft)] px-3 py-2">
-            <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--theme-text-muted)]">
-              <Shield className="h-3 w-3" />
-              用户组
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--theme-text-muted)]">
+                  <Shield className="h-3 w-3" />
+                  用户组
+                </div>
+                <div className="mt-0.5 text-xs font-bold text-[var(--theme-text-strong)]">{groupLabel}</div>
+                <div className="mt-1 text-[11px] font-semibold text-[var(--theme-text-muted)]">
+                  当前套餐：{currentPlan.name}
+                </div>
+              </div>
+              {user.isAdmin ? null : user.membershipTier === "max" ? null : (
+                <Button
+                  size="xs"
+                  className="bg-[var(--theme-brand-600)] text-white hover:brightness-105"
+                  onClick={() => onUpgradeOpen?.()}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  升级会员
+                </Button>
+              )}
             </div>
-            <div className="mt-0.5 text-xs font-bold text-[var(--theme-text-strong)]">{groupLabel}</div>
+            {user.isAdmin ? (
+              <div className="mt-2 text-[11px] font-semibold text-[var(--theme-text-muted)]">
+                管理员不受套餐限制
+              </div>
+            ) : user.membershipTier === "max" ? (
+              <div className="mt-2 text-[11px] font-semibold text-[var(--theme-text-muted)]">
+                已是最高套餐
+              </div>
+            ) : null}
           </div>
           <div className="rounded-lg bg-[var(--theme-surface-soft)] px-3 py-2">
             <div className="text-[10px] font-bold text-[var(--theme-text-muted)]">邮箱</div>
