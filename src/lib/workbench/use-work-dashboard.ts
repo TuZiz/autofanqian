@@ -27,6 +27,7 @@ export function useWorkDashboard(workId: string) {
 
   const [bootstrapLoading, setBootstrapLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
+  const [userDisplayName, setUserDisplayName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [work, setWork] = useState<WorkDetail | null>(null);
@@ -66,6 +67,7 @@ export function useWorkDashboard(workId: string) {
     setLoading,
     setMaxChapterIndex,
     setNextChapterIndex,
+    setUserDisplayName,
     setUserEmail,
     setWork,
     workId,
@@ -386,6 +388,7 @@ export function useWorkDashboard(workId: string) {
     clearWorkTitleError,
     saveWorkTitle,
     targetChapterCount,
+    userDisplayName,
     userEmail,
     work,
     workTitleError,

@@ -32,6 +32,7 @@ export function useWorkChapterEditor(params: {
 
   const [bootstrapLoading, setBootstrapLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
+  const [userDisplayName, setUserDisplayName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [work, setWork] = useState<WorkLite | null>(null);
@@ -215,6 +216,7 @@ export function useWorkChapterEditor(params: {
     setError,
     setIsAdmin,
     setTitle,
+    setUserDisplayName,
     setUserEmail,
     workId,
   });
@@ -382,6 +384,7 @@ export function useWorkChapterEditor(params: {
     updateSummary,
     updateTitle,
     userEmail,
+    userDisplayName,
     visibleDetails,
     wordCount,
     work,

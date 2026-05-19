@@ -11,6 +11,7 @@ import type {
   ChapterOverview,
   ChapterSessionUser,
 } from "./chapter-editor-types";
+import { getWorkbenchUserDisplay } from "./user-display";
 
 export function useChapterEditorBootstrap({
   applyBootstrap,
@@ -24,6 +25,7 @@ export function useChapterEditorBootstrap({
   setError,
   setIsAdmin,
   setTitle,
+  setUserDisplayName,
   setUserEmail,
   workId,
 }: {
@@ -38,6 +40,7 @@ export function useChapterEditorBootstrap({
   setError: (message: string) => void;
   setIsAdmin: (value: boolean) => void;
   setTitle: (value: string) => void;
+  setUserDisplayName: (value: string) => void;
   setUserEmail: (value: string) => void;
   workId: string;
 }) {
@@ -68,6 +71,7 @@ export function useChapterEditorBootstrap({
       }
 
       setUserEmail(sessionRes.data.user.email);
+      setUserDisplayName(getWorkbenchUserDisplay(sessionRes.data.user));
       setIsAdmin(Boolean(sessionRes.data.user.isAdmin));
 
       if (chapterRes.success && chapterRes.data?.work && chapterRes.data?.chapter) {
@@ -131,6 +135,7 @@ export function useChapterEditorBootstrap({
     setError,
     setIsAdmin,
     setTitle,
+    setUserDisplayName,
     setUserEmail,
     workId,
   ]);

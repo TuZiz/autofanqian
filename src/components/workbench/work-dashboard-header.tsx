@@ -28,7 +28,7 @@ export function WorkDashboardHeader({
     plannedChapterCount,
     progressPercent,
     targetChapterCount,
-    userEmail,
+    userDisplayName,
     work,
   } = dashboard;
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
@@ -45,8 +45,8 @@ export function WorkDashboardHeader({
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--theme-border)] bg-white/60 shadow-sm backdrop-blur-xl dark:border-[var(--theme-border)] dark:bg-zinc-950/60">
       <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-2 px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex min-h-12 items-center gap-2 sm:gap-4">
-          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        <div className="relative flex min-h-12 items-center gap-2 sm:gap-4">
+          <div className="absolute left-0 top-1/2 flex shrink-0 -translate-y-1/2 items-center gap-2 sm:gap-4">
             <Link
               href="/dashboard"
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-zinc-50 hover:shadow-md hover:ring-[var(--theme-border)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:ring-[var(--theme-border)] dark:hover:bg-zinc-800 dark:hover:ring-[var(--theme-border)]"
@@ -58,8 +58,8 @@ export function WorkDashboardHeader({
             <div className="hidden h-8 w-px bg-zinc-200/60 dark:bg-zinc-800/60 sm:block" />
           </div>
 
-          <div className="hidden min-w-0 flex-1 items-center gap-2 lg:flex">
-            <div className="flex h-10 max-w-[600px] items-center gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-[var(--theme-border)] dark:bg-zinc-900 dark:ring-[var(--theme-border)]">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 lg:flex">
+            <div className="pointer-events-auto flex h-10 items-center gap-1 rounded-xl bg-white p-1 shadow-sm ring-1 ring-[var(--theme-border)] dark:bg-zinc-900 dark:ring-[var(--theme-border)]">
               {sectionTabs.map((item) => {
                 const active = activeSection === item.sectionId;
                 return (
@@ -81,10 +81,15 @@ export function WorkDashboardHeader({
                 );
               })}
             </div>
-            <span className="max-w-[120px] truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              {userEmail?.split("@")[0]}
-            </span>
           </div>
+
+          <div className="ml-auto flex items-center gap-2">
+          <span
+            className="hidden max-w-[150px] truncate rounded-xl bg-white px-3 py-2 text-xs font-bold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] md:inline-flex"
+            title={userDisplayName || "创作者"}
+          >
+            {userDisplayName || "创作者"}
+          </span>
 
           {isAdmin ? (
             <Link
@@ -107,6 +112,7 @@ export function WorkDashboardHeader({
             <LogOut className="h-4 w-4" />
             {logoutBusy ? "退出中" : "退出"}
           </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:hidden">

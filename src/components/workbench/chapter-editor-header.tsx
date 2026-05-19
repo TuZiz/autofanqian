@@ -26,7 +26,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
     metaSaving,
     saving,
     statusText,
-    userEmail,
+    userDisplayName,
     work,
     workId,
   } = editor;
@@ -67,7 +67,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
               aiProgress={progress}
             />
             <span className="max-w-[120px] truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              {userEmail?.split("@")[0]}
+              {userDisplayName || "创作者"}
             </span>
           </div>
 
@@ -104,7 +104,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
             aiProgress={progress}
           />
           <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            {userEmail?.split("@")[0]}
+            {userDisplayName || "创作者"}
           </span>
         </div>
       </div>

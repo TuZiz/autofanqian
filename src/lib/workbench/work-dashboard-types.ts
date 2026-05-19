@@ -4,7 +4,9 @@ import type { SessionAccessFields } from "@/lib/auth/session-user-types";
 import type { WorkTypeValue } from "@/shared/work-type";
 
 export type SessionUser = SessionAccessFields & {
+  code?: number | null;
   email: string;
+  name?: string | null;
 };
 
 export type WorkDetail = {

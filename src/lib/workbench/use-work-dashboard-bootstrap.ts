@@ -11,6 +11,7 @@ import type {
   SessionUser,
   WorkDetail,
 } from "./work-dashboard-types";
+import { getWorkbenchUserDisplay } from "./user-display";
 
 function applyChaptersOverview(
   overview: ChaptersOverview | undefined,
@@ -39,6 +40,7 @@ export function useWorkDashboardBootstrap({
   setLoading,
   setMaxChapterIndex,
   setNextChapterIndex,
+  setUserDisplayName,
   setUserEmail,
   setWork,
   workId,
@@ -51,6 +53,7 @@ export function useWorkDashboardBootstrap({
   setLoading: Dispatch<SetStateAction<boolean>>;
   setMaxChapterIndex: Dispatch<SetStateAction<number>>;
   setNextChapterIndex: Dispatch<SetStateAction<number>>;
+  setUserDisplayName: Dispatch<SetStateAction<string>>;
   setUserEmail: Dispatch<SetStateAction<string>>;
   setWork: Dispatch<SetStateAction<WorkDetail | null>>;
   workId: string;
@@ -83,6 +86,7 @@ export function useWorkDashboardBootstrap({
       }
 
       setUserEmail(sessionRes.data.user.email);
+      setUserDisplayName(getWorkbenchUserDisplay(sessionRes.data.user));
       setIsAdmin(Boolean(sessionRes.data.user.isAdmin));
 
       if (workRes.success && workRes.data?.work) {
@@ -117,6 +121,7 @@ export function useWorkDashboardBootstrap({
     setLoading,
     setMaxChapterIndex,
     setNextChapterIndex,
+    setUserDisplayName,
     setUserEmail,
     setWork,
     workId,
