@@ -11,6 +11,7 @@ import {
 } from "@/lib/create/outline-draft";
 
 import { MIN_IDEA_LENGTH_FOR_OUTLINE } from "./dashboard-create-rules";
+import type { CreateFormErrorTarget } from "./dashboard-create-rules";
 import type { GenreId } from "./dashboard-create-types";
 import { CUSTOM_GENRE_ID } from "./dashboard-create-utils";
 
@@ -40,7 +41,7 @@ export function useCreateSubmit({
   router: AppRouterInstance;
   selectedGenre: GenreId | "";
   selectedTags: string[];
-  showFormError: (message: string, target: "genre" | "idea" | "storage") => void;
+  showFormError: (message: string, target: CreateFormErrorTarget) => void;
   words: string;
 }) {
   const [submitBusy, setSubmitBusy] = useState(false);
@@ -57,6 +58,11 @@ export function useCreateSubmit({
 
     if (selectedGenre === CUSTOM_GENRE_ID && customGenreValidationMessage) {
       showFormError(customGenreValidationMessage, "genre");
+      return;
+    }
+
+    if (!platform.trim() || !words.trim()) {
+      showFormError("字数和平台必须选择才能生成大纲。", "options");
       return;
     }
 

@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  ModalRoot,
-  ModalBackdrop,
-  ModalContainer,
-  ModalDialog,
-} from "@heroui/react";
 import { LogOut } from "lucide-react";
+import { useEffect } from "react";
 
 type LogoutConfirmDialogProps = {
   busy?: boolean;
@@ -21,19 +16,39 @@ export function LogoutConfirmDialog({
   onCancel,
   onConfirm,
 }: LogoutConfirmDialogProps) {
+  useEffect(() => {
+    if (!open || busy) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onCancel();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [busy, onCancel, open]);
+
+  if (!open) return null;
+
   return (
-    <ModalRoot isOpen={open} onOpenChange={(isOpen) => { if (!isOpen && !busy) onCancel(); }}>
-      <ModalContainer>
-        <ModalBackdrop className="fixed inset-0 z-[100] bg-black/45 backdrop-blur-sm" />
-        <ModalDialog
-          className="relative z-10 w-full max-w-md rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-5 shadow-xl"
-        >
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <button
+        type="button"
+        aria-label="取消退出登录"
+        className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+        onClick={!busy ? onCancel : undefined}
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-confirm-title"
+        className="relative z-10 w-full max-w-md rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-5 shadow-xl"
+      >
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300">
               <LogOut className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-lg font-bold text-[var(--theme-text-strong)]">
+              <h3 id="logout-confirm-title" className="text-lg font-bold text-[var(--theme-text-strong)]">
                 确认退出账号？
               </h3>
               <p className="mt-1 text-sm leading-relaxed text-[var(--theme-text-secondary)]">
@@ -61,8 +76,7 @@ export function LogoutConfirmDialog({
               {busy ? "退出中..." : "确认退出"}
             </button>
           </div>
-        </ModalDialog>
-      </ModalContainer>
-    </ModalRoot>
+      </section>
+    </div>
   );
 }

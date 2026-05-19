@@ -49,7 +49,9 @@ export function useCreateFormError(params: {
           ? "create-genre-section"
           : target === "idea"
             ? "create-idea-section"
-            : "create-form-error";
+            : target === "options"
+              ? "create-options-section"
+              : "create-form-error";
       const element = document.getElementById(targetId);
       element?.scrollIntoView({ behavior: "smooth", block: "center" });
 
@@ -62,6 +64,13 @@ export function useCreateFormError(params: {
 
       if (target === "genre") {
         document.querySelector<HTMLButtonElement>("#create-genre-section button")?.focus({
+          preventScroll: true,
+        });
+        return;
+      }
+
+      if (target === "options") {
+        document.querySelector<HTMLSelectElement>("#create-platform-select")?.focus({
           preventScroll: true,
         });
         return;

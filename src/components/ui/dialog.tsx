@@ -46,17 +46,13 @@ function DialogContent({
       >
         {children}
         {showCloseButton && (
-          <button
+          <ModalCloseTrigger
             type="button"
             className="absolute top-3 right-3 inline-flex size-7 items-center justify-center rounded-md text-[var(--theme-text-muted)] transition-colors hover:text-[var(--theme-text-strong)] hover:bg-[var(--theme-surface-overlay)]"
-            onClick={() => {
-              const event = new Event("close", { bubbles: true });
-              document.dispatchEvent(event);
-            }}
           >
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>
-          </button>
+          </ModalCloseTrigger>
         )}
       </ModalDialog>
     </ModalContainer>
@@ -90,10 +86,11 @@ function DialogFooter({
     >
       {children}
       {showCloseButton && (
-        <ModalCloseTrigger>
-          <button type="button" className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-medium text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]">
-            Close
-          </button>
+        <ModalCloseTrigger
+          type="button"
+          className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-medium text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]"
+        >
+          Close
         </ModalCloseTrigger>
       )}
     </div>

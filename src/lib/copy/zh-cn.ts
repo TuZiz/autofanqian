@@ -53,13 +53,9 @@ export const zhCN = {
       registerSubject: (fromName: string) => `[${fromName}] 注册验证码`,
       registerText: (code: string) =>
         `您好，您的注册验证码为 ${code}，10 分钟内有效。如非本人操作请忽略。`,
-      registerHtml: (code: string) =>
-        `<p>您好，</p><p>您的注册验证码是：<strong style="font-size:1.2em;color:#4f46e5;">${code}</strong></p><p>该验证码将在 10 分钟后失效，请尽快完成注册。</p>`,
       resetSubject: (fromName: string) => `[${fromName}] 找回密码验证码`,
       resetText: (code: string) =>
         `您正在重置密码，验证码为 ${code}，10 分钟内有效。如非本人操作请忽略。`,
-      resetHtml: (code: string) =>
-        `<p>您正在申请重置密码。</p><p>验证码是：<strong style="font-size:1.2em;color:#db2777;">${code}</strong></p><p>该验证码将在 10 分钟后失效，请尽快完成操作。</p>`,
     },
   },
 } as const;

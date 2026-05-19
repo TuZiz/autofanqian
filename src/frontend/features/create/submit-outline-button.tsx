@@ -28,12 +28,12 @@ export function SubmitOutlineButton({
       disabled={disabled}
       title={title}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60",
-        sidebar ? "h-11 w-full" : "h-11",
+        "inline-flex items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition-all active:scale-[0.98] disabled:cursor-not-allowed",
+        sidebar ? "h-11 w-full" : "h-10 px-4",
         compact ? "hidden min-[480px]:flex" : "flex flex-[1.5]",
         create.canSubmitOutline
-          ? "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-emerald-500 dark:hover:bg-emerald-600"
-          : "border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)] shadow-sm hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]",
+          ? "bg-slate-950 text-white shadow-[0_10px_22px_-16px_rgba(15,23,42,0.7)] hover:-translate-y-0.5 hover:bg-slate-800"
+          : "border border-slate-200 bg-slate-100 text-slate-400 shadow-none hover:border-slate-300",
       )}
     >
       {create.submitBusy ? (

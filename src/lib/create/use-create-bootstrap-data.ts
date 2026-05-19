@@ -86,12 +86,9 @@ export function useCreateBootstrapData({
           return nextConfig.genres[0]?.id ?? "";
         });
 
-        const defaultWords = nextConfig.wordOptions[0]?.id;
-        if (defaultWords) {
-          setWords((prev) =>
-            nextConfig.wordOptions.some((opt) => opt.id === prev) ? prev : defaultWords,
-          );
-        }
+        setWords((prev) =>
+          nextConfig.wordOptions.some((opt) => opt.id === prev) ? prev : "",
+        );
       }
 
       if (!cancelled) setBootstrapLoading(false);

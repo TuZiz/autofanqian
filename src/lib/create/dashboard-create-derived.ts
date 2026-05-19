@@ -100,11 +100,17 @@ export function getEffectiveGenreLabel(params: {
 
 export function getSubmitBlockedReason(params: {
   customGenreValidationMessage: string;
+  platform: string;
   selectedGenre: GenreId | "";
   trimmedIdeaLength: number;
+  words: string;
 }) {
   if (!params.selectedGenre) {
     return "请先选择创作方向，再生成大纲。";
+  }
+
+  if (!params.platform.trim() || !params.words.trim()) {
+    return "字数和平台必须选择才能生成大纲。";
   }
 
   if (params.trimmedIdeaLength < MIN_IDEA_LENGTH_FOR_OUTLINE) {
@@ -117,10 +123,14 @@ export function getSubmitBlockedReason(params: {
 export function getCreateAvailability(params: {
   customGenreValidationMessage: string;
   isCustomGenre: boolean;
+  platform: string;
   selectedGenre: GenreId | "";
   trimmedIdeaLength: number;
+  words: string;
 }) {
   const canGenerateFromBlueprint = params.isCustomGenre && !params.customGenreValidationMessage;
+  const hasPlatform = Boolean(params.platform.trim());
+  const hasWords = Boolean(params.words.trim());
 
   return {
     canAnalyzeIdea:
@@ -130,6 +140,8 @@ export function getCreateAvailability(params: {
       (params.trimmedIdeaLength >= MIN_IDEA_LENGTH_FOR_AI || canGenerateFromBlueprint),
     canSubmitOutline:
       Boolean(params.selectedGenre) &&
+      hasPlatform &&
+      hasWords &&
       params.trimmedIdeaLength >= MIN_IDEA_LENGTH_FOR_OUTLINE &&
       (!params.isCustomGenre || !params.customGenreValidationMessage),
     outlineIdeaRemaining: Math.max(

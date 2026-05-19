@@ -12,17 +12,29 @@ export type AuthApiResponse<T = unknown> = {
   status?: number;
 };
 
+type AuthApiRequestInit = Omit<RequestInit, "body"> & {
+  redirectOnUnauthorized?: boolean;
+};
+
+function isAuthEntryPath(pathname: string) {
+  return ["/login", "/register", "/forgot-password"].some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+}
+
 export async function apiRequest<T = unknown>(
   url: string,
   payload?: unknown,
-  init?: Omit<RequestInit, "body">
+  init?: AuthApiRequestInit
 ): Promise<AuthApiResponse<T>> {
+  const { redirectOnUnauthorized = true, ...requestInit } = init ?? {};
+
   try {
     const data = await requestData<T>(url, {
-      method: init?.method ?? (payload ? "POST" : "GET"),
-      headers: init?.headers,
+      method: requestInit.method ?? (payload ? "POST" : "GET"),
+      headers: requestInit.headers,
       body: payload ? JSON.stringify(payload) : undefined,
-      ...init,
+      ...requestInit,
     });
 
     return {
@@ -32,7 +44,12 @@ export async function apiRequest<T = unknown>(
     };
   } catch (error) {
     if (error instanceof ApiClientError) {
-      if (error.status === 401 && typeof window !== "undefined") {
+      if (
+        error.status === 401 &&
+        redirectOnUnauthorized &&
+        typeof window !== "undefined" &&
+        !isAuthEntryPath(window.location.pathname)
+      ) {
         const next = `${window.location.pathname}${window.location.search}`;
         window.location.href = `/login?next=${encodeURIComponent(next)}`;
       }
@@ -42,7 +59,7 @@ export async function apiRequest<T = unknown>(
         status: error.status,
         message:
           error.status === 403
-            ? "权限不足，无法执行该操作。"
+            ? error.message || "权限不足，无法执行该操作。"
             : error.status === 429
               ? error.message || "请求过于频繁，请稍后再试。"
               : error.status >= 500

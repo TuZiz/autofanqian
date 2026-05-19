@@ -1,7 +1,7 @@
 "use client";
 
 import { type ComponentType, type ReactNode } from "react";
-import { BookType, Library, Tags } from "lucide-react";
+import { AlertCircle, BookType, Library, Tags } from "lucide-react";
 
 import type { DashboardCreateController } from "@/lib/create/use-dashboard-create";
 import { cn } from "@/lib/utils";
@@ -58,73 +58,64 @@ export function CreateBlueprintSection({
   }
 
   return (
-    <section
-      id="create-genre-section"
-      role="group"
-      aria-describedby={
-        hasGenreError || hasIdeaError ? "create-form-error" : undefined
-      }
-      data-invalid={hasGenreError || hasIdeaError ? "true" : undefined}
-      className="rounded-2xl bg-[var(--theme-surface-solid)]"
-    >
-      {/* ── 区域标题 ── */}
-      <div className="border-b border-[var(--theme-divider)] px-5 py-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-[var(--theme-text-strong)]">
-            基础设定
-          </h2>
+    <div className="space-y-3">
+      <section
+        id="create-genre-section"
+        role="group"
+        aria-describedby={
+          hasGenreError || hasIdeaError ? "create-form-error" : undefined
+        }
+        data-invalid={hasGenreError || hasIdeaError ? "true" : undefined}
+        className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+      >
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+              01
+            </div>
+            <h2 className="mt-1 text-sm font-extrabold tracking-tight text-slate-950">
+              基础设定
+            </h2>
+          </div>
           <span
             className={cn(
-              "rounded-full px-2.5 py-1 text-[11px] font-semibold",
+              "rounded-full px-2.5 py-1 text-[11px] font-bold",
               isCustomGenre
-                ? "bg-[var(--theme-text-strong)] text-[var(--theme-bg)]"
-                : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)]",
+                ? "bg-slate-950 text-white"
+                : "bg-slate-50 text-slate-500 ring-1 ring-slate-200/80",
             )}
           >
             {isCustomGenre ? "自定义" : "模板"}
           </span>
         </div>
+
         {hasGenreError && (
-          <p className="mt-2 text-xs font-medium text-red-500">
+          <p className="mb-2.5 flex items-start gap-1.5 text-[12px] leading-5 text-red-500">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             {create.formError}
           </p>
         )}
-      </div>
 
-      {/* ── 表单区 ── */}
-      <div className="space-y-4 border-b border-[var(--theme-divider)] px-5 py-4">
-        <div className="grid gap-4 xl:grid-cols-2">
-          <FieldBlock
-            icon={BookType}
-            label="题材"
-            hint={
-              isCustomGenre
-                ? "输入你要创作的题材"
-                : "模板已选定"
-            }
-          >
+        <div className="grid gap-3 min-[1440px]:grid-cols-2">
+          <FieldBlock icon={BookType} label="题材">
             <input
               value={
                 isCustomGenre ? customGenreLabel : effectiveGenreLabel ?? ""
               }
               onChange={(event) => setCustomGenreLabel(event.target.value)}
               disabled={!isCustomGenre}
-              placeholder="赛博修仙、古风悬疑、都市经营"
-              className="h-10 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3.5 text-sm text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] hover:border-[var(--theme-text-muted)] focus:border-[var(--theme-text-strong)] focus:ring-2 focus:ring-[var(--theme-text-strong)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="请输入题材，如赛博修仙、古风悬疑、都市经营"
+              className="h-10 w-full rounded-xl border border-slate-200/80 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-950/10 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </FieldBlock>
 
-          <FieldBlock
-            icon={Tags}
-            label="核心标签"
-            hint={isCustomGenre ? "至少两个，用空格分隔" : "模板自带"}
-          >
+          <FieldBlock icon={Tags} label="核心标签">
             <input
               value={isCustomGenre ? customTagsInput : selectedTags.join(" ")}
               onChange={(event) => setCustomTagsInput(event.target.value)}
               disabled={!isCustomGenre}
-              placeholder="群像 经营 反套路"
-              className="h-10 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3.5 text-sm text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] hover:border-[var(--theme-text-muted)] focus:border-[var(--theme-text-strong)] focus:ring-2 focus:ring-[var(--theme-text-strong)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="请输入至少两个核心标签，用空格分隔"
+              className="h-10 w-full rounded-xl border border-slate-200/80 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-950/10 disabled:cursor-not-allowed disabled:opacity-60"
             />
             <div className="mt-2 flex flex-wrap gap-1.5">
               {TAG_SUGGESTIONS.map((tag) => (
@@ -133,7 +124,7 @@ export function CreateBlueprintSection({
                   type="button"
                   onClick={() => handleTagSuggestionClick(tag)}
                   disabled={!isCustomGenre}
-                  className="rounded-full border border-[var(--theme-border)] px-2.5 py-1 text-[11px] font-medium text-[var(--theme-text-muted)] transition-all hover:border-[var(--theme-text-secondary)] hover:text-[var(--theme-text-secondary)] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-7 rounded-full border border-slate-200/80 bg-slate-50 px-2.5 text-xs font-semibold text-slate-500 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {tag}
                 </button>
@@ -143,28 +134,24 @@ export function CreateBlueprintSection({
         </div>
 
         {isCustomGenre && (
-          <FieldBlock
-            icon={Library}
-            label="一句话设定"
-            hint="用一句话说清主角、处境和故事引擎"
-          >
+          <FieldBlock icon={Library} label="一句话设定" className="mt-3">
             <input
               value={customWorldDetails}
               onChange={(event) => setCustomWorldDetails(event.target.value)}
-              placeholder="一名被逐出门派的炼器师，为了还债只能靠修复上古法器重建宗门。"
-              className="h-10 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3.5 text-sm text-[var(--theme-text-strong)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] hover:border-[var(--theme-text-muted)] focus:border-[var(--theme-text-strong)] focus:ring-2 focus:ring-[var(--theme-text-strong)]/10"
+              placeholder="请用一句话说清主角、处境和故事引擎"
+              className="h-10 w-full rounded-xl border border-slate-200/80 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-950/10"
             />
           </FieldBlock>
         )}
 
         {customGenreValidationMessage && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600 dark:border-red-500/20 dark:bg-red-500/8 dark:text-red-400">
+          <p className="mt-2.5 flex items-start gap-1.5 text-[12px] leading-5 text-red-500">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             {customGenreValidationMessage}
-          </div>
+          </p>
         )}
-      </div>
+      </section>
 
-      {/* ── 创意输入区 ── */}
       <CreateIdeaComposer
         create={create}
         hasIdeaError={hasIdeaError}
@@ -172,29 +159,28 @@ export function CreateBlueprintSection({
         inlineIdeaError={inlineIdeaError}
         placeholder={placeholder}
       />
-    </section>
+    </div>
   );
 }
 
 function FieldBlock({
   children,
-  hint,
+  className,
   icon: Icon,
   label,
 }: {
   children: ReactNode;
-  hint: string;
+  className?: string;
   icon: ComponentType<{ className?: string }>;
   label: string;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--theme-text-strong)]">
-        <Icon className="h-4 w-4 text-[var(--theme-text-muted)]" />
-        {label}
-      </span>
-      <span className="mb-2 block text-[11px] text-[var(--theme-text-muted)]">
-        {hint}
+    <label className={cn("block", className)}>
+      <span className="mb-1.5 flex items-center gap-2 text-sm font-bold text-slate-800">
+        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        <span>{label}</span>
       </span>
       {children}
     </label>

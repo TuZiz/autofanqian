@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 import type { EmailVerificationPurpose } from "@prisma/client";
 
 import { zhCN } from "@/lib/copy/zh-cn";
+import { buildVerificationEmailHtml } from "@/lib/mail/auth-mail-template";
 
 const globalForMailer = globalThis as unknown as {
   authMailer?: nodemailer.Transporter;
@@ -53,14 +54,14 @@ function buildEmailContent(
     return {
       subject: zhCN.auth.mail.registerSubject(fromName),
       text: zhCN.auth.mail.registerText(code),
-      html: zhCN.auth.mail.registerHtml(code),
+      html: buildVerificationEmailHtml({ code, fromName, purpose }),
     };
   }
 
   return {
     subject: zhCN.auth.mail.resetSubject(fromName),
     text: zhCN.auth.mail.resetText(code),
-    html: zhCN.auth.mail.resetHtml(code),
+    html: buildVerificationEmailHtml({ code, fromName, purpose }),
   };
 }
 

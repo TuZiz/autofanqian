@@ -42,7 +42,14 @@ export function LoginForm() {
       return;
     }
 
-    setFieldErrors(firstFieldErrors(response.fieldErrors));
+    const nextFieldErrors = firstFieldErrors(response.fieldErrors);
+    const isSharedCredentialError =
+      response.status === 401 &&
+      nextFieldErrors.email &&
+      nextFieldErrors.password &&
+      nextFieldErrors.email === nextFieldErrors.password;
+
+    setFieldErrors(isSharedCredentialError ? {} : nextFieldErrors);
     showToast(response.message || "登录失败，请稍后重试。", false);
     setIsSubmitting(false);
   }

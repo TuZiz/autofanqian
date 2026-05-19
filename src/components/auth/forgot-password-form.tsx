@@ -92,21 +92,31 @@ export function ForgotPasswordForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     if (isSubmitting) return;
     event.preventDefault();
+
+    if (newPassword !== confirmPassword) {
+      const message = "两次输入的密码不一致。";
+      setFieldErrors({ confirmPassword: message });
+      showToast(message, false);
+      return;
+    }
+
     setIsSubmitting(true);
     setFieldErrors({});
 
-    const response = await apiRequest("/api/auth/forgot-password/reset", {
-      email,
-      verificationCode: code,
-      newPassword,
-      confirmNewPassword: confirmPassword,
-    });
+    const response = await apiRequest<{ redirectTo: string }>(
+      "/api/auth/password/reset",
+      {
+        email,
+        code,
+        newPassword,
+      },
+    );
 
     if (response.success) {
       showToast(response.message, true);
       setIsSubmitting(false);
       window.setTimeout(() => {
-        router.replace("/login");
+        router.replace(response.data?.redirectTo || "/dashboard");
       }, 1500);
       return;
     }

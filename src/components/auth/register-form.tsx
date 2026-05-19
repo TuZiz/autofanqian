@@ -94,21 +94,30 @@ export function RegisterForm() {
     if (isSubmitting) return;
     event.preventDefault();
 
+    if (password !== confirmPassword) {
+      const message = "两次输入的密码不一致。";
+      setFieldErrors({ confirmPassword: message });
+      showToast(message, false);
+      return;
+    }
+
     setIsSubmitting(true);
     setFieldErrors({});
 
-    const response = await apiRequest("/api/auth/register", {
-      email,
-      verificationCode: code,
-      newPassword: password,
-      confirmNewPassword: confirmPassword,
-    });
+    const response = await apiRequest<{ redirectTo: string }>(
+      "/api/auth/register/confirm",
+      {
+        email,
+        code,
+        password,
+      },
+    );
 
     if (response.success) {
       showToast(response.message, true);
       setIsSubmitting(false);
       window.setTimeout(() => {
-        router.replace("/login");
+        router.replace(response.data?.redirectTo || "/dashboard");
       }, 1500);
       return;
     }

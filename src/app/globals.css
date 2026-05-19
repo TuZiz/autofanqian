@@ -985,6 +985,18 @@
   .rewrite-badge-pop {
     animation: rewrite-pop-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+
+  .create-modern-shell {
+    background:
+      radial-gradient(circle at 12% 6%, rgba(16, 185, 129, 0.055), transparent 24rem),
+      linear-gradient(180deg, #f7f8fa, #f7f8fa);
+    color: var(--theme-text-primary);
+  }
+
+  .create-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-scrollbar-thumb) transparent;
+  }
 }
 
 @layer utilities {

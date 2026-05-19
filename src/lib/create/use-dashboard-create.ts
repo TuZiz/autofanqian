@@ -36,7 +36,7 @@ export function useDashboardCreate() {
   const [aiBusy, setAiBusy] = useState(false);
   const [platform, setPlatform] = useState("");
   const [dnaBookTitle, setDnaBookTitle] = useState("");
-  const [words, setWords] = useState("100w");
+  const [words, setWords] = useState("");
   const [selectedTemplateCardId, setSelectedTemplateCardId] = useState<string | null>(null);
   const [ideaAnalysis, setIdeaAnalysis] = useState<IdeaAnalysis | null>(null);
   const [analysisOpen, setAnalysisOpen] = useState(false);
@@ -130,13 +130,17 @@ export function useDashboardCreate() {
   } = getCreateAvailability({
     customGenreValidationMessage,
     isCustomGenre,
+    platform,
     selectedGenre,
     trimmedIdeaLength: trimmedIdea.length,
+    words,
   });
   const submitBlockedReason = getSubmitBlockedReason({
     customGenreValidationMessage,
+    platform,
     selectedGenre,
     trimmedIdeaLength: trimmedIdea.length,
+    words,
   });
 
   const analyzeBlockedByAiThinking = showAiProgress;

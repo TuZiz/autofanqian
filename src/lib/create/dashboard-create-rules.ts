@@ -1,6 +1,6 @@
 import type { CreateUiConfig } from "./dashboard-create-types";
 
-export type CreateFormErrorTarget = "genre" | "idea" | "ai" | "storage";
+export type CreateFormErrorTarget = "genre" | "idea" | "ai" | "options" | "storage";
 
 export const MIN_IDEA_LENGTH_FOR_AI = 10;
 export const MIN_IDEA_LENGTH_FOR_OUTLINE = 50;
