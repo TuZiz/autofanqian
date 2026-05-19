@@ -246,14 +246,14 @@ export function DashboardProfileModal({
                   当前套餐：{currentPlan.name}
                 </div>
               </div>
-              {user.isAdmin ? null : user.membershipTier === "max" ? null : (
+              {user.membershipTier === "max" && !user.isAdmin ? null : (
                 <Button
                   size="xs"
                   className="bg-[var(--theme-brand-600)] text-white hover:brightness-105"
                   onClick={() => onUpgradeOpen?.()}
                 >
                   <Sparkles className="h-3 w-3" />
-                  升级会员
+                  {user.isAdmin ? "管理员预览" : "升级会员"}
                 </Button>
               )}
             </div>
