@@ -80,6 +80,27 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
         <div className="flex items-center gap-2">
           <button
             type="button"
+            disabled={!content.trim()}
+            onClick={() => void handleCopy("content", content)}
+            className={cn(
+              "flex h-8 items-center justify-center rounded-md px-3 text-sm font-bold transition-colors active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
+              copiedTarget === "content"
+                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/20"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-white",
+            )}
+            title={copiedTarget === "content" ? "正文已复制" : "复制当前正文"}
+          >
+            {copiedTarget === "content" ? (
+              <Check className="h-4 w-4 sm:mr-2" />
+            ) : (
+              <Copy className="h-4 w-4 sm:mr-2" />
+            )}
+            <span className="hidden sm:inline">
+              {copiedTarget === "content" ? "已复制" : "复制正文"}
+            </span>
+          </button>
+          <button
+            type="button"
             disabled={!work}
             onClick={() => setRevisionDialogOpen(true)}
             className="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 hover:text-zinc-900 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-white sm:w-auto sm:px-3 sm:font-bold"
