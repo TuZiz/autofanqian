@@ -18,10 +18,12 @@ async function runProviderProbe(params: {
     maxTokens: number;
     attempts?: number;
     reasoningEffort?: UpstreamReasoningEffort | null;
+    signal?: AbortSignal;
   }) => Promise<UpstreamTextResult>;
   provider: UpstreamProvider;
   routeId: UpstreamRouteId;
   reasoningEffort?: UpstreamReasoningEffort | null;
+  signal?: AbortSignal;
 }) {
   const cached = getCachedProviderHealth({
     providerId: params.provider.id,
@@ -50,6 +52,7 @@ async function runProviderProbe(params: {
     maxTokens: 4,
     attempts: 1,
     reasoningEffort: params.reasoningEffort ?? "low",
+    signal: params.signal,
   });
   const durationMs = Math.max(0, Date.now() - startedAt);
   const ok = Boolean(result.ok && result.text?.trim());
@@ -74,6 +77,7 @@ export async function selectHealthyProviderForChapter(params: {
   routeId?: UpstreamRouteId;
   preferredProviderId?: string | null;
   reasoningEffort?: UpstreamReasoningEffort | null;
+  signal?: AbortSignal;
 }) {
   const providers = sortProvidersByPreference(params.providers, params.preferredProviderId);
   const routeId = inferRouteId({
@@ -90,6 +94,7 @@ export async function selectHealthyProviderForChapter(params: {
       provider,
       routeId,
       reasoningEffort: params.reasoningEffort ?? "low",
+      signal: params.signal,
     });
 
     if (probe.ok) {

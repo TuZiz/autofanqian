@@ -13,6 +13,7 @@ import {
   beginChapterGenerationLock,
   endChapterGenerationLock,
 } from "@/lib/ai/chapter-generation-lock";
+import { beginGenerationJob } from "@/lib/ai/generation-jobs";
 import {
   assertAiQuotaAvailable,
   runWithAiQuotaReservation,
@@ -62,24 +63,25 @@ export async function generateChapterForUser(params: {
   }
 
   try {
-    const generationJob = await prisma.generationJob.create({
-      data: {
-        novelId: prepared.work.id,
-        chapterId: prepared.existingChapter?.id ?? null,
-        action:
-          prepared.generationMode === "regenerate"
-            ? "regenerate.all"
-            : "chapter.generate",
-        status: "running",
-        routeId: prepared.routeId,
-        providerId: primaryProvider.id,
-        modelUsed: primaryProvider.model ?? null,
-        promptTemplateKey:
-          prepared.generationMode === "regenerate"
-            ? "regenerate.all"
-            : "chapter.generate",
-        promptSnapshot: prepared.promptSnapshot.slice(0, 20000),
-      },
+    const generationAction =
+      prepared.generationMode === "regenerate"
+        ? "regenerate.all"
+        : "chapter.generate";
+    const generationJob = await beginGenerationJob({
+      userId: user.id,
+      workId: prepared.work.id,
+      chapterId: prepared.existingChapter?.id ?? null,
+      chapterIndex: input.index,
+      action: generationAction,
+      idempotencyKey: input.idempotencyKey ?? null,
+      routeId: prepared.routeId,
+      providerId: primaryProvider.id,
+      modelUsed: primaryProvider.model ?? null,
+      promptTemplateKey:
+        prepared.generationMode === "regenerate"
+          ? "regenerate.all"
+          : "chapter.generate",
+      promptSnapshot: prepared.promptSnapshot,
     });
 
     const selected = await selectHealthyProviderForChapter({
@@ -117,11 +119,15 @@ export async function generateChapterForUser(params: {
         where: { id: generationJob.id },
         data: {
           status: "failed",
+          activeLockKey: null,
           routeId: "gpt",
           error: message,
+          errorMessage: message,
           providerId: lastFailure?.providerId ?? primaryProvider.id,
           modelUsed: null,
           durationMs: lastFailure?.durationMs ?? null,
+          finishedAt: new Date(),
+          heartbeatAt: new Date(),
           completedAt: new Date(),
         },
       });
@@ -165,14 +171,18 @@ export async function generateChapterForUser(params: {
         where: { id: generationJob.id },
         data: {
           status: "failed",
+          activeLockKey: null,
           routeId: "gpt",
           error: result.upstreamMessage || "AI 生成失败",
+          errorMessage: result.upstreamMessage || "AI 生成失败",
           providerId: result.providerId ?? selected.provider.id,
           modelUsed: result.modelUsed ?? selected.provider.model ?? null,
           inputTokens: result.usage?.inputTokens ?? null,
           outputTokens: result.usage?.outputTokens ?? null,
           totalTokens: result.usage?.totalTokens ?? null,
           durationMs: result.durationMs ?? null,
+          finishedAt: new Date(),
+          heartbeatAt: new Date(),
           completedAt: new Date(),
         },
       });
@@ -250,7 +260,8 @@ export async function generateChapterForUser(params: {
       where: { id: generationJob.id },
       data: {
         chapterId: chapter.id,
-        status: "success",
+        status: "succeeded",
+        activeLockKey: null,
         routeId: "gpt",
         providerId: result.providerId ?? selected.provider.id,
         modelUsed: result.modelUsed ?? selected.provider.model ?? null,
@@ -261,6 +272,8 @@ export async function generateChapterForUser(params: {
         outputTokens: combinedUsage.outputTokens,
         totalTokens: combinedUsage.totalTokens,
         durationMs: combinedUsage.durationMs,
+        finishedAt: new Date(),
+        heartbeatAt: new Date(),
         completedAt: new Date(),
       },
     });
@@ -268,8 +281,12 @@ export async function generateChapterForUser(params: {
     await prisma.generationJob.create({
       data: {
         novelId: prepared.work.id,
+        userId: user.id,
+        workId: prepared.work.id,
         chapterId: chapter.id,
+        chapterIndex: input.index,
         action: "context.extract",
+        jobType: "context.extract",
         status: "queued",
         routeId: prepared.contextExtractRouteId,
         resultSummary: "章节生成后等待后台提取上下文记忆。",

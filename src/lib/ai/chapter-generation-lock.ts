@@ -6,9 +6,7 @@ type ActiveChapterGeneration = {
   startedAt: number;
 };
 
-const ACTIVE_GENERATIONS = new Map<string, ActiveChapterGeneration>();
 const GENERATION_ABORT_HANDLERS = new Map<string, () => void>();
-const LOCK_TTL_MS = 30 * 60 * 1000;
 
 export function getChapterGenerationLockKey(params: {
   userId: string;
@@ -18,39 +16,23 @@ export function getChapterGenerationLockKey(params: {
   return `${params.userId}:${params.workId}:${params.index}`;
 }
 
-function pruneExpiredGenerations(now = Date.now()) {
-  for (const [key, generation] of ACTIVE_GENERATIONS.entries()) {
-    if (now - generation.startedAt > LOCK_TTL_MS) {
-      ACTIVE_GENERATIONS.delete(key);
-      GENERATION_ABORT_HANDLERS.delete(key);
-    }
-  }
-}
-
 export function beginChapterGenerationLock(params: {
   userId: string;
   workId: string;
   index: number;
 }) {
   const now = Date.now();
-  pruneExpiredGenerations(now);
-
   const key = getChapterGenerationLockKey(params);
-  if (ACTIVE_GENERATIONS.has(key)) {
-    return { acquired: false, key };
-  }
-
-  ACTIVE_GENERATIONS.set(key, {
+  const activeGeneration: ActiveChapterGeneration = {
     key,
     ...params,
     startedAt: now,
-  });
+  };
 
-  return { acquired: true, key };
+  return { acquired: true, key: activeGeneration.key };
 }
 
 export function endChapterGenerationLock(key: string) {
-  ACTIVE_GENERATIONS.delete(key);
   GENERATION_ABORT_HANDLERS.delete(key);
 }
 

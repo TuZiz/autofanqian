@@ -3,6 +3,12 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import type { UpstreamTextResult } from "@/lib/ai/upstream-text";
+import {
+  getAiUsagePeriodKeys,
+  incrementAiUsageCountersWithClient,
+  sumUsageCounters,
+  type UsageCounterClient,
+} from "@/lib/ai/usage-counter";
 import { isAdminUser } from "@/lib/auth/admin";
 import { AuthApiError } from "@/lib/auth/errors";
 import { buildAiUsageEventData } from "@/lib/ai/usage-log";
@@ -27,7 +33,7 @@ export type AiQuotaReservationHandle = {
   action: string;
 } | null;
 
-type QuotaClient = typeof prisma | Prisma.TransactionClient;
+type QuotaClient = (typeof prisma | Prisma.TransactionClient) & UsageCounterClient;
 type AiQuotaReservationStatusValue =
   | "pending"
   | "committed"
@@ -38,6 +44,7 @@ type FinalizeAiQuotaTransactionClient = {
   aiUsageEvent: {
     create(args: { data: AiUsageEventData; select: { id: true } }): Promise<unknown>;
   };
+  aiUsageCounter: UsageCounterClient["aiUsageCounter"];
   aiQuotaReservation: {
     findUnique(args: {
       where: { id: string };
@@ -56,6 +63,7 @@ type FinalizeAiQuotaClient = {
   aiUsageEvent: {
     create(args: { data: AiUsageEventData; select: { id: true } }): Promise<unknown>;
   };
+  aiUsageCounter: UsageCounterClient["aiUsageCounter"];
   aiQuotaReservation: {
     updateMany(args: {
       where: { id: string; status: "pending" };
@@ -132,6 +140,7 @@ async function getAiQuotaUsageSnapshot(params: {
   const { start, end } = getTodayRange(now);
   const { start: monthStart, end: monthEnd } = getMonthRange(now);
   const minuteStart = new Date(now.getTime() - 60_000);
+  const periodKeys = getAiUsagePeriodKeys(now);
   const reservationWhere: Prisma.AiQuotaReservationWhereInput = {
     userId,
     OR: [
@@ -152,6 +161,9 @@ async function getAiQuotaUsageSnapshot(params: {
     recentSuccessCount,
     pendingMinuteReservations,
     activeJobCount,
+    dailyCounters,
+    monthlyCounters,
+    minuteCounters,
   ] = await Promise.all([
     !isUnlimitedMembershipLimit(params.dailyCallLimit)
       ? client.aiUsageEvent.count({
@@ -253,20 +265,45 @@ async function getAiQuotaUsageSnapshot(params: {
           },
         })
       : Promise.resolve(0),
+    (
+      !isUnlimitedMembershipLimit(params.dailyCallLimit) ||
+      !isUnlimitedMembershipLimit(params.dailyGeneratedCharLimit) ||
+      !isUnlimitedMembershipLimit(params.dailyTokenLimit)
+    )
+      ? client.aiUsageCounter.findMany({
+          where: { userId, periodType: "daily", periodKey: periodKeys.daily },
+          select: { requestCount: true, charCount: true, tokenCount: true },
+        })
+      : Promise.resolve([]),
+    !isUnlimitedMembershipLimit(params.monthlyGeneratedCharLimit)
+      ? client.aiUsageCounter.findMany({
+          where: { userId, periodType: "monthly", periodKey: periodKeys.monthly },
+          select: { requestCount: true, charCount: true, tokenCount: true },
+        })
+      : Promise.resolve([]),
+    !isUnlimitedMembershipLimit(params.minuteCallLimit)
+      ? client.aiUsageCounter.findMany({
+          where: { userId, periodType: "minute", periodKey: periodKeys.minute },
+          select: { requestCount: true, charCount: true, tokenCount: true },
+        })
+      : Promise.resolve([]),
   ]);
+  const dailyCounterUsage = sumUsageCounters(dailyCounters);
+  const monthlyCounterUsage = sumUsageCounters(monthlyCounters);
+  const minuteCounterUsage = sumUsageCounters(minuteCounters);
 
   return {
     activeJobs: activeJobCount,
-    dailyCalls: successCallCount + pendingDailyReservations,
+    dailyCalls: Math.max(successCallCount, dailyCounterUsage.requestCount) + pendingDailyReservations,
     dailyGeneratedChars:
-      (dailyCharUsage._sum.outputChars ?? 0) +
+      Math.max(dailyCharUsage._sum.outputChars ?? 0, dailyCounterUsage.charCount) +
       (pendingDailyCharEstimate._sum.estimatedOutputChars ?? 0),
     dailyTokens:
-      (tokenUsage._sum.totalTokens ?? 0) +
+      Math.max(tokenUsage._sum.totalTokens ?? 0, dailyCounterUsage.tokenCount) +
       (pendingTokenEstimate._sum.estimatedTokens ?? 0),
-    minuteCalls: recentSuccessCount + pendingMinuteReservations,
+    minuteCalls: Math.max(recentSuccessCount, minuteCounterUsage.requestCount) + pendingMinuteReservations,
     monthlyGeneratedChars:
-      (monthlyCharUsage._sum.outputChars ?? 0) +
+      Math.max(monthlyCharUsage._sum.outputChars ?? 0, monthlyCounterUsage.charCount) +
       (pendingMonthlyCharEstimate._sum.estimatedOutputChars ?? 0),
   };
 }
@@ -460,14 +497,16 @@ export async function finalizeAiQuotaUsageWithClient(
   if (!reservation) {
     if (shouldCreateUsageEvent) {
       try {
+        const usageParams = {
+          userId: params.userId ?? null,
+          action: params.action,
+          result,
+        };
         await client.aiUsageEvent.create({
-          data: buildAiUsageEventData({
-            userId: params.userId ?? null,
-            action: params.action,
-            result,
-          }),
+          data: buildAiUsageEventData(usageParams),
           select: { id: true },
         });
+        await incrementAiUsageCountersWithClient(client, usageParams);
       } catch (error) {
         console.warn("Failed to log admin AI usage:", error);
       }
@@ -485,14 +524,16 @@ export async function finalizeAiQuotaUsageWithClient(
       if (!currentReservation || currentReservation.status !== "pending") return;
 
       if (shouldCreateUsageEvent) {
+        const usageParams = {
+          userId: params.userId ?? reservation.userId,
+          action: params.action,
+          result,
+        };
         await tx.aiUsageEvent.create({
-          data: buildAiUsageEventData({
-            userId: params.userId ?? reservation.userId,
-            action: params.action,
-            result,
-          }),
+          data: buildAiUsageEventData(usageParams),
           select: { id: true },
         });
+        await incrementAiUsageCountersWithClient(tx, usageParams);
       }
 
       await tx.aiQuotaReservation.update({

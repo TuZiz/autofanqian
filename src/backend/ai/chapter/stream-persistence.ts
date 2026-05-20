@@ -11,6 +11,11 @@ import {
   runWithAiQuotaReservation,
 } from "@/lib/ai/quota";
 import {
+  beginGenerationJob,
+  completeGenerationJob,
+  failGenerationJob,
+} from "@/lib/ai/generation-jobs";
+import {
   getReadableAiErrorMessage,
   type UpstreamProvider,
   type UpstreamRouteId,
@@ -24,28 +29,29 @@ import type { ChapterStreamEvent } from "./stream-events";
 export async function createStreamGenerationJob(params: {
   prepared: PreparedChapterGeneration;
   provider: UpstreamProvider;
+  chapterIndex: number;
+  idempotencyKey?: string | null;
 }) {
   const { prepared, provider } = params;
 
-  const job = await prisma.generationJob.create({
-    data: {
-      novelId: prepared.work.id,
-      chapterId: prepared.existingChapter?.id ?? null,
-      action:
-        prepared.generationMode === "regenerate"
-          ? "regenerate.all.stream"
-          : "chapter.generate.stream",
-      status: "running",
-      routeId: "gpt",
-      providerId: provider.id,
-      modelUsed: provider.model,
-      promptTemplateKey:
-        prepared.generationMode === "regenerate"
-          ? "regenerate.all"
-          : "chapter.generate",
-      promptSnapshot: prepared.promptSnapshot.slice(0, 20000),
-    },
-    select: { id: true },
+  const job = await beginGenerationJob({
+    userId: prepared.user.id,
+    workId: prepared.work.id,
+    chapterId: prepared.existingChapter?.id ?? null,
+    chapterIndex: params.chapterIndex,
+    action:
+      prepared.generationMode === "regenerate"
+        ? "regenerate.all.stream"
+        : "chapter.generate.stream",
+    idempotencyKey: params.idempotencyKey ?? null,
+    routeId: "gpt",
+    providerId: provider.id,
+    modelUsed: provider.model,
+    promptTemplateKey:
+      prepared.generationMode === "regenerate"
+        ? "regenerate.all"
+        : "chapter.generate",
+    promptSnapshot: prepared.promptSnapshot,
   });
 
   return job.id;
@@ -56,17 +62,9 @@ export async function failStreamGenerationJob(params: {
   generationJobId: string;
   routeId: UpstreamRouteId;
 }) {
-  await prisma.generationJob
-    .update({
-      where: { id: params.generationJobId },
-      data: {
-        status: "failed",
-        routeId: params.routeId,
-        error: params.error,
-        completedAt: new Date(),
-      },
-    })
-    .catch(() => undefined);
+  await failGenerationJob(params.generationJobId, params.error, {
+    routeId: params.routeId,
+  });
 }
 
 export async function completeFailedStreamGeneration(params: {
@@ -96,20 +94,14 @@ export async function completeFailedStreamGeneration(params: {
       content: preview.content,
     });
 
-    await prisma.generationJob.update({
-      where: { id: generationJobId },
-      data: {
-        status: "failed",
-        routeId: "gpt",
-        error: "stream_aborted",
-        providerId: usageResult.providerId ?? selectedProvider.id,
-        modelUsed: usageResult.modelUsed ?? selectedProvider.model,
-        inputTokens: usageResult.usage?.inputTokens ?? null,
-        outputTokens: usageResult.usage?.outputTokens ?? null,
-        totalTokens: usageResult.usage?.totalTokens ?? null,
-        durationMs: usageResult.durationMs ?? null,
-        completedAt: new Date(),
-      },
+    await failGenerationJob(generationJobId, "stream_aborted", {
+      routeId: "gpt",
+      providerId: usageResult.providerId ?? selectedProvider.id,
+      modelUsed: usageResult.modelUsed ?? selectedProvider.model,
+      inputTokens: usageResult.usage?.inputTokens ?? null,
+      outputTokens: usageResult.usage?.outputTokens ?? null,
+      totalTokens: usageResult.usage?.totalTokens ?? null,
+      durationMs: usageResult.durationMs ?? null,
     });
 
     return {
@@ -131,21 +123,19 @@ export async function completeFailedStreamGeneration(params: {
     });
   }
 
-  await prisma.generationJob.update({
-    where: { id: generationJobId },
-    data: {
-      status: "failed",
+  await failGenerationJob(
+    generationJobId,
+    usageResult.upstreamMessage || "AI 生成失败",
+    {
       routeId: "gpt",
-      error: usageResult.upstreamMessage || "AI 生成失败",
       providerId: usageResult.providerId ?? selectedProvider.id,
       modelUsed: usageResult.modelUsed ?? selectedProvider.model,
       inputTokens: usageResult.usage?.inputTokens ?? null,
       outputTokens: usageResult.usage?.outputTokens ?? null,
       totalTokens: usageResult.usage?.totalTokens ?? null,
       durationMs: usageResult.durationMs ?? null,
-      completedAt: new Date(),
     },
-  });
+  );
 
   const message = getReadableAiErrorMessage(usageResult, "AI 生成失败，请稍后重试。");
   return {
@@ -240,30 +230,29 @@ export async function completeSuccessfulStreamGeneration(params: {
     where: { workId: prepared.work.id, index },
   });
 
-  await prisma.generationJob.update({
-    where: { id: generationJobId },
-    data: {
-      chapterId: chapter.id,
-      status: "success",
-      routeId: "gpt",
-      providerId: usageResult.providerId ?? selectedProvider.id,
-      modelUsed: usageResult.modelUsed ?? selectedProvider.model,
-      resultSummary: lengthRepair.repairApplied
-        ? `已生成第${index}章，${finalWordCount}字。${lengthRepair.repairNote ?? "已自动校正字数。"}`
-        : `已生成第${index}章，${finalWordCount}字。`,
-      inputTokens: combinedUsage.inputTokens,
-      outputTokens: combinedUsage.outputTokens,
-      totalTokens: combinedUsage.totalTokens,
-      durationMs: combinedUsage.durationMs,
-      completedAt: new Date(),
-    },
+  await completeGenerationJob(generationJobId, {
+    chapterId: chapter.id,
+    routeId: "gpt",
+    providerId: usageResult.providerId ?? selectedProvider.id,
+    modelUsed: usageResult.modelUsed ?? selectedProvider.model,
+    resultSummary: lengthRepair.repairApplied
+      ? `已生成第${index}章，${finalWordCount}字。${lengthRepair.repairNote ?? "已自动校正字数。"}`
+      : `已生成第${index}章，${finalWordCount}字。`,
+    inputTokens: combinedUsage.inputTokens,
+    outputTokens: combinedUsage.outputTokens,
+    totalTokens: combinedUsage.totalTokens,
+    durationMs: combinedUsage.durationMs,
   });
 
   await prisma.generationJob.create({
     data: {
       novelId: prepared.work.id,
+      userId: prepared.user.id,
+      workId: prepared.work.id,
       chapterId: chapter.id,
+      chapterIndex: index,
       action: "context.extract",
+      jobType: "context.extract",
       status: "queued",
       routeId: prepared.contextExtractRouteId,
       resultSummary: "章节生成后等待后台提取上下文记忆。",

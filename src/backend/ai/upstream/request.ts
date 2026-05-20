@@ -86,6 +86,7 @@ export async function callUpstream(
     temperature: number;
     maxTokens: number;
     reasoningEffort?: UpstreamReasoningEffort | null;
+    signal?: AbortSignal;
   },
 ): Promise<{ ok: boolean; status: number; json: unknown }> {
   const url = buildEndpointUrl(params.provider.baseUrl, params.endpoint);
@@ -118,6 +119,7 @@ export async function callUpstream(
   };
 
   const requestTimeout = createManagedAbortSignal({
+    externalSignal: params.signal,
     timeoutMs: getUpstreamTimeoutMs({
       providerId: params.provider.id,
       endpoint: params.endpoint,
@@ -136,6 +138,14 @@ export async function callUpstream(
     const json = await response.json().catch(() => null as unknown);
     return { ok: response.ok, status: response.status, json };
   } catch {
+    if (params.signal?.aborted && !requestTimeout.didTimeout()) {
+      return {
+        ok: false,
+        status: 499,
+        json: { error: { message: "AI 生成已取消" } },
+      };
+    }
+
     if (requestTimeout.didTimeout()) {
       return {
         ok: false,
@@ -168,6 +178,7 @@ export async function callUpstreamWithRetry(
     const baseDelay = 220 * Math.pow(2, attempt - 1);
     const jitter = Math.floor(Math.random() * 120);
     await sleep(baseDelay + jitter);
+    if (params.signal?.aborted) return last;
     last = await callUpstream(params);
   }
 

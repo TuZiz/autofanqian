@@ -112,6 +112,65 @@ test("AI quota includes minute limit and active generation jobs", () => {
   assert.match(quotaSource, /assertMembershipAiUsageAvailable\(limits/);
 });
 
+test("session lastSeenAt writes are throttled", () => {
+  const sessionSource = read("src/lib/auth/session.ts");
+
+  assert.match(sessionSource, /export const SESSION_TOUCH_INTERVAL_MS = 10 \* 60 \* 1000/);
+  assert.match(sessionSource, /lastSeenAt: true/);
+  assert.match(sessionSource, /now - session\.lastSeenAt\.getTime\(\) >= SESSION_TOUCH_INTERVAL_MS/);
+  assert.match(sessionSource, /prisma\.userSession[\s\S]*\.updateMany\(\{/);
+  assert.match(sessionSource, /lastSeenAt: \{[\s\S]*lt: new Date\(now - SESSION_TOUCH_INTERVAL_MS\)/);
+  assert.doesNotMatch(sessionSource, /prisma\.userSession[\s\S]*\.update\(\{[\s\S]*data: \{ lastSeenAt: new Date\(\) \}/);
+});
+
+test("security headers include a production CSP", () => {
+  const nextConfigSource = read("next.config.ts");
+
+  assert.match(nextConfigSource, /Content-Security-Policy/);
+  assert.match(nextConfigSource, /default-src 'self'/);
+  assert.match(nextConfigSource, /frame-ancestors 'none'/);
+  assert.match(nextConfigSource, /object-src 'none'/);
+  assert.match(nextConfigSource, /X-Frame-Options/);
+  assert.match(nextConfigSource, /X-Content-Type-Options/);
+  assert.match(nextConfigSource, /Referrer-Policy/);
+});
+
+test("login rate limit and cleanup helpers are reusable", () => {
+  const loginSecuritySource = read("src/lib/auth/login-security.ts");
+  const rateLimitSource = read("src/lib/security/rate-limit.ts");
+  const cleanupSource = read("src/lib/maintenance/cleanup.ts");
+
+  assert.match(rateLimitSource, /export type RateLimitDimension = "ip" \| "email" \| "userId"/);
+  assert.match(rateLimitSource, /export async function assertLoginRateLimit/);
+  assert.match(loginSecuritySource, /assertLoginRateLimit\(\{/);
+  assert.match(cleanupSource, /cleanupExpiredSecurityRecords/);
+  assert.match(cleanupSource, /loginAttempt\.deleteMany/);
+  assert.match(cleanupSource, /emailVerificationCode\.deleteMany/);
+  assert.match(cleanupSource, /aiQuotaReservation\.updateMany/);
+  assert.match(cleanupSource, /status: "cancelled"/);
+});
+
+test("AI upstream has request observability, abort propagation and circuit breaker hooks", () => {
+  const textServiceSource = read("src/backend/ai/upstream/text-service.ts");
+  const requestSource = read("src/backend/ai/upstream/request.ts");
+  const healthSource = read("src/backend/ai/upstream/health.ts");
+  const observabilitySource = read("src/backend/ai/upstream/observability.ts");
+  const streamRouteSource = read("src/backend/ai/chapter/stream-route.ts");
+
+  assert.match(observabilitySource, /createUpstreamRequestId/);
+  assert.match(observabilitySource, /logUpstreamRequest/);
+  assert.doesNotMatch(observabilitySource, /messages|prompt|apiKey/i);
+  assert.match(healthSource, /isProviderCircuitOpen/);
+  assert.match(healthSource, /recordProviderCircuitResult/);
+  assert.match(textServiceSource, /const requestId = createUpstreamRequestId\(\)/);
+  assert.match(textServiceSource, /logUpstreamRequest\(\{/);
+  assert.match(textServiceSource, /recordProviderCircuitResult\(provider\.id/);
+  assert.match(textServiceSource, /signal\?: AbortSignal/);
+  assert.match(requestSource, /externalSignal: params\.signal/);
+  assert.match(requestSource, /status: 499/);
+  assert.match(streamRouteSource, /signal: abortController\.signal/);
+});
+
 test("idea generation route has a single user and quota check", () => {
   const ideaSource = read("src/backend/ai/idea/generate-route.ts");
   assert.equal((ideaSource.match(/getCurrentUser\(/g) ?? []).length, 1);

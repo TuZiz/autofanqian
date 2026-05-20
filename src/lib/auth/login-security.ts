@@ -10,6 +10,7 @@ import { AuthApiError } from "@/lib/auth/errors";
 import type { RequestMeta } from "@/lib/auth/request";
 import { zhCN } from "@/lib/copy/zh-cn";
 import { prisma } from "@/lib/prisma";
+import { assertLoginRateLimit } from "@/lib/security/rate-limit";
 
 export type LoginAttemptInput = RequestMeta & {
   email: string;
@@ -23,23 +24,14 @@ function since(seconds: number) {
 }
 
 export async function assertLoginAllowed(email: string, ip?: string) {
-  if (ip) {
-    const ipAttempts = await prisma.loginAttempt.count({
-      where: {
-        ip,
-        createdAt: { gte: since(LOGIN_IP_WINDOW_SECONDS) },
-      },
-    });
-
-    if (ipAttempts >= LOGIN_IP_MAX_ATTEMPTS) {
-      throw new AuthApiError(
-        429,
-        zhCN.auth.error.loginTooFrequent,
-        undefined,
-        "rate_limited_ip"
-      );
-    }
-  }
+  await assertLoginRateLimit({
+    dimension: "ip",
+    value: ip,
+    maxAttempts: LOGIN_IP_MAX_ATTEMPTS,
+    windowSeconds: LOGIN_IP_WINDOW_SECONDS,
+    message: zhCN.auth.error.loginTooFrequent,
+    internalReason: "rate_limited_ip",
+  });
 
   if (!email) {
     return;

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { UpstreamTextResult } from "@/lib/ai/upstream-text";
+import { incrementAiUsageCountersWithClient } from "@/lib/ai/usage-counter";
 import { countNovelChars } from "@/lib/membership/chars";
 import { prisma } from "@/lib/prisma";
 
@@ -37,9 +38,12 @@ export function buildAiUsageEventData(params: AiUsageLogParams) {
 
 export async function logAiUsage(params: AiUsageLogParams) {
   try {
-    await prisma.aiUsageEvent.create({
-      data: buildAiUsageEventData(params),
-      select: { id: true },
+    await prisma.$transaction(async (tx) => {
+      await tx.aiUsageEvent.create({
+        data: buildAiUsageEventData(params),
+        select: { id: true },
+      });
+      await incrementAiUsageCountersWithClient(tx, params);
     });
   } catch (error) {
     console.warn("Failed to persist AiUsageEvent:", error);

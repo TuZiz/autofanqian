@@ -84,8 +84,11 @@ enum ForeshadowingStatus {
 enum GenerationJobStatus {
   queued
   running
+  succeeded
   success
   failed
+  cancelled
+  stale
 }
 
 enum AiQuotaReservationStatus {
@@ -93,6 +96,12 @@ enum AiQuotaReservationStatus {
   committed
   committed_failed
   cancelled
+}
+
+enum AiUsagePeriodType {
+  minute
+  daily
+  monthly
 }
 
 enum PaymentProvider {
@@ -138,10 +147,12 @@ model User {
   templateUsages       CreateTemplateUsage[]
   ideaGenerationEvents IdeaGenerationEvent[]
   aiUsageEvents        AiUsageEvent[]
+  aiUsageCounters      AiUsageCounter[]
   aiQuotaReservations  AiQuotaReservation[]
   paymentOrders        PaymentOrder[]
   works                Work[]
   adminAuditLogs       AdminAuditLog[]
+  generationJobs       GenerationJob[]
 }
 
 model UserSession {
@@ -277,11 +288,31 @@ model AiUsageEvent {
   @@index([userId, createdAt(sort: Desc)])
 }
 
+model AiUsageCounter {
+  id           String            @id @default(cuid())
+  userId       String
+  periodType   AiUsagePeriodType
+  periodKey    String
+  action       String
+  requestCount Int               @default(0)
+  charCount    Int               @default(0)
+  tokenCount   Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodType, periodKey, action])
+  @@index([userId, periodType, periodKey])
+  @@index([periodType, periodKey])
+}
+
 model AiQuotaReservation {
   id                   String                   @id @default(cuid())
   userId               String
   action               String
   status               AiQuotaReservationStatus @default(pending)
+  idempotencyKey       String?
   estimatedTokens      Int?
   estimatedOutputChars Int?
   createdAt            DateTime                 @default(now())
@@ -289,6 +320,7 @@ model AiQuotaReservation {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, action, idempotencyKey])
   @@index([userId, status, expiresAt])
   @@index([userId, createdAt(sort: Desc)])
   @@index([action, status, createdAt(sort: Desc)])
@@ -637,10 +669,16 @@ model DeployJob {
 
 model GenerationJob {
   id                    String              @id @default(cuid())
+  userId                String?
   novelId               String
+  workId                String?
   chapterId             String?
+  chapterIndex          Int?
   action                String
+  jobType               String?
   status                GenerationJobStatus @default(queued)
+  activeLockKey         String?
+  idempotencyKey        String?
   routeId               String?
   providerId            String?
   modelUsed             String?
@@ -649,21 +687,31 @@ model GenerationJob {
   promptSnapshot        String?
   resultSummary         String?
   error                 String?
+  errorMessage          String?
   inputTokens           Int?
   outputTokens          Int?
   totalTokens           Int?
   durationMs            Int?
+  startedAt             DateTime?
+  finishedAt            DateTime?
+  heartbeatAt           DateTime?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   completedAt           DateTime?
 
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   novel   Work     @relation(fields: [novelId], references: [id], onDelete: Cascade)
   chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
 
+  @@unique([activeLockKey])
+  @@unique([idempotencyKey])
   @@index([novelId, action, createdAt(sort: Desc)])
+  @@index([userId, novelId, chapterIndex, action, status])
+  @@index([userId, novelId, chapterId, action, status])
   @@index([chapterId])
   @@index([routeId, createdAt(sort: Desc)])
   @@index([status, createdAt])
+  @@index([status, heartbeatAt])
 }
 
 model PromptTemplate {

@@ -64,8 +64,15 @@ function makeUpstreamResult(overrides = {}) {
 
 function makeFinalizeClient(options = {}) {
   const events = [];
+  const counters = [];
   const updates = [];
   const fallbackUpdates = [];
+  const aiUsageCounter = {
+    async upsert(args) {
+      counters.push(args);
+      return { id: `counter-${counters.length}` };
+    },
+  };
   const client = {
     async $transaction(fn) {
       if (options.failTransactionBeforeCallback) {
@@ -82,6 +89,7 @@ function makeFinalizeClient(options = {}) {
             return { id: `event-${events.length}` };
           },
         },
+        aiUsageCounter,
         aiQuotaReservation: {
           async findUnique() {
             return { status: options.status ?? "pending" };
@@ -99,6 +107,7 @@ function makeFinalizeClient(options = {}) {
         return { id: `event-${events.length}` };
       },
     },
+    aiUsageCounter,
     aiQuotaReservation: {
       async updateMany(args) {
         fallbackUpdates.push(args.data.status);
@@ -107,7 +116,7 @@ function makeFinalizeClient(options = {}) {
     },
   };
 
-  return { client, events, updates, fallbackUpdates };
+  return { client, events, counters, updates, fallbackUpdates };
 }
 
 test("default membership tier is displayed as Free without enum rename", () => {
@@ -289,8 +298,8 @@ test("AI quota reservations are schema-backed, expiring and concurrency-safe", (
   assert.match(quotaSource, /\{ status: "pending", expiresAt: \{ gt: params\.now \} \}/);
   assert.match(quotaSource, /\{ status: "committed_failed" \}/);
   assert.match(quotaSource, /pendingMinuteReservations/);
-  assert.match(quotaSource, /minuteCalls: recentSuccessCount \+ pendingMinuteReservations/);
-  assert.match(quotaSource, /dailyCalls: successCallCount \+ pendingDailyReservations/);
+  assert.match(quotaSource, /minuteCalls: Math\.max\(recentSuccessCount, minuteCounterUsage\.requestCount\) \+ pendingMinuteReservations/);
+  assert.match(quotaSource, /dailyCalls: Math\.max\(successCallCount, dailyCounterUsage\.requestCount\) \+ pendingDailyReservations/);
 });
 
 test("App Router AI routes delegate to backend quota-protected handlers", () => {
@@ -416,6 +425,7 @@ test("AI quota reservation is committed on success and released on failure", () 
   assert.match(quotaSource, /export async function finalizeAiQuotaUsage/);
   assert.match(quotaSource, /await client\.\$transaction\(async \(tx\) =>/);
   assert.match(quotaSource, /await tx\.aiUsageEvent\.create/);
+  assert.match(quotaSource, /incrementAiUsageCountersWithClient\(tx, usageParams\)/);
   assert.match(quotaSource, /await tx\.aiQuotaReservation\.update/);
   assert.match(quotaSource, /status: isSuccessfulAiResult\(result\) \? "committed" : "cancelled"/);
   assert.match(quotaSource, /status: "committed_failed"/);
@@ -424,6 +434,54 @@ test("AI quota reservation is committed on success and released on failure", () 
   assert.match(quotaSource, /await cancelAiQuotaReservation\(reservation\)/);
   assert.match(quotaSource, /if \(result\.ok && result\.text\)/);
   assert.match(quotaSource, /await commitAiQuotaReservation\(reservation\)/);
+});
+
+test("AI quota uses aggregate counters while keeping event audit logs", () => {
+  const schemaSource = read("prisma/schema.prisma");
+  const migrationSource = read("prisma/migrations/20260520165000_generation_jobs_and_usage_counters/migration.sql");
+  const quotaSource = read("src/lib/ai/quota.ts");
+  const usageLogSource = read("src/lib/ai/usage-log.ts");
+  const counterSource = read("src/lib/ai/usage-counter.ts");
+
+  assert.match(schemaSource, /model AiUsageCounter/);
+  assert.match(schemaSource, /enum AiUsagePeriodType/);
+  assert.match(schemaSource, /@@unique\(\[userId, periodType, periodKey, action\]\)/);
+  assert.match(migrationSource, /CREATE TABLE "AiUsageCounter"/);
+  assert.match(counterSource, /periodType: "minute"/);
+  assert.match(counterSource, /periodType: "daily"/);
+  assert.match(counterSource, /periodType: "monthly"/);
+  assert.match(counterSource, /client\.aiUsageCounter\.upsert/);
+  assert.match(quotaSource, /client\.aiUsageCounter\.findMany/);
+  assert.match(quotaSource, /Math\.max\(successCallCount, dailyCounterUsage\.requestCount\)/);
+  assert.match(usageLogSource, /await prisma\.\$transaction\(async \(tx\) =>/);
+  assert.match(usageLogSource, /incrementAiUsageCountersWithClient\(tx, params\)/);
+});
+
+test("chapter generation uses durable DB jobs instead of in-memory duplicate locks", () => {
+  const schemaSource = read("prisma/schema.prisma");
+  const migrationSource = read("prisma/migrations/20260520165000_generation_jobs_and_usage_counters/migration.sql");
+  const lockSource = read("src/lib/ai/chapter-generation-lock.ts");
+  const jobSource = read("src/lib/ai/generation-jobs.ts");
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const streamPersistenceSource = read("src/backend/ai/chapter/stream-persistence.ts");
+  const streamRouteSource = read("src/backend/ai/chapter/stream-route.ts");
+
+  assert.match(schemaSource, /model GenerationJob/);
+  assert.match(schemaSource, /activeLockKey\s+String\?/);
+  assert.match(schemaSource, /@@unique\(\[activeLockKey\]\)/);
+  assert.match(schemaSource, /idempotencyKey\s+String\?/);
+  assert.match(schemaSource, /heartbeatAt\s+DateTime\?/);
+  assert.match(migrationSource, /CREATE UNIQUE INDEX "GenerationJob_activeLockKey_key"/);
+  assert.match(migrationSource, /CREATE UNIQUE INDEX "GenerationJob_active_chapter_generation_key"/);
+  assert.doesNotMatch(lockSource, /ACTIVE_GENERATIONS/);
+  assert.match(jobSource, /markStaleGenerationJobs/);
+  assert.match(jobSource, /heartbeatAt: \{ lt: staleBefore \}/);
+  assert.match(jobSource, /activeLockKey: null/);
+  assert.match(jobSource, /P2002/);
+  assert.match(generateSource, /beginGenerationJob\(\{/);
+  assert.match(generateSource, /idempotencyKey: input\.idempotencyKey \?\? null/);
+  assert.match(streamPersistenceSource, /beginGenerationJob\(\{/);
+  assert.match(streamRouteSource, /idempotencyKey: parsedBody\.data\.idempotencyKey \?\? null/);
 });
 
 test("reservation finalization owns usage logging for protected AI calls", () => {
@@ -491,7 +549,7 @@ test("chapter provider probes keep manual usage logging outside reserved generat
 
 test("quota finalization creates one usage event for one reserved successful call", async () => {
   const { finalizeAiQuotaUsageWithClient } = await import("../src/lib/ai/quota.ts");
-  const { client, events, updates, fallbackUpdates } = makeFinalizeClient();
+  const { client, events, counters, updates, fallbackUpdates } = makeFinalizeClient();
 
   await finalizeAiQuotaUsageWithClient(client, {
     reservation: { id: "reservation-1", userId: "user-1", action: "idea_generate" },
@@ -503,6 +561,7 @@ test("quota finalization creates one usage event for one reserved successful cal
   assert.equal(events.length, 1);
   assert.equal(events[0].action, "idea_generate");
   assert.equal(events[0].success, true);
+  assert.equal(counters.length, 3);
   assert.deepEqual(updates, ["committed"]);
   assert.deepEqual(fallbackUpdates, []);
 });
@@ -557,7 +616,7 @@ test("runWithAiQuotaReservation success delegates to exactly one finalization", 
 
 test("failed quota finalization with consumed tokens creates one failed usage event", async () => {
   const { finalizeAiQuotaUsageWithClient } = await import("../src/lib/ai/quota.ts");
-  const { client, events, updates, fallbackUpdates } = makeFinalizeClient();
+  const { client, events, counters, updates, fallbackUpdates } = makeFinalizeClient();
 
   await finalizeAiQuotaUsageWithClient(client, {
     reservation: {
@@ -579,6 +638,7 @@ test("failed quota finalization with consumed tokens creates one failed usage ev
   assert.equal(events[0].action, "chapter_summary");
   assert.equal(events[0].success, false);
   assert.equal(events[0].totalTokens, 12);
+  assert.equal(counters.length, 0);
   assert.deepEqual(updates, ["cancelled"]);
   assert.deepEqual(fallbackUpdates, []);
 });

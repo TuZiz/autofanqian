@@ -9,12 +9,14 @@ import type { WorkTypeValue } from "@/shared/work-type";
 export const chapterGenerateBodySchema = z.object({
   workId: z.string().min(1).max(64),
   index: z.coerce.number().int().min(1).max(9999),
+  idempotencyKey: z.string().trim().min(8).max(160).optional().nullable(),
   extraPrompt: z.string().trim().max(2000).optional().nullable(),
 });
 
 export type ChapterGenerateInput = {
   workId: string;
   index: number;
+  idempotencyKey?: string | null;
   extraPrompt?: string | null;
 };
 

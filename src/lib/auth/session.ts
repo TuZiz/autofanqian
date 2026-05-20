@@ -16,6 +16,7 @@ import { sessionUserSelect } from "@/lib/auth/user";
 import { prisma } from "@/lib/prisma";
 
 const ACCESSIBLE_USER_STATUSES = new Set(["active", "limited"]);
+export const SESSION_TOUCH_INTERVAL_MS = 10 * 60 * 1000;
 
 export function getSessionCookieOptions() {
   const explicitSecure = process.env.SESSION_COOKIE_SECURE;
@@ -90,6 +91,7 @@ export async function getCurrentSession() {
       userId: true,
       expiresAt: true,
       revokedAt: true,
+      lastSeenAt: true,
       user: { select: sessionUserSelect },
     },
   });
@@ -103,13 +105,28 @@ export async function getCurrentSession() {
     return null;
   }
 
-  await prisma.userSession
-    .update({
-      where: { id: session.id },
-      data: { lastSeenAt: new Date() },
-      select: { id: true },
-    })
-    .catch(() => undefined);
+  const now = Date.now();
+  if (
+    !session.lastSeenAt ||
+    now - session.lastSeenAt.getTime() >= SESSION_TOUCH_INTERVAL_MS
+  ) {
+    await prisma.userSession
+      .updateMany({
+        where: {
+          id: session.id,
+          OR: [
+            { lastSeenAt: null },
+            {
+              lastSeenAt: {
+                lt: new Date(now - SESSION_TOUCH_INTERVAL_MS),
+              },
+            },
+          ],
+        },
+        data: { lastSeenAt: new Date(now) },
+      })
+      .catch(() => undefined);
+  }
 
   return session;
 }

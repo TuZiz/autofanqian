@@ -1,4 +1,6 @@
 import { getAlternateModelName, normalizeModelName } from "./config";
+import { isProviderCircuitOpen, recordProviderCircuitResult } from "./health";
+import { createUpstreamRequestId, logUpstreamRequest } from "./observability";
 import { inferRouteId, sortProvidersByPreference } from "./provider-chain";
 import { selectHealthyProviderForChapter as selectHealthyProviderForChapterWithProbe } from "./provider-probe";
 import {
@@ -30,6 +32,7 @@ export async function selectHealthyProviderForChapter(params: {
   routeId?: UpstreamRouteId;
   preferredProviderId?: string | null;
   reasoningEffort?: UpstreamReasoningEffort | null;
+  signal?: AbortSignal;
 }) {
   return selectHealthyProviderForChapterWithProbe({
     ...params,
@@ -46,9 +49,11 @@ export async function callAiText(params: {
   attempts?: number;
   preferredProviderId?: string | null;
   reasoningEffort?: UpstreamReasoningEffort | null;
+  signal?: AbortSignal;
 }): Promise<UpstreamTextResult> {
   const startedAt = Date.now();
   const getDurationMs = () => Math.max(0, Date.now() - startedAt);
+  const requestId = createUpstreamRequestId();
 
   const reasoningEffort =
     params.reasoningEffort === undefined ? DEFAULT_REASONING_EFFORT : params.reasoningEffort;
@@ -66,6 +71,18 @@ export async function callAiText(params: {
   };
 
   for (const provider of providers) {
+    if (isProviderCircuitOpen(provider.id)) {
+      lastError = {
+        ok: false,
+        status: 503,
+        upstreamMessage: "provider_circuit_open",
+        routeId,
+        providerId: provider.id,
+        durationMs: getDurationMs(),
+      };
+      continue;
+    }
+
     const model = normalizeModelName(provider.model);
     const endpoints = getEndpointOrder(provider.prefer);
     let shouldFallbackToNextProvider = false;
@@ -94,6 +111,7 @@ export async function callAiText(params: {
           maxTokens: params.maxTokens,
           attempts: params.attempts,
           reasoningEffort: preferredReasoningEffort,
+          signal: params.signal,
         });
 
         if (!attempt.ok && preferredReasoningEffort) {
@@ -109,6 +127,7 @@ export async function callAiText(params: {
               maxTokens: params.maxTokens,
               attempts: params.attempts,
               reasoningEffort: null,
+              signal: params.signal,
             });
           }
         }
@@ -135,6 +154,17 @@ export async function callAiText(params: {
       const text = extractTextFromPayload(endpoint, attempt.json);
 
       if (attempt.ok && text) {
+        recordProviderCircuitResult(provider.id, true);
+        logUpstreamRequest({
+          requestId,
+          routeId,
+          providerId: provider.id,
+          endpoint,
+          modelUsed,
+          durationMs: getDurationMs(),
+          status: "success",
+          httpStatus: attempt.status,
+        });
         return {
           ok: true,
           status: attempt.status,
@@ -158,6 +188,17 @@ export async function callAiText(params: {
         endpoint,
         modelUsed,
       };
+      recordProviderCircuitResult(provider.id, false);
+      logUpstreamRequest({
+        requestId,
+        routeId,
+        providerId: provider.id,
+        endpoint,
+        modelUsed,
+        durationMs: getDurationMs(),
+        status: attempt.status === 408 ? "timeout" : "fallback",
+        httpStatus: attempt.status,
+      });
 
       const tryNextEndpoint =
         endpointIndex < endpoints.length - 1 &&
@@ -193,6 +234,7 @@ export async function streamAiText(params: {
 }): Promise<UpstreamTextResult> {
   const startedAt = Date.now();
   const getDurationMs = () => Math.max(0, Date.now() - startedAt);
+  const requestId = createUpstreamRequestId();
   const reasoningEffort =
     params.reasoningEffort === undefined ? DEFAULT_REASONING_EFFORT : params.reasoningEffort;
 
@@ -210,6 +252,18 @@ export async function streamAiText(params: {
   };
 
   for (const provider of providers) {
+    if (isProviderCircuitOpen(provider.id)) {
+      lastError = {
+        ok: false,
+        status: 503,
+        upstreamMessage: "provider_circuit_open",
+        routeId,
+        providerId: provider.id,
+        durationMs: getDurationMs(),
+      };
+      continue;
+    }
+
     const model = normalizeModelName(provider.model);
     const endpoints = getEndpointOrder(provider.prefer);
     let shouldFallbackToNextProvider = false;
@@ -280,6 +334,17 @@ export async function streamAiText(params: {
 
       const upstreamMessage = getUpstreamMessage(streamed.json) ?? undefined;
       if (streamed.ok && streamed.text) {
+        recordProviderCircuitResult(provider.id, true);
+        logUpstreamRequest({
+          requestId,
+          routeId,
+          providerId: provider.id,
+          endpoint,
+          modelUsed,
+          durationMs: getDurationMs(),
+          status: "success",
+          httpStatus: streamed.status,
+        });
         return {
           ok: true,
           status: streamed.status,
@@ -304,6 +369,22 @@ export async function streamAiText(params: {
         modelUsed,
         durationMs: getDurationMs(),
       };
+      recordProviderCircuitResult(provider.id, false);
+      logUpstreamRequest({
+        requestId,
+        routeId,
+        providerId: provider.id,
+        endpoint,
+        modelUsed,
+        durationMs: getDurationMs(),
+        status:
+          streamed.status === 499
+            ? "cancelled"
+            : streamed.status === 408
+              ? "timeout"
+              : "fallback",
+        httpStatus: streamed.status,
+      });
 
       if (streamed.status === 499 || streamed.started || Boolean(streamed.text?.trim())) {
         return lastError;

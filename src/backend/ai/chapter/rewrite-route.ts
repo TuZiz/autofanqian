@@ -210,14 +210,20 @@ export async function POST(request: Request) {
     const generationJob = await prisma.generationJob.create({
       data: {
         novelId: work.id,
+        userId: user.id,
+        workId: work.id,
         chapterId: chapter.id,
+        chapterIndex: body.index,
         action: `chapter.rewrite.${body.action}`,
+        jobType: "chapter.rewrite",
         status: "running",
         routeId,
         providerId: primaryProvider.id,
         modelUsed: primaryProvider.model,
         promptTemplateKey: "chapter.rewrite",
         promptSnapshot: prompt.slice(0, 20000),
+        startedAt: new Date(),
+        heartbeatAt: new Date(),
       },
     });
 
@@ -243,12 +249,15 @@ export async function POST(request: Request) {
           status: "failed",
           routeId,
           error: result.upstreamMessage || "AI 改写失败",
+          errorMessage: result.upstreamMessage || "AI 改写失败",
           providerId: result.providerId ?? primaryProvider.id,
           modelUsed: result.modelUsed ?? primaryProvider.model,
           inputTokens: result.usage?.inputTokens ?? null,
           outputTokens: result.usage?.outputTokens ?? null,
           totalTokens: result.usage?.totalTokens ?? null,
           durationMs: result.durationMs ?? null,
+          finishedAt: new Date(),
+          heartbeatAt: new Date(),
           completedAt: new Date(),
         },
       });
@@ -264,7 +273,7 @@ export async function POST(request: Request) {
     await prisma.generationJob.update({
       where: { id: generationJob.id },
       data: {
-        status: "success",
+        status: "succeeded",
         routeId,
         resultSummary,
         providerId: result.providerId ?? primaryProvider.id,
@@ -273,6 +282,8 @@ export async function POST(request: Request) {
         outputTokens: result.usage?.outputTokens ?? null,
         totalTokens: result.usage?.totalTokens ?? null,
         durationMs: result.durationMs ?? null,
+        finishedAt: new Date(),
+        heartbeatAt: new Date(),
         completedAt: new Date(),
       },
     });

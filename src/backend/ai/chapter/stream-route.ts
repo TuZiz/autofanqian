@@ -173,6 +173,7 @@ export async function POST(request: Request) {
             routeId: "gpt",
             preferredProviderId: smartProviders[0]?.id,
             reasoningEffort: "low",
+            signal: abortController.signal,
           });
 
           await logAiUsage({
@@ -218,6 +219,8 @@ export async function POST(request: Request) {
           generationJobId = await createStreamGenerationJob({
             prepared,
             provider: selected.provider,
+            chapterIndex: parsedBody.data.index,
+            idempotencyKey: parsedBody.data.idempotencyKey ?? null,
           });
 
           writeEvent({
