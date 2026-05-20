@@ -16,7 +16,17 @@ fi
 cd "$APP_DIR"
 
 echo "Deploying ${APP_NAME} from origin/${BRANCH}..."
-git fetch origin "$BRANCH"
+for attempt in 1 2 3; do
+  if git fetch origin "$BRANCH"; then
+    break
+  fi
+  if [ "$attempt" -eq 3 ]; then
+    echo "git fetch failed after 3 attempts."
+    exit 1
+  fi
+  echo "git fetch failed, retrying in 5 seconds... (${attempt}/3)"
+  sleep 5
+done
 git reset --hard "origin/${BRANCH}"
 npm ci --include=dev
 npm run db:generate
