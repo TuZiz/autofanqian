@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createSign, createVerify } from "node:crypto";
+
 import { AuthApiError } from "@/lib/auth/errors";
 import {
   getAlipayPaymentConfig,
@@ -9,6 +11,14 @@ import {
 
 export type AlipayRuntimeConfig = AlipayPaymentConfig & {
   privateKey: string;
+};
+
+export type AlipayNotifyParams = Record<string, string>;
+
+type CreateAlipayPagePayParams = {
+  outTradeNo: string;
+  subject: string;
+  amountCents: number;
 };
 
 function withEnvFallback(config: AlipayPaymentConfig): AlipayPaymentConfig {
@@ -57,14 +67,105 @@ export async function assertAlipayPaymentAvailable() {
   return { available: true as const };
 }
 
-export async function createAlipayOrderPreview() {
-  const config = await getAlipayRuntimeConfig();
+function normalizePemKey(key: string, type: "private" | "public") {
+  const trimmed = key.trim();
+  if (trimmed.includes("BEGIN ")) return trimmed;
 
-  return {
-    provider: "alipay" as const,
-    mode: config.sandbox ? "sandbox" as const : "production" as const,
-    gateway: config.gateway,
-    signType: config.signType,
-    ready: true as const,
+  const header = type === "private" ? "-----BEGIN PRIVATE KEY-----" : "-----BEGIN PUBLIC KEY-----";
+  const footer = type === "private" ? "-----END PRIVATE KEY-----" : "-----END PUBLIC KEY-----";
+  const body = trimmed
+    .replace(/-----BEGIN [^-]+-----/g, "")
+    .replace(/-----END [^-]+-----/g, "")
+    .replace(/\s+/g, "")
+    .match(/.{1,64}/g)
+    ?.join("\n");
+
+  return `${header}\n${body ?? ""}\n${footer}`;
+}
+
+function encodeBizContent(value: unknown) {
+  return JSON.stringify(value);
+}
+
+function createSignContent(params: Record<string, string | undefined | null>) {
+  return Object.entries(params)
+    .filter(([key, value]) => key !== "sign" && key !== "sign_type" && value !== undefined && value !== null && value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+}
+
+function signParams(params: Record<string, string>, privateKey: string) {
+  const signer = createSign("RSA-SHA256");
+  signer.update(createSignContent(params), "utf8");
+  signer.end();
+  return signer.sign(normalizePemKey(privateKey, "private"), "base64");
+}
+
+export function verifyAlipayNotifySignature(params: AlipayNotifyParams, alipayPublicKey: string) {
+  if (!params.sign) return false;
+
+  try {
+    const verifier = createVerify("RSA-SHA256");
+    verifier.update(createSignContent(params), "utf8");
+    verifier.end();
+    return verifier.verify(normalizePemKey(alipayPublicKey, "public"), params.sign, "base64");
+  } catch {
+    return false;
+  }
+}
+
+function formatAmount(amountCents: number) {
+  return (amountCents / 100).toFixed(2);
+}
+
+export function amountYuanToCents(value: string) {
+  const normalized = value.trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
+  const [yuan, cents = ""] = normalized.split(".");
+  return Number(yuan) * 100 + Number(cents.padEnd(2, "0"));
+}
+
+export async function createAlipayPagePayUrl(params: CreateAlipayPagePayParams) {
+  const config = await getAlipayRuntimeConfig();
+  const requestParams: Record<string, string> = {
+    app_id: config.appId,
+    method: "alipay.trade.page.pay",
+    format: "JSON",
+    charset: "utf-8",
+    sign_type: "RSA2",
+    timestamp: new Date().toISOString().slice(0, 19).replace("T", " "),
+    version: "1.0",
+    return_url: config.returnUrl,
+    notify_url: config.notifyUrl,
+    biz_content: encodeBizContent({
+      out_trade_no: params.outTradeNo,
+      product_code: "FAST_INSTANT_TRADE_PAY",
+      total_amount: formatAmount(params.amountCents),
+      subject: params.subject,
+    }),
   };
+
+  requestParams.sign = signParams(requestParams, config.privateKey);
+
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(requestParams)) {
+    search.set(key, value);
+  }
+
+  return `${config.gateway}?${search.toString()}`;
+}
+
+export async function verifyAlipayNotify(params: AlipayNotifyParams) {
+  const config = await getAlipayRuntimeConfig();
+  return verifyAlipayNotifySignature(params, config.alipayPublicKey);
+}
+
+export async function queryAlipayTrade(outTradeNo: string) {
+  if (!outTradeNo.trim()) {
+    throw new AuthApiError(400, "缺少支付宝商户订单号。");
+  }
+
+  await getAlipayRuntimeConfig();
+  throw new AuthApiError(501, "支付宝主动查询接口已预留，尚未接入。");
 }

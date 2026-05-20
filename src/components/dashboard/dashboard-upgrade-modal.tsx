@@ -93,6 +93,21 @@ type AlipayStatus = {
   configured: boolean;
 };
 
+type UpgradePaymentOption = {
+  label: string;
+  planId: "plus_day" | "plus_month" | "pro_month";
+};
+
+const paymentOptionsByTier: Partial<Record<PublicMembershipTier, UpgradePaymentOption[]>> = {
+  plus: [
+    { label: "1 天体验 ¥5", planId: "plus_day" },
+    { label: "月套餐 ¥19", planId: "plus_month" },
+  ],
+  pro: [
+    { label: "专业月卡 ¥49", planId: "pro_month" },
+  ],
+};
+
 const matrixRows = [
   {
     label: "每日生成字数",
@@ -148,7 +163,7 @@ export function DashboardUpgradeModal({
 }: DashboardUpgradeModalProps) {
   const [previewTier, setPreviewTier] = useState<PublicMembershipTier | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<AlipayStatus | null>(null);
-  const [paymentBusyTier, setPaymentBusyTier] = useState<PublicMembershipTier | null>(null);
+  const [paymentBusyPlanId, setPaymentBusyPlanId] = useState<string | null>(null);
   const [paymentMessage, setPaymentMessage] = useState("");
   const currentPlan = getPublicMembershipPlan(currentTier);
   const currentRank = tierRank[currentPlan.tier];
@@ -203,11 +218,16 @@ export function DashboardUpgradeModal({
     };
   }, [isOpen]);
 
-  async function handlePlanPreview(plan: PublicMembershipPlan) {
+  async function handlePlanPreview(plan: PublicMembershipPlan, planId?: UpgradePaymentOption["planId"]) {
     setPreviewTier(plan.tier);
 
     if (isAdmin) {
       setPaymentMessage(`管理员正在预览「${plan.name}」，不会触发支付。`);
+      return;
+    }
+
+    if (!planId) {
+      setPaymentMessage(plan.tier === "max" ? "无限版暂未开放在线支付，请联系管理员购买。" : "当前套餐无需购买。");
       return;
     }
 
@@ -216,14 +236,20 @@ export function DashboardUpgradeModal({
       return;
     }
 
-    setPaymentBusyTier(plan.tier);
-    const response = await apiRequest(
-      "/api/payments/alipay/create-order",
-      { tier: plan.tier },
+    setPaymentBusyPlanId(planId);
+    const response = await apiRequest<{ paymentUrl: string }>(
+      "/api/payments/alipay/create",
+      { planId },
       { method: "POST", redirectOnUnauthorized: true },
     );
-    setPaymentBusyTier(null);
-    setPaymentMessage(response.message || "支付宝订单创建已预留，当前不会发放会员。");
+    setPaymentBusyPlanId(null);
+
+    if (response.success && response.data?.paymentUrl) {
+      window.location.href = response.data.paymentUrl;
+      return;
+    }
+
+    setPaymentMessage(response.message || "支付功能暂未开启，请联系管理员。");
   }
 
   return (
@@ -277,9 +303,9 @@ export function DashboardUpgradeModal({
                   currentRank={currentRank}
                   isAdmin={isAdmin}
                   isCurrent={plan.tier === currentPlan.tier}
-                  busy={paymentBusyTier === plan.tier}
+                  busyPlanId={paymentBusyPlanId}
                   plan={plan}
-                  onPreview={() => void handlePlanPreview(plan)}
+                  onPreview={handlePlanPreview}
                 />
               ))}
             </section>
@@ -400,25 +426,26 @@ function QuotaPreviewCard({
 }
 
 function PlanCard({
-  busy,
+  busyPlanId,
   currentRank,
   isAdmin,
   isCurrent,
   onPreview,
   plan,
 }: {
-  busy: boolean;
+  busyPlanId: string | null;
   currentRank: number;
   isAdmin: boolean;
   isCurrent: boolean;
-  onPreview: () => void;
+  onPreview: (plan: PublicMembershipPlan, planId?: UpgradePaymentOption["planId"]) => void;
   plan: PublicMembershipPlan;
 }) {
   const Icon = planIcons[plan.tier];
   const accent = accentStyles[plan.accent];
   const isIncluded = tierRank[plan.tier] < currentRank;
   const disabled = !isAdmin && (isCurrent || isIncluded);
-  const buttonLabel = getPlanButtonLabel({ isAdmin, isCurrent, isIncluded });
+  const buttonLabel = getPlanButtonLabel({ isAdmin, isCurrent, isIncluded, tier: plan.tier });
+  const paymentOptions = paymentOptionsByTier[plan.tier] ?? [];
 
   return (
     <article
@@ -474,17 +501,32 @@ function PlanCard({
           ))}
         </ul>
 
-        <Button
-          className={cn(
-            "mt-5 w-full",
-            !disabled && "bg-[var(--theme-brand-600)] text-white hover:brightness-105 dark:text-[var(--theme-brand-contrast)]",
+        <div className="mt-5 space-y-2">
+          {paymentOptions.length > 0 && !isAdmin && !disabled ? (
+            paymentOptions.map((option) => (
+              <Button
+                key={option.planId}
+                className="w-full bg-[var(--theme-brand-600)] text-white hover:brightness-105 dark:text-[var(--theme-brand-contrast)]"
+                disabled={Boolean(busyPlanId)}
+                onClick={() => onPreview(plan, option.planId)}
+              >
+                {busyPlanId === option.planId ? "跳转支付..." : option.label}
+              </Button>
+            ))
+          ) : (
+            <Button
+              className={cn(
+                "w-full",
+                !disabled && "bg-[var(--theme-brand-600)] text-white hover:brightness-105 dark:text-[var(--theme-brand-contrast)]",
+              )}
+              disabled={disabled}
+              onClick={() => onPreview(plan)}
+              variant={disabled ? "outline" : "default"}
+            >
+              {buttonLabel}
+            </Button>
           )}
-          disabled={disabled}
-          onClick={onPreview}
-          variant={disabled ? "outline" : "default"}
-        >
-          {busy ? "处理中..." : buttonLabel}
-        </Button>
+        </div>
       </div>
     </article>
   );
@@ -494,14 +536,17 @@ function getPlanButtonLabel({
   isAdmin,
   isCurrent,
   isIncluded,
+  tier,
 }: {
   isAdmin: boolean;
   isCurrent: boolean;
   isIncluded: boolean;
+  tier: PublicMembershipTier;
 }) {
   if (isAdmin) return "管理员预览";
   if (isCurrent) return "当前方案";
   if (isIncluded) return "已包含";
+  if (tier === "max") return "联系购买";
   return "预览升级";
 }
 

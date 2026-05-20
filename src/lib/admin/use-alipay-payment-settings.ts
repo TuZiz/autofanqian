@@ -35,6 +35,7 @@ type AlipayPaymentForm = {
   notifyUrl: string;
   publicKeyInput: string;
   privateKeyInput: string;
+  clearPublicKey: boolean;
   clearPrivateKey: boolean;
 };
 
@@ -47,6 +48,7 @@ const emptyForm: AlipayPaymentForm = {
   notifyUrl: "",
   publicKeyInput: "",
   privateKeyInput: "",
+  clearPublicKey: false,
   clearPrivateKey: false,
 };
 
@@ -60,6 +62,7 @@ function toForm(config: SafeAlipayPaymentConfig): AlipayPaymentForm {
     notifyUrl: config.notifyUrl,
     publicKeyInput: "",
     privateKeyInput: "",
+    clearPublicKey: false,
     clearPrivateKey: false,
   };
 }
@@ -149,7 +152,7 @@ export function useAlipayPaymentSettings() {
       returnUrl: form.returnUrl,
       notifyUrl: form.notifyUrl,
       signType: "RSA2" as const,
-      ...(publicKey ? { alipayPublicKey: publicKey } : {}),
+      ...(form.clearPublicKey ? { alipayPublicKey: "__CLEAR__" } : publicKey ? { alipayPublicKey: publicKey } : {}),
       ...(form.clearPrivateKey ? { privateKey: "__CLEAR__" } : privateKey ? { privateKey } : {}),
     };
 

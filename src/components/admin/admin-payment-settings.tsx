@@ -156,8 +156,24 @@ export function AdminPaymentSettings({ payment }: AdminPaymentSettingsProps) {
                 }
                 placeholder="粘贴支付宝公钥，留空则保留已有配置"
                 value={payment.form.publicKeyInput}
-                onChange={(value) => payment.updateField("publicKeyInput", value)}
+                onChange={(value) => {
+                  payment.updateField("publicKeyInput", value);
+                  if (value.trim()) payment.updateField("clearPublicKey", false);
+                }}
               />
+
+              <label className="lg:col-span-2 flex items-center gap-2 rounded-xl border border-sky-300/50 bg-sky-500/10 px-3 py-2 text-xs font-bold text-sky-800 dark:text-sky-100">
+                <input
+                  type="checkbox"
+                  checked={payment.form.clearPublicKey}
+                  onChange={(event) => {
+                    payment.updateField("clearPublicKey", event.target.checked);
+                    if (event.target.checked) payment.updateField("publicKeyInput", "");
+                  }}
+                  className="h-4 w-4 rounded border-[var(--theme-border)]"
+                />
+                清空已保存支付宝公钥
+              </label>
 
               <SecretTextarea
                 className="lg:col-span-2"

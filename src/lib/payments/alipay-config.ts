@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 
 export const ALIPAY_CONFIG_KEY = "payment_alipay_v1";
 export const ALIPAY_PRIVATE_KEY_CLEAR_VALUE = "__CLEAR__";
+export const ALIPAY_PUBLIC_KEY_CLEAR_VALUE = "__CLEAR__";
 export const ALIPAY_ENCRYPTION_KEY_ERROR = "服务器未配置 SETTINGS_ENCRYPTION_KEY，无法安全保存支付私钥。";
 
 export type AlipayPaymentConfig = {
@@ -203,6 +204,7 @@ export async function updateAlipayPaymentConfig(
   const before = await getAlipayPaymentConfig(store);
   const nextPrivateKey = parsed.privateKey;
   let encryptedPrivateKey = before.encryptedPrivateKey;
+  let alipayPublicKey = parsed.alipayPublicKey ?? before.alipayPublicKey;
 
   if (nextPrivateKey === ALIPAY_PRIVATE_KEY_CLEAR_VALUE) {
     encryptedPrivateKey = undefined;
@@ -211,6 +213,10 @@ export async function updateAlipayPaymentConfig(
       throw new AuthApiError(500, ALIPAY_ENCRYPTION_KEY_ERROR);
     }
     encryptedPrivateKey = encryptSecret(nextPrivateKey.trim());
+  }
+
+  if (parsed.alipayPublicKey === ALIPAY_PUBLIC_KEY_CLEAR_VALUE) {
+    alipayPublicKey = "";
   }
 
   const normalized = normalizeConfig({
@@ -222,7 +228,7 @@ export async function updateAlipayPaymentConfig(
     returnUrl: parsed.returnUrl,
     notifyUrl: parsed.notifyUrl,
     signType: "RSA2",
-    alipayPublicKey: parsed.alipayPublicKey ?? before.alipayPublicKey,
+    alipayPublicKey,
     ...(encryptedPrivateKey ? { encryptedPrivateKey } : {}),
   });
 

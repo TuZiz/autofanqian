@@ -41,9 +41,16 @@ test("admin management guards protect root and admin targets", () => {
 
 test("all mutating route handlers catch assertSameOriginRequest with the first try block", () => {
   const files = [...walk("src/app/api"), ...walk("src/backend")];
+  const sameOriginExemptions = new Set([
+    path.join("src/app/api/payments/alipay/notify/route.ts"),
+  ]);
   const problems = [];
 
   for (const file of files) {
+    if (sameOriginExemptions.has(file)) {
+      continue;
+    }
+
     const lines = read(file).split(/\r?\n/);
     for (let index = 0; index < lines.length; index += 1) {
       if (!/^export async function (POST|PUT|PATCH|DELETE)\b/.test(lines[index])) {

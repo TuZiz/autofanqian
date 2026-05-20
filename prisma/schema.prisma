@@ -95,6 +95,18 @@ enum AiQuotaReservationStatus {
   cancelled
 }
 
+enum PaymentProvider {
+  alipay
+}
+
+enum PaymentOrderStatus {
+  pending
+  paid
+  closed
+  failed
+  refunded
+}
+
 enum PromptTemplateCategory {
   idea
   outline
@@ -114,6 +126,7 @@ model User {
   status        UserStatus @default(active)
   role          UserRole   @default(user)
   membershipTier MembershipTier @default(default)
+  membershipExpiresAt DateTime?
   bannedReason  String?
   bannedAt      DateTime?
   lastLoginAt   DateTime?
@@ -126,6 +139,7 @@ model User {
   ideaGenerationEvents IdeaGenerationEvent[]
   aiUsageEvents        AiUsageEvent[]
   aiQuotaReservations  AiQuotaReservation[]
+  paymentOrders        PaymentOrder[]
   works                Work[]
   adminAuditLogs       AdminAuditLog[]
 }
@@ -188,6 +202,33 @@ model AppConfig {
   value     Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PaymentOrder {
+  id              String             @id @default(cuid())
+  userId          String
+  provider        PaymentProvider    @default(alipay)
+  status          PaymentOrderStatus @default(pending)
+
+  outTradeNo      String             @unique
+  providerTradeNo String?
+
+  planId          String
+  tier            MembershipTier
+  durationDays    Int
+  amountCents     Int
+  subject         String
+
+  paidAt          DateTime?
+  expiresAt       DateTime?
+  rawNotify       Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 model CreateTemplate {

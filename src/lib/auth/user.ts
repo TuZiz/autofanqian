@@ -9,6 +9,7 @@ export const sessionUserSelect = {
   status: true,
   role: true,
   membershipTier: true,
+  membershipExpiresAt: true,
   bannedReason: true,
   bannedAt: true,
   lastLoginAt: true,
