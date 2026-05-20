@@ -930,6 +930,9 @@ test("chapter quality report reads scores and quality issue payloads", () => {
   assert.match(reportSource, /qualityIssues/);
   assert.match(reportSource, /qualitySuggestions/);
   assert.match(reportSource, /score=\(\\d\{1,3\}\)/);
+  assert.match(reportSource, /invalid generationJob\.resultJson/);
+  assert.match(reportSource, /\\bJSON=/);
+  assert.doesNotMatch(reportSource, /promptSnapshot/);
 });
 
 test("work quality trend aggregates latest chapter jobs in ascending order", () => {
@@ -941,6 +944,8 @@ test("work quality trend aggregates latest chapter jobs in ascending order", () 
   assert.match(trendSource, /\.sort\(\(left, right\) => left - right\)/);
   assert.match(trendSource, /parseQualityReportPayload/);
   assert.match(trendSource, /distinct:\s*\["chapterIndex"\]/);
+  assert.match(trendSource, /orderBy\?: "chapterIndex" \| "updatedAt"/);
+  assert.match(trendSource, /getRecentChapterIndexesByUpdatedAt/);
   assert.doesNotMatch(trendSource, /safeLimit\s*\*\s*6/);
 });
 
@@ -948,15 +953,45 @@ test("ai step jobs support resultJson and quality API enforces work access", () 
   const stepJobSource = read("src/lib/ai/ai-step-job.ts");
   const schemaSource = read("prisma/schema.prisma");
   const apiSource = read("src/app/api/workbench/works/[workId]/chapters/[index]/quality/route.ts");
+  const trendApiSource = read("src/app/api/workbench/works/[workId]/quality-trend/route.ts");
   const upstreamText = read("src/backend/ai/upstream/text-service.ts");
   const upstreamRequest = read("src/backend/ai/upstream/request.ts");
+  const upstreamStreamRequest = read("src/backend/ai/upstream/stream-request.ts");
 
   assert.match(schemaSource, /resultJson\s+Json\?/);
   assert.match(stepJobSource, /resultJson\?: Prisma\.InputJsonValue/);
   assert.match(stepJobSource, /resultJson: params\.resultJson/);
   assert.match(apiSource, /requireWorkAccess\(params\.workId\)/);
   assert.match(apiSource, /getChapterQualityReport\(params\.workId, params\.index\)/);
+  assert.match(trendApiSource, /requireWorkAccess\(params\.workId\)/);
+  assert.match(trendApiSource, /getWorkQualityTrend\(params\.workId/);
   assert.match(upstreamText, /signal\?: AbortSignal/);
   assert.match(upstreamRequest, /signal: requestTimeout\.signal/);
   assert.match(upstreamRequest, /upstream_aborted/);
+  assert.match(upstreamStreamRequest, /upstream_aborted/);
+  assert.doesNotMatch(upstreamStreamRequest, /用户已取消生成/);
+});
+
+test("backfill and auxiliary cost report cover quality persistence", () => {
+  const backfillSource = read("scripts/backfill-generation-job-result-json.mjs");
+  const costSource = read("src/lib/ai/auxiliary-cost-report.ts");
+
+  assert.match(backfillSource, /--dry-run/);
+  assert.match(backfillSource, /--apply/);
+  assert.match(backfillSource, /resultJson:\s*\{\s*equals:\s*null\s*\}/s);
+  assert.match(backfillSource, /JSON=\(\\\{/);
+  assert.match(backfillSource, /mode === "dry-run"/);
+  assert.match(backfillSource, /batchSize = 100/);
+
+  for (const action of [
+    "chapter.plan",
+    "chapter.consistency_check",
+    "chapter.consistency_repair",
+    "chapter.quality_check",
+    "canon.compress",
+  ]) {
+    assert.match(costSource, new RegExp(action.replace(".", "\\.")));
+  }
+  assert.match(costSource, /groupBy\(\{/);
+  assert.match(costSource, /totalTokens/);
 });

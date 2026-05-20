@@ -62,6 +62,7 @@ const consistencyResultSchema = z
   .passthrough();
 
 export function parseQualityReportResultJson(value: unknown): ChapterQualityCheckResult | null {
+  if (value == null) return null;
   const parsed =
     typeof value === "string"
       ? parseChapterQualityCheck(value)
@@ -72,12 +73,20 @@ export function parseQualityReportResultJson(value: unknown): ChapterQualityChec
 export function parseConsistencyReportResultJson(
   value: unknown,
 ): Pick<ChapterConsistencyCheckResult, "score" | "issues"> | null {
+  if (value == null) return null;
   const parsed = consistencyResultSchema.safeParse(value);
   if (!parsed.success) return null;
   return {
     score: parsed.data.score,
     issues: parsed.data.issues.map((item) => item.trim()).filter(Boolean),
   };
+}
+
+function warnInvalidResultJson(scope: string, value: unknown) {
+  if (value == null) return;
+  console.warn(`invalid generationJob.resultJson for ${scope}`, {
+    valueType: typeof value,
+  });
 }
 
 export async function getChapterQualityReport(
@@ -105,14 +114,28 @@ export async function getChapterQualityReport(
     }),
   ]);
 
+  const hasConsistencyResultJson = consistencyJob?.resultJson != null;
   const consistencyJson = parseConsistencyReportResultJson(consistencyJob?.resultJson);
-  const quality =
-    parseQualityReportResultJson(qualityJob?.resultJson) ??
-    parseQualityReportPayload(qualityJob?.resultSummary);
+  if (hasConsistencyResultJson && !consistencyJson) {
+    warnInvalidResultJson("chapter.consistency_check", consistencyJob.resultJson);
+  }
+
+  const hasQualityResultJson = qualityJob?.resultJson != null;
+  const qualityJson = parseQualityReportResultJson(qualityJob?.resultJson);
+  if (hasQualityResultJson && !qualityJson) {
+    warnInvalidResultJson("chapter.quality_check", qualityJob.resultJson);
+  }
+
+  const quality = hasQualityResultJson
+    ? qualityJson
+    : parseQualityReportPayload(qualityJob?.resultSummary);
   return {
     consistencyScore:
-      consistencyJson?.score ?? parseQualityReportScore(consistencyJob?.resultSummary),
-    qualityScore: quality?.score ?? parseQualityReportScore(qualityJob?.resultSummary),
+      consistencyJson?.score ??
+      (hasConsistencyResultJson ? null : parseQualityReportScore(consistencyJob?.resultSummary)),
+    qualityScore:
+      quality?.score ??
+      (hasQualityResultJson ? null : parseQualityReportScore(qualityJob?.resultSummary)),
     qualityIssues: quality?.issues ?? [],
     qualitySuggestions: quality?.suggestions ?? [],
   };

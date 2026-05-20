@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { queueChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
+import { getChapterQualityReport } from "@/lib/ai/chapter-quality-report";
 import { isAdminUser } from "@/lib/auth/admin";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
@@ -38,6 +39,15 @@ function getDefaultChapterTitle(index: number, workType?: string | null) {
   if (isShortStoryWork(workType)) return `场景 ${index}`;
   if (index === 1) return "第一章";
   return `第${index}章`;
+}
+
+async function getOptionalQualityReport(workId: string, chapterIndex: number) {
+  try {
+    return await getChapterQualityReport(workId, chapterIndex);
+  } catch (error) {
+    console.warn("load chapter quality report failed", error);
+    return null;
+  }
 }
 
 async function requireWorkAccess(params: { workId: string; userId: string; isAdmin: boolean }) {
@@ -149,6 +159,7 @@ export async function GET(
         createdAt: true,
       },
     });
+    const qualityReport = await getOptionalQualityReport(work.id, parsed.index);
 
     return successResponse(
       {
@@ -166,6 +177,7 @@ export async function GET(
           createdAt: chapter.createdAt.toISOString(),
           updatedAt: chapter.updatedAt.toISOString(),
         },
+        qualityReport,
       },
       { message: "OK" },
     );

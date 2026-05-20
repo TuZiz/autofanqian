@@ -222,16 +222,25 @@ export async function callUpstreamStream(
           "name" in error &&
           (error as { name?: unknown }).name === "AbortError";
 
+    if (aborted && !requestTimeout.didTimeout()) {
+      return {
+        ok: false,
+        status: 499,
+        json: { error: { message: "upstream_aborted" } },
+        started: false,
+      };
+    }
+
     return {
       ok: false,
       status: requestTimeout.didTimeout() ? 408 : aborted ? 499 : 0,
       json: {
         error: {
           message: requestTimeout.didTimeout()
-            ? "流式响应超时或长时间无输出"
+            ? "upstream_timeout"
             : aborted
-              ? "用户已取消生成"
-              : "网络异常或上游服务不可达",
+              ? "upstream_aborted"
+              : "upstream_unreachable",
         },
       },
       started: false,
