@@ -10,9 +10,17 @@ import { prisma } from "@/lib/prisma";
 export type ChapterQualityReport = {
   consistencyScore: number | null;
   consistencyIssues: string[];
+  consistencyProviderId: string | null;
+  consistencyModelUsed: string | null;
+  consistencyTokens: number | null;
+  consistencyDurationMs: number | null;
   qualityScore: number | null;
   qualityIssues: string[];
   qualitySuggestions: string[];
+  qualityProviderId: string | null;
+  qualityModelUsed: string | null;
+  qualityTokens: number | null;
+  qualityDurationMs: number | null;
 };
 
 export function parseQualityReportScore(summary: string | null | undefined) {
@@ -102,7 +110,14 @@ export async function getChapterQualityReport(
         action: "chapter.consistency_check",
       },
       orderBy: { createdAt: "desc" },
-      select: { resultSummary: true, resultJson: true },
+      select: {
+        resultSummary: true,
+        resultJson: true,
+        providerId: true,
+        modelUsed: true,
+        totalTokens: true,
+        durationMs: true,
+      },
     }),
     prisma.generationJob.findFirst({
       where: {
@@ -111,7 +126,14 @@ export async function getChapterQualityReport(
         action: "chapter.quality_check",
       },
       orderBy: { createdAt: "desc" },
-      select: { resultSummary: true, resultJson: true },
+      select: {
+        resultSummary: true,
+        resultJson: true,
+        providerId: true,
+        modelUsed: true,
+        totalTokens: true,
+        durationMs: true,
+      },
     }),
   ]);
 
@@ -135,10 +157,18 @@ export async function getChapterQualityReport(
       consistencyJson?.score ??
       (hasConsistencyResultJson ? null : parseQualityReportScore(consistencyJob?.resultSummary)),
     consistencyIssues: consistencyJson?.issues ?? [],
+    consistencyProviderId: consistencyJob?.providerId ?? null,
+    consistencyModelUsed: consistencyJob?.modelUsed ?? null,
+    consistencyTokens: consistencyJob?.totalTokens ?? null,
+    consistencyDurationMs: consistencyJob?.durationMs ?? null,
     qualityScore:
       quality?.score ??
       (hasQualityResultJson ? null : parseQualityReportScore(qualityJob?.resultSummary)),
     qualityIssues: quality?.issues ?? [],
     qualitySuggestions: quality?.suggestions ?? [],
+    qualityProviderId: qualityJob?.providerId ?? null,
+    qualityModelUsed: qualityJob?.modelUsed ?? null,
+    qualityTokens: qualityJob?.totalTokens ?? null,
+    qualityDurationMs: qualityJob?.durationMs ?? null,
   };
 }

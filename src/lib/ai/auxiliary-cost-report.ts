@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
 export type AuxiliaryAiCostAction =
@@ -12,6 +14,12 @@ export type AuxiliaryAiCostAction =
 export type AuxiliaryAiCostReportRange = {
   from?: Date;
   to?: Date;
+};
+
+export type AuxiliaryAiCostReportFilter = AuxiliaryAiCostReportRange & {
+  userId?: string | null;
+  workId?: string | null;
+  action?: AuxiliaryAiCostAction | null;
 };
 
 export type AuxiliaryAiCostReportItem = {
@@ -32,6 +40,23 @@ export type AuxiliaryAiCostReport = {
   byAction: AuxiliaryAiCostReportItem[];
 };
 
+export type AuxiliaryAiCostDimensionItem = {
+  userId?: string | null;
+  workId?: string | null;
+  totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  jobCount: number;
+  avgTokensPerJob: number;
+  avgInputTokensPerJob: number;
+  avgOutputTokensPerJob: number;
+};
+
+export type GlobalAuxiliaryAiCostReport = AuxiliaryAiCostReport & {
+  byUser: AuxiliaryAiCostDimensionItem[];
+  byWork: AuxiliaryAiCostDimensionItem[];
+};
+
 const AUXILIARY_AI_ACTIONS: AuxiliaryAiCostAction[] = [
   "chapter.plan",
   "chapter.consistency_check",
@@ -44,20 +69,49 @@ function average(total: number, count: number) {
   return count > 0 ? Math.round(total / count) : 0;
 }
 
-export async function getAuxiliaryAiCostReport(
-  workId: string,
-  range: AuxiliaryAiCostReportRange = {},
+function buildWhere(filter: AuxiliaryAiCostReportFilter = {}): Prisma.GenerationJobWhereInput {
+  return {
+    ...(filter.workId ? { novelId: filter.workId } : {}),
+    ...(filter.userId ? { userId: filter.userId } : {}),
+    action: { in: filter.action ? [filter.action] : AUXILIARY_AI_ACTIONS },
+    createdAt: {
+      ...(filter.from ? { gte: filter.from } : {}),
+      ...(filter.to ? { lte: filter.to } : {}),
+    },
+  };
+}
+
+function toDimensionItem(
+  key: "userId" | "workId",
+  row: {
+    userId?: string | null;
+    novelId?: string | null;
+    _count: { _all: number };
+    _sum: { totalTokens: number | null; inputTokens: number | null; outputTokens: number | null };
+  },
+): AuxiliaryAiCostDimensionItem {
+  const totalTokens = row._sum.totalTokens ?? 0;
+  const inputTokens = row._sum.inputTokens ?? 0;
+  const outputTokens = row._sum.outputTokens ?? 0;
+  const jobCount = row._count._all ?? 0;
+  return {
+    [key]: key === "userId" ? row.userId ?? null : row.novelId ?? null,
+    totalTokens,
+    inputTokens,
+    outputTokens,
+    jobCount,
+    avgTokensPerJob: average(totalTokens, jobCount),
+    avgInputTokensPerJob: average(inputTokens, jobCount),
+    avgOutputTokensPerJob: average(outputTokens, jobCount),
+  };
+}
+
+async function getAuxiliaryAiCostSummary(
+  filter: AuxiliaryAiCostReportFilter = {},
 ): Promise<AuxiliaryAiCostReport> {
   const rows = await prisma.generationJob.groupBy({
     by: ["action"],
-    where: {
-      novelId: workId,
-      action: { in: AUXILIARY_AI_ACTIONS },
-      createdAt: {
-        ...(range.from ? { gte: range.from } : {}),
-        ...(range.to ? { lte: range.to } : {}),
-      },
-    },
+    where: buildWhere(filter),
     _count: { _all: true },
     _sum: {
       totalTokens: true,
@@ -91,5 +145,51 @@ export async function getAuxiliaryAiCostReport(
     jobCount,
     avgTokensPerJob: average(totalTokens, jobCount),
     byAction,
+  };
+}
+
+export async function getAuxiliaryAiCostReport(
+  workId: string,
+  range: AuxiliaryAiCostReportRange = {},
+): Promise<AuxiliaryAiCostReport> {
+  return getAuxiliaryAiCostSummary({ ...range, workId });
+}
+
+export async function getGlobalAuxiliaryAiCostReport(
+  filter: AuxiliaryAiCostReportFilter = {},
+): Promise<GlobalAuxiliaryAiCostReport> {
+  const where = buildWhere(filter);
+  const [summary, byUserRows, byWorkRows] = await Promise.all([
+    getAuxiliaryAiCostSummary(filter),
+    prisma.generationJob.groupBy({
+      by: ["userId"],
+      where,
+      _count: { _all: true },
+      _sum: {
+        totalTokens: true,
+        inputTokens: true,
+        outputTokens: true,
+      },
+      orderBy: { _sum: { totalTokens: "desc" } },
+      take: 100,
+    }),
+    prisma.generationJob.groupBy({
+      by: ["novelId"],
+      where,
+      _count: { _all: true },
+      _sum: {
+        totalTokens: true,
+        inputTokens: true,
+        outputTokens: true,
+      },
+      orderBy: { _sum: { totalTokens: "desc" } },
+      take: 100,
+    }),
+  ]);
+
+  return {
+    ...summary,
+    byUser: byUserRows.map((row) => toDimensionItem("userId", row)),
+    byWork: byWorkRows.map((row) => toDimensionItem("workId", row)),
   };
 }

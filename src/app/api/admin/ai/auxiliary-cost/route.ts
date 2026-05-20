@@ -1,20 +1,30 @@
 import { z } from "zod";
 
-import { getAuxiliaryAiCostReport } from "@/lib/ai/auxiliary-cost-report";
+import {
+  getGlobalAuxiliaryAiCostReport,
+  type AuxiliaryAiCostAction,
+} from "@/lib/ai/auxiliary-cost-report";
+import { requireAdminUser } from "@/lib/auth/admin";
 import { errorResponse, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
-import { requireWorkAccess } from "@/lib/works/access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const paramsSchema = z.object({
-  workId: z.string().min(1).max(64),
-});
+const actionSchema = z.enum([
+  "chapter.plan",
+  "chapter.consistency_check",
+  "chapter.consistency_repair",
+  "chapter.quality_check",
+  "canon.compress",
+]);
 
 const querySchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
+  userId: z.string().min(1).max(64).optional(),
+  workId: z.string().min(1).max(64).optional(),
+  action: actionSchema.optional(),
 });
 
 function parseOptionalDate(value: string | undefined, field: "from" | "to") {
@@ -32,20 +42,21 @@ function assertValidRange(from: Date | undefined, to: Date | undefined) {
   }
 }
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ workId?: string }> },
-) {
+export async function GET(request: Request) {
   try {
-    const rawParams = await context.params;
-    const params = paramsSchema.parse({ workId: rawParams.workId ?? "" });
+    await requireAdminUser();
     const query = querySchema.parse(Object.fromEntries(new URL(request.url).searchParams));
     const from = parseOptionalDate(query.from, "from");
     const to = parseOptionalDate(query.to, "to");
     assertValidRange(from, to);
 
-    await requireWorkAccess(params.workId);
-    const report = await getAuxiliaryAiCostReport(params.workId, { from, to });
+    const report = await getGlobalAuxiliaryAiCostReport({
+      from,
+      to,
+      userId: query.userId,
+      workId: query.workId,
+      action: query.action as AuxiliaryAiCostAction | undefined,
+    });
 
     return successResponse(report, { message: "OK" });
   } catch (error) {

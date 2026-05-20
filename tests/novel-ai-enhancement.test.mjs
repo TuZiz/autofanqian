@@ -928,6 +928,14 @@ test("chapter quality report reads scores and quality issue payloads", () => {
   assert.match(reportSource, /action:\s*"chapter\.consistency_check"/);
   assert.match(reportSource, /action:\s*"chapter\.quality_check"/);
   assert.match(reportSource, /consistencyIssues/);
+  assert.match(reportSource, /consistencyProviderId/);
+  assert.match(reportSource, /consistencyModelUsed/);
+  assert.match(reportSource, /consistencyTokens/);
+  assert.match(reportSource, /consistencyDurationMs/);
+  assert.match(reportSource, /qualityProviderId/);
+  assert.match(reportSource, /qualityModelUsed/);
+  assert.match(reportSource, /qualityTokens/);
+  assert.match(reportSource, /qualityDurationMs/);
   assert.match(reportSource, /qualityIssues/);
   assert.match(reportSource, /qualitySuggestions/);
   assert.match(reportSource, /score=\(\\d\{1,3\}\)/);
@@ -951,6 +959,10 @@ test("work quality trend aggregates latest chapter jobs in ascending order", () 
   assert.match(trendSource, /orderBy\?: "chapterIndex" \| "updatedAt"/);
   assert.match(trendSource, /getRecentChapterIndexesByUpdatedAt/);
   assert.match(trendSource, /consistencyIssues/);
+  assert.match(trendSource, /consistencyProviderId/);
+  assert.match(trendSource, /qualityProviderId/);
+  assert.match(trendSource, /consistencyDurationMs/);
+  assert.match(trendSource, /qualityDurationMs/);
   assert.doesNotMatch(trendSource, /safeLimit\s*\*\s*6/);
 });
 
@@ -960,6 +972,8 @@ test("ai step jobs support resultJson and quality API enforces work access", () 
   const apiSource = read("src/app/api/workbench/works/[workId]/chapters/[index]/quality/route.ts");
   const trendApiSource = read("src/app/api/workbench/works/[workId]/quality-trend/route.ts");
   const costApiSource = read("src/app/api/workbench/works/[workId]/auxiliary-cost/route.ts");
+  const adminCostApiSource = read("src/app/api/admin/ai/auxiliary-cost/route.ts");
+  const modelQualityApiSource = read("src/app/api/workbench/works/[workId]/model-quality-report/route.ts");
   const upstreamText = read("src/backend/ai/upstream/text-service.ts");
   const upstreamRequest = read("src/backend/ai/upstream/request.ts");
   const upstreamStreamRequest = read("src/backend/ai/upstream/stream-request.ts");
@@ -974,6 +988,12 @@ test("ai step jobs support resultJson and quality API enforces work access", () 
   assert.match(costApiSource, /requireWorkAccess\(params\.workId\)/);
   assert.match(costApiSource, /getAuxiliaryAiCostReport\(params\.workId/);
   assert.match(costApiSource, /must be a valid ISO date/);
+  assert.match(costApiSource, /from must be earlier than to\./);
+  assert.match(adminCostApiSource, /requireAdminUser\(\)/);
+  assert.match(adminCostApiSource, /getGlobalAuxiliaryAiCostReport\(\{/);
+  assert.match(adminCostApiSource, /from must be earlier than to\./);
+  assert.match(modelQualityApiSource, /requireWorkAccess\(params\.workId\)/);
+  assert.match(modelQualityApiSource, /getModelQualityReport\(params\.workId/);
   assert.match(upstreamText, /signal\?: AbortSignal/);
   assert.match(upstreamRequest, /signal: requestTimeout\.signal/);
   assert.match(upstreamRequest, /upstream_aborted/);
@@ -1011,4 +1031,22 @@ test("backfill and auxiliary cost report cover quality persistence", () => {
   assert.match(costSource, /avgInputTokensPerJob/);
   assert.match(costSource, /avgOutputTokensPerJob/);
   assert.match(costSource, /jobCount/);
+  assert.match(costSource, /getGlobalAuxiliaryAiCostReport/);
+  assert.match(costSource, /byUser/);
+  assert.match(costSource, /byWork/);
+});
+
+test("model quality report aggregates provider model quality observability", () => {
+  const modelQualitySource = read("src/lib/ai/model-quality-report.ts");
+
+  assert.match(modelQualitySource, /export async function getModelQualityReport/);
+  assert.match(modelQualitySource, /providerId/);
+  assert.match(modelQualitySource, /modelUsed/);
+  assert.match(modelQualitySource, /avgConsistencyScore/);
+  assert.match(modelQualitySource, /avgQualityScore/);
+  assert.match(modelQualitySource, /jobCount/);
+  assert.match(modelQualitySource, /totalTokens/);
+  assert.match(modelQualitySource, /avgDurationMs/);
+  assert.match(modelQualitySource, /parseConsistencyReportResultJson/);
+  assert.match(modelQualitySource, /parseQualityReportScore/);
 });

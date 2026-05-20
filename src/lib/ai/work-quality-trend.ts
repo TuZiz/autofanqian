@@ -24,6 +24,10 @@ type QualityTrendJobRow = {
   action: string;
   resultSummary: string | null;
   resultJson: unknown;
+  providerId: string | null;
+  modelUsed: string | null;
+  totalTokens: number | null;
+  durationMs: number | null;
   createdAt: Date;
 };
 
@@ -113,6 +117,10 @@ export async function getWorkQualityTrend(
       action: true,
       resultSummary: true,
       resultJson: true,
+      providerId: true,
+      modelUsed: true,
+      totalTokens: true,
+      durationMs: true,
       createdAt: true,
     },
   });
@@ -136,9 +144,17 @@ export async function getWorkQualityTrend(
       consistencyScore:
         consistencyPayload?.score ?? parseQualityReportScore(consistency?.resultSummary),
       consistencyIssues: consistencyPayload?.issues ?? [],
+      consistencyProviderId: consistency?.providerId ?? null,
+      consistencyModelUsed: consistency?.modelUsed ?? null,
+      consistencyTokens: consistency?.totalTokens ?? null,
+      consistencyDurationMs: consistency?.durationMs ?? null,
       qualityScore: qualityPayload?.score ?? parseQualityReportScore(quality?.resultSummary),
       qualityIssues: qualityPayload?.issues ?? [],
       qualitySuggestions: qualityPayload?.suggestions ?? [],
+      qualityProviderId: quality?.providerId ?? null,
+      qualityModelUsed: quality?.modelUsed ?? null,
+      qualityTokens: quality?.totalTokens ?? null,
+      qualityDurationMs: quality?.durationMs ?? null,
     };
   });
 }

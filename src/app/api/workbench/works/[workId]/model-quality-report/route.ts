@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { getAuxiliaryAiCostReport } from "@/lib/ai/auxiliary-cost-report";
+import { getModelQualityReport } from "@/lib/ai/model-quality-report";
 import { errorResponse, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { requireWorkAccess } from "@/lib/works/access";
@@ -45,9 +45,9 @@ export async function GET(
     assertValidRange(from, to);
 
     await requireWorkAccess(params.workId);
-    const report = await getAuxiliaryAiCostReport(params.workId, { from, to });
+    const items = await getModelQualityReport(params.workId, { from, to });
 
-    return successResponse(report, { message: "OK" });
+    return successResponse({ items }, { message: "OK" });
   } catch (error) {
     return errorResponse(error);
   }
