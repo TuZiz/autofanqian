@@ -55,16 +55,15 @@ function keepLatestByChapterAndAction(rows: QualityTrendJobRow[]) {
 }
 
 async function getRecentChapterIndexesByChapterIndex(workId: string, limit: number) {
-  const chapterRows = await prisma.generationJob.findMany({
+  const chapterRows = await prisma.generationJob.groupBy({
+    by: ["chapterIndex"],
     where: {
       novelId: workId,
       chapterIndex: { not: null },
       action: { in: [...QUALITY_ACTIONS] },
     },
-    distinct: ["chapterIndex"],
     orderBy: [{ chapterIndex: "desc" }],
     take: limit,
-    select: { chapterIndex: true },
   });
 
   return chapterRows
@@ -136,6 +135,7 @@ export async function getWorkQualityTrend(
       chapterIndex,
       consistencyScore:
         consistencyPayload?.score ?? parseQualityReportScore(consistency?.resultSummary),
+      consistencyIssues: consistencyPayload?.issues ?? [],
       qualityScore: qualityPayload?.score ?? parseQualityReportScore(quality?.resultSummary),
       qualityIssues: qualityPayload?.issues ?? [],
       qualitySuggestions: qualityPayload?.suggestions ?? [],

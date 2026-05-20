@@ -1,16 +1,36 @@
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
+const supportedActions = ["chapter.consistency_check", "chapter.quality_check"];
+const batchSize = 100;
+
+function readArgValue(name) {
+  const index = process.argv.indexOf(name);
+  return index >= 0 ? process.argv[index + 1] : undefined;
+}
+
 const mode = process.argv.includes("--apply")
   ? "apply"
   : process.argv.includes("--dry-run")
     ? "dry-run"
     : null;
-const actions = ["chapter.consistency_check", "chapter.quality_check"];
-const batchSize = 100;
+const requestedAction = readArgValue("--action");
+const limitArg = readArgValue("--limit");
+const limit =
+  typeof limitArg === "string" && limitArg.trim()
+    ? Number.parseInt(limitArg, 10)
+    : undefined;
+const actions =
+  requestedAction && supportedActions.includes(requestedAction)
+    ? [requestedAction]
+    : requestedAction
+      ? []
+      : supportedActions;
 
-if (!mode) {
-  console.error("Usage: node scripts/backfill-generation-job-result-json.mjs --dry-run|--apply");
+if (!mode || !actions.length || (limitArg && (!Number.isFinite(limit) || limit <= 0))) {
+  console.error(
+    "Usage: node scripts/backfill-generation-job-result-json.mjs --dry-run|--apply [--limit N] [--action chapter.quality_check|chapter.consistency_check]",
+  );
   process.exitCode = 1;
   await prisma.$disconnect();
   process.exit();
@@ -38,35 +58,42 @@ function parseJsonMarker(summary) {
   }
 }
 
+function stringArray(value) {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+}
+
 function parseResultJson(job) {
   const score = parseScore(job.resultSummary);
+  const marker = parseJsonMarker(job.resultSummary);
   if (job.action === "chapter.consistency_check") {
-    if (score === null) return null;
+    if (score === null && !marker) return null;
     return {
-      score,
-      issues: [],
+      score: score ?? clampScore(marker?.score ?? 0) ?? 0,
+      issues: stringArray(marker?.issues),
     };
   }
 
   if (job.action === "chapter.quality_check") {
-    const marker = parseJsonMarker(job.resultSummary);
     if (!marker && score === null) return null;
     return {
-      score: score ?? 0,
+      score: score ?? clampScore(marker?.score ?? 0) ?? 0,
       rhythm: clampScore(marker?.rhythm ?? 0) ?? 0,
       hook: clampScore(marker?.hook ?? 0) ?? 0,
       emotion: clampScore(marker?.emotion ?? 0) ?? 0,
       conflict: clampScore(marker?.conflict ?? 0) ?? 0,
-      issues: Array.isArray(marker?.issues)
-        ? marker.issues.filter((item) => typeof item === "string")
-        : [],
-      suggestions: Array.isArray(marker?.suggestions)
-        ? marker.suggestions.filter((item) => typeof item === "string")
-        : [],
+      issues: stringArray(marker?.issues),
+      suggestions: stringArray(marker?.suggestions),
     };
   }
 
   return null;
+}
+
+function countByAction(items) {
+  return items.reduce((acc, item) => {
+    acc[item.job.action] = (acc[item.job.action] ?? 0) + 1;
+    return acc;
+  }, {});
 }
 
 async function collectBackfillJobs() {
@@ -77,6 +104,7 @@ async function collectBackfillJobs() {
       resultSummary: { not: null },
     },
     orderBy: { createdAt: "asc" },
+    take: limit,
     select: {
       id: true,
       action: true,
@@ -91,9 +119,14 @@ async function collectBackfillJobs() {
 
 async function main() {
   const candidates = await collectBackfillJobs();
+  const byAction = countByAction(candidates);
   console.log(
     `[${mode}] ${candidates.length} GenerationJob rows can be backfilled with resultJson.`,
   );
+  for (const action of supportedActions) {
+    if (!actions.includes(action)) continue;
+    console.log(`[${mode}] ${action}: ${byAction[action] ?? 0}`);
+  }
 
   if (mode === "dry-run") return;
 

@@ -927,6 +927,7 @@ test("chapter quality report reads scores and quality issue payloads", () => {
   assert.match(reportSource, /export async function getChapterQualityReport/);
   assert.match(reportSource, /action:\s*"chapter\.consistency_check"/);
   assert.match(reportSource, /action:\s*"chapter\.quality_check"/);
+  assert.match(reportSource, /consistencyIssues/);
   assert.match(reportSource, /qualityIssues/);
   assert.match(reportSource, /qualitySuggestions/);
   assert.match(reportSource, /score=\(\\d\{1,3\}\)/);
@@ -943,9 +944,13 @@ test("work quality trend aggregates latest chapter jobs in ascending order", () 
   assert.match(trendSource, /keepLatestByChapterAndAction/);
   assert.match(trendSource, /\.sort\(\(left, right\) => left - right\)/);
   assert.match(trendSource, /parseQualityReportPayload/);
-  assert.match(trendSource, /distinct:\s*\["chapterIndex"\]/);
+  assert.match(trendSource, /prisma\.generationJob\.groupBy\(\{/);
+  assert.match(trendSource, /by:\s*\["chapterIndex"\]/);
+  assert.match(trendSource, /orderBy:\s*\[\{ chapterIndex: "desc" \}\]/);
+  assert.doesNotMatch(trendSource, /distinct:\s*\["chapterIndex"\]/);
   assert.match(trendSource, /orderBy\?: "chapterIndex" \| "updatedAt"/);
   assert.match(trendSource, /getRecentChapterIndexesByUpdatedAt/);
+  assert.match(trendSource, /consistencyIssues/);
   assert.doesNotMatch(trendSource, /safeLimit\s*\*\s*6/);
 });
 
@@ -954,6 +959,7 @@ test("ai step jobs support resultJson and quality API enforces work access", () 
   const schemaSource = read("prisma/schema.prisma");
   const apiSource = read("src/app/api/workbench/works/[workId]/chapters/[index]/quality/route.ts");
   const trendApiSource = read("src/app/api/workbench/works/[workId]/quality-trend/route.ts");
+  const costApiSource = read("src/app/api/workbench/works/[workId]/auxiliary-cost/route.ts");
   const upstreamText = read("src/backend/ai/upstream/text-service.ts");
   const upstreamRequest = read("src/backend/ai/upstream/request.ts");
   const upstreamStreamRequest = read("src/backend/ai/upstream/stream-request.ts");
@@ -965,6 +971,9 @@ test("ai step jobs support resultJson and quality API enforces work access", () 
   assert.match(apiSource, /getChapterQualityReport\(params\.workId, params\.index\)/);
   assert.match(trendApiSource, /requireWorkAccess\(params\.workId\)/);
   assert.match(trendApiSource, /getWorkQualityTrend\(params\.workId/);
+  assert.match(costApiSource, /requireWorkAccess\(params\.workId\)/);
+  assert.match(costApiSource, /getAuxiliaryAiCostReport\(params\.workId/);
+  assert.match(costApiSource, /must be a valid ISO date/);
   assert.match(upstreamText, /signal\?: AbortSignal/);
   assert.match(upstreamRequest, /signal: requestTimeout\.signal/);
   assert.match(upstreamRequest, /upstream_aborted/);
@@ -978,8 +987,12 @@ test("backfill and auxiliary cost report cover quality persistence", () => {
 
   assert.match(backfillSource, /--dry-run/);
   assert.match(backfillSource, /--apply/);
+  assert.match(backfillSource, /--limit/);
+  assert.match(backfillSource, /--action/);
+  assert.match(backfillSource, /chapter\.consistency_check/);
   assert.match(backfillSource, /resultJson:\s*\{\s*equals:\s*null\s*\}/s);
   assert.match(backfillSource, /JSON=\(\\\{/);
+  assert.match(backfillSource, /stringArray\(marker\?\.issues\)/);
   assert.match(backfillSource, /mode === "dry-run"/);
   assert.match(backfillSource, /batchSize = 100/);
 
@@ -994,4 +1007,8 @@ test("backfill and auxiliary cost report cover quality persistence", () => {
   }
   assert.match(costSource, /groupBy\(\{/);
   assert.match(costSource, /totalTokens/);
+  assert.match(costSource, /avgTokensPerJob/);
+  assert.match(costSource, /avgInputTokensPerJob/);
+  assert.match(costSource, /avgOutputTokensPerJob/);
+  assert.match(costSource, /jobCount/);
 });

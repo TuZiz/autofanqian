@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 
 export type ChapterQualityReport = {
   consistencyScore: number | null;
+  consistencyIssues: string[];
   qualityScore: number | null;
   qualityIssues: string[];
   qualitySuggestions: string[];
@@ -133,6 +134,7 @@ export async function getChapterQualityReport(
     consistencyScore:
       consistencyJson?.score ??
       (hasConsistencyResultJson ? null : parseQualityReportScore(consistencyJob?.resultSummary)),
+    consistencyIssues: consistencyJson?.issues ?? [],
     qualityScore:
       quality?.score ??
       (hasQualityResultJson ? null : parseQualityReportScore(qualityJob?.resultSummary)),
