@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { readLocalBuildInfo } from "@/lib/system/version";
 
 const MAX_LOG_LENGTH = 30_000;
+const RUNNING_DEPLOY_TIMEOUT_MS = 30 * 60 * 1000;
 const DEPLOY_RUNNER_PATH = path.join(process.cwd(), "scripts", "run-deploy-job.mjs");
 const SENSITIVE_ENV_KEYS = [
   "DATABASE_URL",
@@ -59,7 +60,23 @@ async function updateJobLog(jobId: string, chunk: string) {
   });
 }
 
+export async function expireStaleDeployJobs() {
+  const staleBefore = new Date(Date.now() - RUNNING_DEPLOY_TIMEOUT_MS);
+  await prisma.deployJob.updateMany({
+    where: {
+      status: "running",
+      startedAt: { lt: staleBefore },
+    },
+    data: {
+      status: "failed",
+      error: "部署任务超过 30 分钟未完成，已自动标记为失败。",
+      finishedAt: new Date(),
+    },
+  });
+}
+
 export async function hasRunningDeployJob() {
+  await expireStaleDeployJobs();
   const running = await prisma.deployJob.findFirst({
     where: { status: "running" },
     orderBy: { startedAt: "desc" },

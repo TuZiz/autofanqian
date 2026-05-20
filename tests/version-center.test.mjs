@@ -27,7 +27,8 @@ test("deploy script uses fixed commands and lock without printing secrets", () =
   assert.match(deployScript, /git reset --hard "origin\/\$\{?BRANCH\}?"|git reset --hard "origin\/\$BRANCH"/);
   assert.match(deployScript, /npm ci/);
   assert.match(deployScript, /npm run db:generate/);
-  assert.match(deployScript, /npm run db:push/);
+  assert.match(deployScript, /npx prisma migrate deploy/);
+  assert.doesNotMatch(deployScript, /npm run db:push/);
   assert.match(deployScript, /npm run build/);
   assert.match(deployScript, /pm2 reload "\$APP_NAME" --update-env \|\| pm2 start npm --name "\$APP_NAME" -- start/);
   assert.match(deployScript, /pm2 save/);
@@ -49,8 +50,12 @@ test("deploy job schema and admin APIs enforce safe fixed-script updates", () =>
   assert.match(updateRoute, /recordAdminAuditLog/);
   assert.doesNotMatch(updateRoute, /request\.json\(/);
   assert.match(deployLib, /DEPLOY_RUNNER_PATH = path\.join\(process\.cwd\(\), "scripts", "run-deploy-job\.mjs"\)/);
+  assert.match(deployLib, /RUNNING_DEPLOY_TIMEOUT_MS = 30 \* 60 \* 1000/);
+  assert.match(deployLib, /expireStaleDeployJobs/);
   assert.match(deployLib, /spawn\(process\.execPath, \[DEPLOY_RUNNER_PATH, job\.id\]/);
-  assert.match(read("scripts/run-deploy-job.mjs"), /spawn\("bash", \[deployScriptPath\]/);
+  const runner = read("scripts/run-deploy-job.mjs");
+  assert.match(runner, /spawn\("bash", \[deployScriptPath\]/);
+  assert.match(runner, /WHERE "id" = \$1 AND "status" = 'running'/);
   assert.match(deployLib, /DATABASE_URL/);
   assert.match(deployLib, /ALIPAY_PRIVATE_KEY/);
   assert.match(deployLib, /SETTINGS_ENCRYPTION_KEY/);

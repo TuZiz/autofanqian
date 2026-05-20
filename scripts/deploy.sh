@@ -20,7 +20,7 @@ git fetch origin "$BRANCH"
 git reset --hard "origin/${BRANCH}"
 npm ci
 npm run db:generate
-npm run db:push
+npx prisma migrate deploy
 npm run build
 pm2 reload "$APP_NAME" --update-env || pm2 start npm --name "$APP_NAME" -- start
 pm2 save

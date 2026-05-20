@@ -4,7 +4,7 @@ import { errorResponse, successResponse } from "@/lib/auth/api";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { AuthApiError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/prisma";
-import { toSafeDeployJob } from "@/lib/system/deploy";
+import { expireStaleDeployJobs, toSafeDeployJob } from "@/lib/system/deploy";
 
 export const runtime = "nodejs";
 
@@ -18,6 +18,7 @@ export async function GET(
 ) {
   try {
     await requireAdminUser();
+    await expireStaleDeployJobs();
     const rawParams = await context.params;
     const params = paramsSchema.parse({ jobId: rawParams.jobId ?? "" });
     const job = await prisma.deployJob.findUnique({ where: { id: params.jobId } });

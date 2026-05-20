@@ -32,7 +32,7 @@ pm2 save
 APP_DIR=/www/wwwroot/wenyuo/web APP_NAME=autofanqian bash scripts/deploy.sh
 ```
 
-脚本会固定执行：拉取 `origin/main`、安装依赖、生成 Prisma Client、`db:push`、构建 Next.js、PM2 reload。脚本使用锁文件防止并发部署。
+脚本会固定执行：拉取 `origin/main`、安装依赖、生成 Prisma Client、`npx prisma migrate deploy`、构建 Next.js、PM2 reload。脚本使用锁文件防止并发部署。
 
 ## GitHub Secrets
 

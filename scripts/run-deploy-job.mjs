@@ -62,6 +62,16 @@ async function updateJob(data) {
   await pool.query(`UPDATE "DeployJob" SET ${assignments} WHERE "id" = $1`, [jobId, ...keys.map((key) => data[key])]);
 }
 
+async function finishJob(data) {
+  const keys = Object.keys(data);
+  if (keys.length === 0) return;
+  const assignments = keys.map((key, index) => `"${key}" = $${index + 2}`).join(", ");
+  await pool.query(`UPDATE "DeployJob" SET ${assignments} WHERE "id" = $1 AND "status" = 'running'`, [
+    jobId,
+    ...keys.map((key) => data[key]),
+  ]);
+}
+
 async function appendJobLog(chunk) {
   const safeChunk = sanitizeDeployLog(chunk);
   const result = await pool.query('SELECT "log" FROM "DeployJob" WHERE "id" = $1', [jobId]);
@@ -110,7 +120,7 @@ async function main() {
 
   const buildInfo = await readBuildInfo();
   await appendJobLog(`[deploy] finished with code ${code ?? "unknown"}\n`);
-  await updateJob({
+  await finishJob({
     status: code === 0 ? "success" : "failed",
     targetVersion: buildInfo.version ?? null,
     commitAfter: buildInfo.commit ?? null,
@@ -122,7 +132,7 @@ async function main() {
 main()
   .catch(async (error) => {
     const message = error instanceof Error ? error.message : String(error);
-    await updateJob({ status: "failed", error: sanitizeDeployLog(message), finishedAt: new Date() }).catch(() => {});
+    await finishJob({ status: "failed", error: sanitizeDeployLog(message), finishedAt: new Date() }).catch(() => {});
   })
   .finally(async () => {
     await pool.end();
