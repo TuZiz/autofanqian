@@ -8,6 +8,7 @@ import {
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
 import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
+import { withAuxiliaryTimeout } from "@/lib/ai/chapter-auxiliary-timeout";
 import {
   buildChapterConsistencySystemPrompt,
   buildChapterRepairSystemPrompt,
@@ -90,6 +91,9 @@ function buildCheckPrompt(params: {
   title: string;
   content: string;
 }) {
+  const isFinalShortBeat =
+    params.mode === "short" &&
+    /当前是短篇最后 beat|最后一个 beat|最后 beat/.test(params.assembledContext);
   const checks =
     params.mode === "short"
       ? [
@@ -99,7 +103,14 @@ function buildCheckPrompt(params: {
           "是否新增过多设定/人物/伏笔",
           "是否服务主题和情绪线",
           "是否与前一个 beat 连贯",
-          "如果是最后 beat，是否完成收束",
+          ...(isFinalShortBeat
+            ? [
+                "是否回收核心冲突",
+                "是否完成主题落点",
+                "是否仍留下主要未解释问题",
+                "是否新增了无法回收的新设定/角色/伏笔",
+              ]
+            : []),
         ]
       : [
           "是否承接上一章",
@@ -229,8 +240,10 @@ export async function runChapterConsistencyCheck(params: {
         maxTokens: tokenConfig.consistencyCheck,
       }) as Promise<UpstreamTextResult>;
     const checkResult = params.runAiCall
-      ? await params.runAiCall("chapter_consistency_check", executeCheckCall)
-      : await executeCheckCall();
+      ? await params.runAiCall("chapter_consistency_check", () =>
+          withAuxiliaryTimeout("chapter_consistency_check", executeCheckCall),
+        )
+      : await withAuxiliaryTimeout("chapter_consistency_check", executeCheckCall);
     activeStep = null;
     const check =
       checkResult.ok && checkResult.text
@@ -298,8 +311,10 @@ export async function runChapterConsistencyCheck(params: {
         maxTokens: tokenConfig.chapterGenerate,
       }) as Promise<UpstreamTextResult>;
     const repairResult = params.runAiCall
-      ? await params.runAiCall("chapter_consistency_repair", executeRepairCall)
-      : await executeRepairCall();
+      ? await params.runAiCall("chapter_consistency_repair", () =>
+          withAuxiliaryTimeout("chapter_consistency_repair", executeRepairCall),
+        )
+      : await withAuxiliaryTimeout("chapter_consistency_repair", executeRepairCall);
     activeStep = null;
     const repaired = repairResult.ok && repairResult.text ? extractJson(repairResult.text) : null;
     if (

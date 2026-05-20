@@ -2,6 +2,15 @@ import "server-only";
 
 import { z } from "zod";
 
+import {
+  beginAiStepJob,
+  completeAiStepJob,
+  failAiStepJob,
+} from "@/lib/ai/ai-step-job";
+import {
+  isAuxiliaryTimeoutError,
+  withAuxiliaryTimeout,
+} from "@/lib/ai/chapter-auxiliary-timeout";
 import { compressNovelCanonState } from "@/lib/ai/novel-canon-compression";
 import {
   normalizeNovelCanonState,
@@ -74,69 +83,47 @@ export async function runCanonAiCompression(params: {
   if (!shouldRunCanonAiCompression(state) || !params.providers.length) return null;
 
   const prompt = buildCanonCompressionPrompt(state);
-  const job = await prisma.generationJob
-    .create({
-      data: {
-        userId: params.userId ?? null,
-        novelId: params.workId,
-        workId: params.workId,
-        action: "canon.compress",
-        jobType: "canon.compress",
-        status: "running",
-        routeId: params.routeId,
-        providerId: params.preferredProviderId ?? params.providers[0]?.id ?? null,
-        modelUsed: params.providers[0]?.model ?? null,
-        promptTemplateKey: "canon.compress",
-        promptSnapshot: prompt.slice(0, 20000),
-        startedAt: new Date(),
-        heartbeatAt: new Date(),
-      },
-      select: { id: true },
-    })
-    .catch(() => null);
+  const job = await beginAiStepJob({
+    userId: params.userId ?? null,
+    workId: params.workId,
+    action: "canon.compress",
+    routeId: params.routeId,
+    providerId: params.preferredProviderId ?? params.providers[0]?.id ?? null,
+    modelUsed: params.providers[0]?.model ?? null,
+    promptSnapshot: prompt,
+  });
 
   try {
-    const result = await callAiText({
-      providers: params.providers,
-      routeId: params.routeId,
-      preferredProviderId: params.preferredProviderId,
-      messages: [
-        {
-          role: "system",
-          content:
-            "你是长篇小说 canonState 压缩器。只输出压缩 JSON，不要解释，不要输出正文。",
-        },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.15,
-      maxTokens: 1800,
-      attempts: 1,
-      reasoningEffort: "low",
-    });
+    const result = await withAuxiliaryTimeout("canon_compress", () =>
+      callAiText({
+        providers: params.providers,
+        routeId: params.routeId,
+        preferredProviderId: params.preferredProviderId,
+        messages: [
+          {
+            role: "system",
+            content:
+              "你是长篇小说 canonState 压缩器。只输出压缩 JSON，不要解释，不要输出正文。",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.15,
+        maxTokens: 1800,
+        attempts: 1,
+        reasoningEffort: "low",
+      }),
+    );
     const raw = result.ok && result.text ? extractJson(result.text) : null;
     const parsed = raw ? aiCompressedLongSchema.safeParse(raw) : null;
     if (!parsed?.success) {
-      if (job?.id) {
-        await prisma.generationJob
-          .update({
-            where: { id: job.id },
-            data: {
-            status: "failed",
-            error: result.upstreamMessage ?? "canon_ai_compression_parse_failed",
-            errorMessage: result.upstreamMessage ?? "canon_ai_compression_parse_failed",
-            providerId: result.providerId ?? params.preferredProviderId ?? null,
-            modelUsed: result.modelUsed ?? params.providers[0]?.model ?? null,
-            inputTokens: result.usage?.inputTokens ?? null,
-            outputTokens: result.usage?.outputTokens ?? null,
-            totalTokens: result.usage?.totalTokens ?? null,
-            durationMs: result.durationMs ?? null,
-            finishedAt: new Date(),
-            completedAt: new Date(),
-            heartbeatAt: new Date(),
-          },
-          })
-          .catch(() => undefined);
-      }
+      await failAiStepJob({
+        jobId: job?.id,
+        result,
+        error: result.upstreamMessage ?? "canon_ai_compression_parse_failed",
+        resultSummary: "canonState AI 压缩失败，已跳过",
+        providerId: params.preferredProviderId,
+        modelUsed: params.providers[0]?.model ?? null,
+      });
       return null;
     }
 
@@ -153,44 +140,25 @@ export async function runCanonAiCompression(params: {
       where: { id: params.workId },
       data: { canonState: compressed },
     });
-    if (job?.id) {
-      await prisma.generationJob
-        .update({
-          where: { id: job.id },
-          data: {
-          status: "succeeded",
-          resultSummary: "canonState AI 压缩完成",
-          providerId: result.providerId ?? params.preferredProviderId ?? null,
-          modelUsed: result.modelUsed ?? params.providers[0]?.model ?? null,
-          inputTokens: result.usage?.inputTokens ?? null,
-          outputTokens: result.usage?.outputTokens ?? null,
-          totalTokens: result.usage?.totalTokens ?? null,
-          durationMs: result.durationMs ?? null,
-          finishedAt: new Date(),
-          completedAt: new Date(),
-          heartbeatAt: new Date(),
-        },
-        })
-        .catch(() => undefined);
-    }
+    await completeAiStepJob({
+      jobId: job?.id,
+      result,
+      resultSummary: "canonState AI 压缩完成",
+      providerId: params.preferredProviderId,
+      modelUsed: params.providers[0]?.model ?? null,
+    });
     return compressed;
   } catch (error) {
-    if (job?.id) {
-      await prisma.generationJob
-        .update({
-          where: { id: job.id },
-          data: {
-          status: "failed",
-          error: error instanceof Error ? error.message : "canon_ai_compression_failed",
-          errorMessage: error instanceof Error ? error.message : "canon_ai_compression_failed",
-          resultSummary: "canonState AI 压缩失败，已跳过",
-          finishedAt: new Date(),
-          completedAt: new Date(),
-          heartbeatAt: new Date(),
-        },
-        })
-        .catch(() => undefined);
-    }
+    const message = error instanceof Error ? error.message : "canon_ai_compression_failed";
+    await failAiStepJob({
+      jobId: job?.id,
+      error: message,
+      resultSummary: isAuxiliaryTimeoutError(error, "canon_compress")
+        ? "canonState AI 压缩超时，已跳过"
+        : "canonState AI 压缩失败，已跳过",
+      providerId: params.preferredProviderId,
+      modelUsed: params.providers[0]?.model ?? null,
+    });
     return null;
   }
 }

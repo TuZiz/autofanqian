@@ -394,6 +394,8 @@ function buildShortContext(input: NovelContextInput): NovelAssembledContext {
   const outline = input.work.outline as ShortStoryOutline;
   const canonState = normalizeNovelCanonState(input.work.canonState, "short");
   const currentBeat = outline.beats.find((beat) => beat.index === input.chapterIndex) ?? outline.beats[0] ?? null;
+  const lastBeatIndex = Math.max(...outline.beats.map((beat) => beat.index));
+  const isFinalBeat = Boolean(currentBeat && currentBeat.index === lastBeatIndex);
   const previousBeat = input.previousChapters.slice().sort((left, right) => right.index - left.index)[0];
   const completedBeats = input.previousChapters
     .slice()
@@ -424,6 +426,7 @@ function buildShortContext(input: NovelContextInput): NovelAssembledContext {
     coreIdea: input.work.idea,
     theme: canonState.short.theme || outline.theme,
     coreConflict: canonState.short.coreConflict || outline.hook || input.work.synopsis,
+    isFinalBeat: isFinalBeat ? "true" : "false",
     currentBeat: currentBeat
       ? `${currentBeat.index}. ${currentBeat.title}：${currentBeat.purpose}；提示：${clampText(currentBeat.writingPrompt, 260)}`
       : "",
@@ -445,6 +448,7 @@ function buildShortContext(input: NovelContextInput): NovelAssembledContext {
     `短篇核心创意：${clampText(sections.coreIdea, 280)}`,
     sections.theme ? `短篇主题：${sections.theme}` : "",
     sections.coreConflict ? `核心冲突：${clampText(sections.coreConflict, 260)}` : "",
+    isFinalBeat ? "当前是短篇最后 beat：必须回收核心冲突、完成主题落点，并避免留下主要未解释问题。" : "",
     sections.currentBeat ? `当前 beat：${sections.currentBeat}` : "",
     sections.previousBeatEnding ? `前一个 beat 结尾：${sections.previousBeatEnding}` : "",
     completedBeats.length ? `已完成 beat 摘要：\n- ${completedBeats.join("\n- ")}` : "",
@@ -462,7 +466,8 @@ function buildShortContext(input: NovelContextInput): NovelAssembledContext {
       "当前场景必须完成 beat 目的。",
       "每段都要推进冲突或情绪线。",
       "结尾必须服务整体短篇落点。",
-    ],
+      isFinalBeat ? "当前是短篇最后 beat，必须完成主题落点并回收主要问题。" : "",
+    ].filter(Boolean),
     context: {
       previousSummary: previousBeat?.summary ?? null,
       previousEnding: sections.previousBeatEnding,

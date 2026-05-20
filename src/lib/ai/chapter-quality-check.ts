@@ -8,6 +8,7 @@ import {
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
 import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
+import { withAuxiliaryTimeout } from "@/lib/ai/chapter-auxiliary-timeout";
 import type { ChapterAuxiliaryAiCallRunner, ChapterPlan } from "@/lib/ai/chapter-plan";
 import {
   buildChapterQualitySystemPrompt,
@@ -149,8 +150,10 @@ export async function runChapterQualityCheck(params: {
         maxTokens: Math.min(tokenConfig.consistencyCheck, 1200),
       }) as Promise<UpstreamTextResult>;
     const result = params.runAiCall
-      ? await params.runAiCall("chapter_quality_check", executeQualityCall)
-      : await executeQualityCall();
+      ? await params.runAiCall("chapter_quality_check", () =>
+          withAuxiliaryTimeout("chapter_quality_check", executeQualityCall),
+        )
+      : await withAuxiliaryTimeout("chapter_quality_check", executeQualityCall);
     const quality = result.ok && result.text ? parseChapterQualityCheck(result.text) : null;
     if (!quality) {
       await failAiStepJob({
@@ -167,9 +170,13 @@ export async function runChapterQualityCheck(params: {
     await completeAiStepJob({
       jobId: stepJob?.id,
       result: result as UpstreamTextResult,
-      resultSummary: `章节质量评分完成，score=${quality.score} ${JSON.stringify({
+      resultSummary: `章节质量评分完成，score=${quality.score} JSON=${JSON.stringify({
         issues: quality.issues,
         suggestions: quality.suggestions,
+        rhythm: quality.rhythm,
+        hook: quality.hook,
+        emotion: quality.emotion,
+        conflict: quality.conflict,
       })}`,
       providerId: params.preferredProviderId,
       modelUsed: params.providers?.[0]?.model ?? null,

@@ -8,6 +8,7 @@ import {
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
 import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
+import { withAuxiliaryTimeout } from "@/lib/ai/chapter-auxiliary-timeout";
 import { buildChapterPlanSystemPrompt } from "@/lib/ai/chapter-plan-prompt";
 import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
 import {
@@ -263,8 +264,10 @@ export async function buildChapterPlan(params: {
         maxTokens: tokenConfig.chapterPlan,
         }) as Promise<UpstreamTextResult>;
       const result = params.runAiCall
-        ? await params.runAiCall("chapter_plan", executePlanCall)
-        : await executePlanCall();
+        ? await params.runAiCall("chapter_plan", () =>
+            withAuxiliaryTimeout("chapter_plan", executePlanCall),
+          )
+        : await withAuxiliaryTimeout("chapter_plan", executePlanCall);
       lastResult = result;
       const plan = result.ok && result.text ? parseChapterPlan(result.text, params.mode) : null;
       if (plan) {
