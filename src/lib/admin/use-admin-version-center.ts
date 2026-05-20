@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
 
+const DEPLOY_JOB_STORAGE_KEY = "autofanqian.admin.deployJobId";
+
 export type AdminVersionStatus = {
   currentVersion: string;
   currentCommit: string;
@@ -37,6 +39,8 @@ export function useAdminVersionCenter() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const pollingRef = useRef<number | null>(null);
+  const pollingJobIdRef = useRef<string | null>(null);
+  const pollingFailuresRef = useRef(0);
 
   const isLatest = useMemo(() => Boolean(version && !version.hasUpdate), [version]);
 
@@ -44,6 +48,24 @@ export function useAdminVersionCenter() {
     if (pollingRef.current) {
       window.clearInterval(pollingRef.current);
       pollingRef.current = null;
+    }
+    pollingJobIdRef.current = null;
+    pollingFailuresRef.current = 0;
+  }, []);
+
+  const forgetStoredJob = useCallback(() => {
+    try {
+      window.localStorage.removeItem(DEPLOY_JOB_STORAGE_KEY);
+    } catch {
+      // ignore storage failures
+    }
+  }, []);
+
+  const rememberStoredJob = useCallback((jobId: string) => {
+    try {
+      window.localStorage.setItem(DEPLOY_JOB_STORAGE_KEY, jobId);
+    } catch {
+      // ignore storage failures
     }
   }, []);
 
@@ -72,27 +94,46 @@ export function useAdminVersionCenter() {
       });
 
       if (!response.success || !response.data?.job) {
-        setError(response.message || "更新状态读取失败。");
-        clearPolling();
-        setUpdating(false);
+        pollingFailuresRef.current += 1;
+        setMessage("网站正在重启，正在等待服务恢复...");
+        if (pollingFailuresRef.current >= 20) {
+          setError(response.message || "更新状态读取失败，请刷新页面查看结果。");
+          clearPolling();
+          setUpdating(false);
+        }
         return;
       }
 
+      pollingFailuresRef.current = 0;
       const nextJob = response.data.job;
       setJob(nextJob);
 
       if (nextJob.status === "success") {
         clearPolling();
+        forgetStoredJob();
         setUpdating(false);
         setMessage("更新完成，页面将在 3 秒后刷新。");
         window.setTimeout(() => window.location.reload(), 3000);
       } else if (nextJob.status === "failed") {
         clearPolling();
+        forgetStoredJob();
         setUpdating(false);
         setError(nextJob.error || "云端更新失败，请查看日志。");
       }
     },
-    [clearPolling],
+    [clearPolling, forgetStoredJob],
+  );
+
+  const startPollingJob = useCallback(
+    (jobId: string) => {
+      if (pollingJobIdRef.current === jobId && pollingRef.current) return;
+      clearPolling();
+      pollingJobIdRef.current = jobId;
+      pollingFailuresRef.current = 0;
+      void pollJob(jobId);
+      pollingRef.current = window.setInterval(() => void pollJob(jobId), 3000);
+    },
+    [clearPolling, pollJob],
   );
 
   const startUpdate = useCallback(async () => {
@@ -112,20 +153,30 @@ export function useAdminVersionCenter() {
     }
 
     const jobId = response.data.jobId;
+    rememberStoredJob(jobId);
     setMessage("云端更新已开始。");
-    void pollJob(jobId);
-    pollingRef.current = window.setInterval(() => void pollJob(jobId), 2500);
-  }, [clearPolling, pollJob]);
+    startPollingJob(jobId);
+  }, [clearPolling, rememberStoredJob, startPollingJob]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void checkVersion();
+      try {
+        const storedJobId = window.localStorage.getItem(DEPLOY_JOB_STORAGE_KEY);
+        if (storedJobId) {
+          setUpdating(true);
+          setMessage("检测到未完成的云端更新，正在恢复状态...");
+          startPollingJob(storedJobId);
+        }
+      } catch {
+        // ignore storage failures
+      }
     }, 0);
     return () => {
       window.clearTimeout(timer);
       clearPolling();
     };
-  }, [checkVersion, clearPolling]);
+  }, [checkVersion, clearPolling, startPollingJob]);
 
   return {
     checkVersion,
