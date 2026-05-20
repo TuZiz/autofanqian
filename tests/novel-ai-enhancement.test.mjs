@@ -291,6 +291,9 @@ test("normal and stream generation both carry ChapterPlan and ConsistencyCheck",
   assert.match(streamPersistenceSource, /runChapterConsistencyCheck\(\{/);
   assert.match(streamPersistenceSource, /checkedDraft/);
   assert.match(streamPersistenceSource, /已自动修复连续性问题/);
+  assert.match(streamRouteSource, /providers:\s*orderedProviders/);
+  assert.match(streamRouteSource, /preferredProvider:\s*selected\.provider/);
+  assert.match(streamPersistenceSource, /providers:\s*prepared\.providers/);
 });
 
 test("AI step jobs are recorded for plan, check and repair", () => {
@@ -302,12 +305,82 @@ test("AI step jobs are recorded for plan, check and repair", () => {
     "chapter.plan",
     "chapter.consistency_check",
     "chapter.consistency_repair",
+    "chapter.quality_check",
   ]) {
     assert.match(jobSource + planSource + consistencySource, new RegExp(action));
   }
   assert.match(jobSource, /promptSnapshot.*slice\(0, 20000\)/s);
   assert.match(jobSource, /inputTokens/);
   assert.match(jobSource, /durationMs/);
+});
+
+test("plan/check/repair support quota wrapper actions", () => {
+  const planSource = read("src/lib/ai/chapter-plan.ts");
+  const consistencySource = read("src/lib/ai/chapter-consistency-check.ts");
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const streamRouteSource = read("src/backend/ai/chapter/stream-route.ts");
+  const streamPersistenceSource = read("src/backend/ai/chapter/stream-persistence.ts");
+
+  assert.match(planSource, /runAiCall\?: ChapterAuxiliaryAiCallRunner/);
+  assert.match(planSource, /params\.runAiCall\("chapter_plan"/);
+  assert.match(consistencySource, /params\.runAiCall\("chapter_consistency_check"/);
+  assert.match(consistencySource, /params\.runAiCall\("chapter_consistency_repair"/);
+  assert.match(generateSource, /runAiCall: \(action, execute\) =>[\s\S]*runWithAiQuotaReservation\(user, action, execute/);
+  assert.match(streamRouteSource, /runAiCall: \(action, execute\) =>[\s\S]*runWithAiQuotaReservation\(prepared\.user, action, execute/);
+  assert.match(streamPersistenceSource, /runAiCall: \(action, execute\) =>[\s\S]*runWithAiQuotaReservation\(prepared\.user, action, execute/);
+});
+
+test("consistency exception fails active step job instead of leaving it running", () => {
+  const consistencySource = read("src/lib/ai/chapter-consistency-check.ts");
+  assert.match(consistencySource, /let checkJob/);
+  assert.match(consistencySource, /let repairJob/);
+  assert.match(consistencySource, /activeStep/);
+  assert.match(consistencySource, /一致性校验异常，已降级跳过/);
+  assert.match(consistencySource, /一致性修复异常，已降级使用原文/);
+  assert.match(consistencySource, /额度不足，跳过校验/);
+  assert.match(consistencySource, /failAiStepJob\(\{[\s\S]*jobId: checkJob\.id/);
+  assert.match(consistencySource, /failAiStepJob\(\{[\s\S]*jobId: repairJob\.id/);
+});
+
+test("assembledContext suppresses legacy prompt context while fallback remains", async () => {
+  const { buildChapterUserPrompt } = await import("../src/lib/ai/chapter-prompt.ts");
+  const outline = {
+    tag: "玄幻",
+    title: "命灯",
+    synopsis: "少年修复命灯",
+    volumes: [{ name: "青岚卷", desc: "命灯危机", startChapter: 1, endChapter: 20, segments: [] }],
+    characters: [{ name: "林舷", role: "protagonist", desc: "执灯人" }],
+  };
+  const base = {
+    chapterIndex: 2,
+    work: {
+      title: "命灯",
+      idea: "少年修复命灯",
+      synopsis: "青岚城危机",
+      tags: [],
+      workType: "long_novel",
+    },
+    outline,
+    context: {
+      previousSummary: "旧摘要",
+      recentSummaries: [{ index: 1, title: "旧章", summary: "旧章摘要" }],
+      writingMemories: ["长期写作记忆"],
+      characters: ["角色库条目"],
+    },
+  };
+
+  const assembled = buildChapterUserPrompt({
+    ...base,
+    assembledContext: "引擎上下文",
+  });
+  assert.match(assembled, /NovelContextEngine 组装上下文/);
+  assert.doesNotMatch(assembled, /长期写作记忆与约束/);
+  assert.doesNotMatch(assembled, /最近章节摘要/);
+  assert.doesNotMatch(assembled, /角色库条目/);
+
+  const fallback = buildChapterUserPrompt(base);
+  assert.match(fallback, /长期写作记忆与约束/);
+  assert.match(fallback, /最近章节摘要/);
 });
 
 test("ConsistencyCheck long parser accepts valid JSON", async () => {
@@ -454,4 +527,69 @@ test("context extraction payload merges into short canonState compactly", async 
   assert.match(state.short.beatsProgress.join("\n"), /许眠接起电话/);
   assert.doesNotMatch(state.short.mustResolveBeforeEnd.join("\n"), /电话另一端是谁/);
   assert.ok(state.short.mustResolveBeforeEnd.length <= CANON_STATE_LIMITS.shortMustResolveBeforeEnd);
+});
+
+test("canonState compression groups character states and caps short beats", async () => {
+  const { compressNovelCanonState } = await import("../src/lib/ai/novel-canon-compression.ts");
+  const compressed = compressNovelCanonState({
+    mode: "long",
+    long: {
+      mainPlot: "",
+      currentVolume: "",
+      volumeSummaries: Array.from({ length: 100 }, (_, index) => `第${index}章摘要`),
+      characterStates: [
+        ...Array.from({ length: 80 }, (_, index) => `林舷：状态${index}`),
+        ...Array.from({ length: 80 }, (_, index) => `许眠：状态${index}`),
+        ...Array.from({ length: 80 }, (_, index) => `沈河：状态${index}`),
+      ],
+      relationships: [],
+      worldRules: Array.from({ length: 130 }, (_, index) => `规则${index}`),
+      openForeshadowings: Array.from({ length: 80 }, (_, index) => `伏笔${index}`),
+      resolvedForeshadowings: Array.from({ length: 120 }, (_, index) => `已解${index}`),
+      forbiddenContradictions: [],
+    },
+    short: {
+      theme: "",
+      coreConflict: "",
+      emotionalArc: "",
+      beatsProgress: Array.from({ length: 30 }, (_, index) => `beat${index}`),
+      mustResolveBeforeEnd: Array.from({ length: 12 }, (_, index) => `问题${index}`),
+      forbiddenNewThreads: Array.from({ length: 12 }, (_, index) => `禁止${index}`),
+    },
+    updatedAtChapter: 100,
+  });
+
+  assert.ok(compressed.long.volumeSummaries.length <= 40);
+  assert.ok(compressed.long.characterStates.length <= 120);
+  assert.ok(compressed.long.characterStates.filter((item) => item.startsWith("林舷")).length <= 3);
+  assert.ok(compressed.long.worldRules.length <= 80);
+  assert.ok(compressed.long.openForeshadowings.length <= 50);
+  assert.ok(compressed.short.beatsProgress.length <= 10);
+  assert.ok(compressed.short.mustResolveBeforeEnd.length <= 8);
+});
+
+test("quality check parser accepts bounded score JSON", async () => {
+  const { parseChapterQualityCheck } = await import("../src/lib/ai/chapter-quality-check.ts");
+  const parsed = parseChapterQualityCheck(
+    '{"score":86,"rhythm":82,"hook":90,"emotion":84,"conflict":88,"issues":["节奏略慢"],"suggestions":["压缩铺垫"]}',
+  );
+
+  assert.deepEqual(parsed, {
+    score: 86,
+    rhythm: 82,
+    hook: 90,
+    emotion: 84,
+    conflict: 88,
+    issues: ["节奏略慢"],
+    suggestions: ["压缩铺垫"],
+  });
+});
+
+test("quality check records step job and is wired into non-stream generation", () => {
+  const qualitySource = read("src/lib/ai/chapter-quality-check.ts");
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  assert.match(qualitySource, /action: "chapter\.quality_check"/);
+  assert.match(qualitySource, /parseChapterQualityCheck/);
+  assert.match(generateSource, /runChapterQualityCheck\(\{/);
+  assert.match(generateSource, /质量评分/);
 });

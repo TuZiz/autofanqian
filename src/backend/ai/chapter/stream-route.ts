@@ -7,6 +7,7 @@ import {
   cancelAiQuotaReservation,
   finalizeAiQuotaUsage,
   reserveAiQuota,
+  runWithAiQuotaReservation,
 } from "@/lib/ai/quota";
 import { runChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
 import {
@@ -230,6 +231,8 @@ export async function POST(request: Request) {
             routeId: prepared.routeId,
             preferredProviderId: selected.provider.id,
             continuityWarnings: prepared.continuityWarnings,
+            runAiCall: (action, execute) =>
+              runWithAiQuotaReservation(prepared.user, action, execute),
           });
           const promptSnapshotWithPlan = [
             prepared.promptSnapshot,
@@ -239,6 +242,8 @@ export async function POST(request: Request) {
           ].join("\n");
           const preparedWithPlan = {
             ...prepared,
+            providers: orderedProviders,
+            preferredProvider: selected.provider,
             promptSnapshot: promptSnapshotWithPlan,
             generationPlan,
             messages: [

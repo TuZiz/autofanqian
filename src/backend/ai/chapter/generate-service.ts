@@ -1,5 +1,6 @@
 import { queueChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
 import { runChapterConsistencyCheck } from "@/lib/ai/chapter-consistency-check";
+import { runChapterQualityCheck } from "@/lib/ai/chapter-quality-check";
 import {
   combineTextResultUsage,
   repairChapterLengthIfNeeded,
@@ -293,6 +294,10 @@ export async function generateChapterForUser(params: {
       routeId: prepared.routeId,
       preferredProviderId: selected.provider.id,
       continuityWarnings: prepared.continuityWarnings,
+      runAiCall: (action, execute) =>
+        runWithAiQuotaReservation(user, action, execute, {
+          excludeGenerationJobId: generationJob.id,
+        }),
     });
     const generationMessages = buildMessagesWithPlan(prepared, generationPlan);
     const promptSnapshotWithPlan = generationMessages[1]?.content ?? prepared.promptSnapshot;
@@ -376,10 +381,32 @@ export async function generateChapterForUser(params: {
       providers: orderedProviders,
       routeId: prepared.routeId,
       preferredProviderId: result.providerId ?? selected.provider.id,
+      runAiCall: (action, execute) =>
+        runWithAiQuotaReservation(user, action, execute, {
+          excludeGenerationJobId: generationJob.id,
+        }),
     });
     const checkedDraft = consistency.repairedContent
       ? { ...draft, content: consistency.repairedContent }
       : draft;
+    const quality = await runChapterQualityCheck({
+      mode: prepared.mode,
+      userId: user.id,
+      workId: prepared.work.id,
+      chapterId: prepared.existingChapter?.id ?? null,
+      chapterIndex: input.index,
+      title: checkedDraft.title,
+      content: checkedDraft.content,
+      assembledContext: prepared.assembledContext,
+      generationPlan,
+      providers: orderedProviders,
+      routeId: prepared.routeId,
+      preferredProviderId: result.providerId ?? selected.provider.id,
+      runAiCall: (action, execute) =>
+        runWithAiQuotaReservation(user, action, execute, {
+          excludeGenerationJobId: generationJob.id,
+        }),
+    });
     const lengthRepair = await repairChapterLengthIfNeeded({
       index: input.index,
       draft: checkedDraft,
@@ -459,6 +486,13 @@ export async function generateChapterForUser(params: {
     }
 
     const combinedUsage = combineTextResultUsage([result, lengthRepair.repairResult]);
+    const generationSummary = [
+      `已生成第${input.index}章，${lengthRepair.wordCount}字。`,
+      lengthRepair.repairApplied
+        ? (lengthRepair.repairNote ?? "已自动校正字数。")
+        : "",
+      quality ? `质量评分：${quality.score}` : "",
+    ].filter(Boolean).join(" ");
 
     await prisma.generationJob.update({
       where: { id: generationJob.id },
@@ -469,9 +503,7 @@ export async function generateChapterForUser(params: {
         routeId: "gpt",
         providerId: result.providerId ?? selected.provider.id,
         modelUsed: result.modelUsed ?? selected.provider.model ?? null,
-        resultSummary: lengthRepair.repairApplied
-          ? `已生成第${input.index}章，${lengthRepair.wordCount}字。${lengthRepair.repairNote ?? "已自动校正字数。"}`
-          : `已生成第${input.index}章，${lengthRepair.wordCount}字。`,
+        resultSummary: generationSummary,
         inputTokens: combinedUsage.inputTokens,
         outputTokens: combinedUsage.outputTokens,
         totalTokens: combinedUsage.totalTokens,

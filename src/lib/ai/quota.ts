@@ -87,6 +87,18 @@ type RunWithAiQuotaReservationOps = {
 };
 
 const RESERVATION_TTL_MS = 5 * 60_000;
+const NON_CALL_COUNT_QUOTA_ACTIONS = [
+  "chapter_plan",
+  "chapter_consistency_check",
+  "chapter_consistency_repair",
+  "chapter_quality_check",
+] as const;
+const NON_CALL_COUNT_GENERATION_JOB_ACTIONS = [
+  "chapter.plan",
+  "chapter.consistency_check",
+  "chapter.consistency_repair",
+  "chapter.quality_check",
+] as const;
 
 export type AiQuotaReservationOptions = {
   estimatedTokens?: number | null;
@@ -156,9 +168,17 @@ async function getAiQuotaUsageSnapshot(params: {
       { status: "committed_failed" },
     ],
   };
+  const callCountReservationWhere: Prisma.AiQuotaReservationWhereInput = {
+    ...reservationWhere,
+    action: { notIn: [...NON_CALL_COUNT_QUOTA_ACTIONS] },
+  };
+  const callCountActionWhere: Prisma.StringFilter = {
+    notIn: [...NON_CALL_COUNT_QUOTA_ACTIONS],
+  };
   const activeGenerationJobWhere: Prisma.GenerationJobWhereInput = {
     createdAt: { gte: minuteStart },
     status: { in: ["queued", "running"] },
+    action: { notIn: [...NON_CALL_COUNT_GENERATION_JOB_ACTIONS] },
     novel: { userId },
   };
   if (params.excludeGenerationJobId) {
@@ -177,14 +197,16 @@ async function getAiQuotaUsageSnapshot(params: {
     recentSuccessCount,
     pendingMinuteReservations,
     activeJobCount,
+    dailyCallCounters,
     dailyCounters,
     monthlyCounters,
-    minuteCounters,
+    minuteCallCounters,
   ] = await Promise.all([
     !isUnlimitedMembershipLimit(params.dailyCallLimit)
       ? client.aiUsageEvent.count({
           where: {
             userId,
+            action: callCountActionWhere,
             createdAt: { gte: start, lt: end },
             success: true,
           },
@@ -203,7 +225,7 @@ async function getAiQuotaUsageSnapshot(params: {
     !isUnlimitedMembershipLimit(params.dailyCallLimit)
       ? client.aiQuotaReservation.count({
           where: {
-            ...reservationWhere,
+            ...callCountReservationWhere,
             createdAt: { gte: start, lt: end },
           },
         })
@@ -259,6 +281,7 @@ async function getAiQuotaUsageSnapshot(params: {
       ? client.aiUsageEvent.count({
           where: {
             userId,
+            action: callCountActionWhere,
             createdAt: { gte: minuteStart },
             success: true,
           },
@@ -267,7 +290,7 @@ async function getAiQuotaUsageSnapshot(params: {
     !isUnlimitedMembershipLimit(params.minuteCallLimit)
       ? client.aiQuotaReservation.count({
           where: {
-            ...reservationWhere,
+            ...callCountReservationWhere,
             createdAt: { gte: minuteStart },
           },
         })
@@ -277,6 +300,28 @@ async function getAiQuotaUsageSnapshot(params: {
           where: activeGenerationJobWhere,
         })
       : Promise.resolve(0),
+    !isUnlimitedMembershipLimit(params.minuteCallLimit)
+      ? client.aiUsageCounter.findMany({
+          where: {
+            userId,
+            periodType: "minute",
+            periodKey: periodKeys.minute,
+            action: { notIn: [...NON_CALL_COUNT_QUOTA_ACTIONS] },
+          },
+          select: { requestCount: true, charCount: true, tokenCount: true },
+        })
+      : Promise.resolve([]),
+    !isUnlimitedMembershipLimit(params.dailyCallLimit)
+      ? client.aiUsageCounter.findMany({
+          where: {
+            userId,
+            periodType: "daily",
+            periodKey: periodKeys.daily,
+            action: { notIn: [...NON_CALL_COUNT_QUOTA_ACTIONS] },
+          },
+          select: { requestCount: true, charCount: true, tokenCount: true },
+        })
+      : Promise.resolve([]),
     (
       !isUnlimitedMembershipLimit(params.dailyCallLimit) ||
       !isUnlimitedMembershipLimit(params.dailyGeneratedCharLimit) ||
@@ -293,25 +338,20 @@ async function getAiQuotaUsageSnapshot(params: {
           select: { requestCount: true, charCount: true, tokenCount: true },
         })
       : Promise.resolve([]),
-    !isUnlimitedMembershipLimit(params.minuteCallLimit)
-      ? client.aiUsageCounter.findMany({
-          where: { userId, periodType: "minute", periodKey: periodKeys.minute },
-          select: { requestCount: true, charCount: true, tokenCount: true },
-        })
-      : Promise.resolve([]),
   ]);
-  const dailyCounterUsage = sumUsageCounters(dailyCounters);
+  const dailyCounterUsage = sumUsageCounters(dailyCallCounters);
+  const aggregateDailyCounterUsage = sumUsageCounters(dailyCounters);
   const monthlyCounterUsage = sumUsageCounters(monthlyCounters);
-  const minuteCounterUsage = sumUsageCounters(minuteCounters);
+  const minuteCounterUsage = sumUsageCounters(minuteCallCounters);
 
   return {
     activeJobs: activeJobCount,
     dailyCalls: Math.max(successCallCount, dailyCounterUsage.requestCount) + pendingDailyReservations,
     dailyGeneratedChars:
-      Math.max(dailyCharUsage._sum.outputChars ?? 0, dailyCounterUsage.charCount) +
+      Math.max(dailyCharUsage._sum.outputChars ?? 0, aggregateDailyCounterUsage.charCount) +
       (pendingDailyCharEstimate._sum.estimatedOutputChars ?? 0),
     dailyTokens:
-      Math.max(tokenUsage._sum.totalTokens ?? 0, dailyCounterUsage.tokenCount) +
+      Math.max(tokenUsage._sum.totalTokens ?? 0, aggregateDailyCounterUsage.tokenCount) +
       (pendingTokenEstimate._sum.estimatedTokens ?? 0),
     minuteCalls: Math.max(recentSuccessCount, minuteCounterUsage.requestCount) + pendingMinuteReservations,
     monthlyGeneratedChars:

@@ -19,8 +19,10 @@ import {
   type UpstreamRouteId,
   type UpstreamTextResult,
 } from "@/lib/ai/upstream-text";
+import { AuthApiError } from "@/lib/auth/errors";
 import type { ChapterPlan } from "@/lib/ai/chapter-plan";
 import type { NovelMode } from "@/lib/ai/novel-canon-state";
+import type { ChapterAuxiliaryAiCallRunner } from "@/lib/ai/chapter-plan";
 
 export type ChapterConsistencyCheckResult = {
   passed: boolean;
@@ -165,6 +167,7 @@ export async function runChapterConsistencyCheck(params: {
   routeId?: UpstreamRouteId;
   preferredProviderId?: string | null;
   callText?: ConsistencyCallText;
+  runAiCall?: ChapterAuxiliaryAiCallRunner;
 }): Promise<ChapterConsistencyRepairResult> {
   const callText =
     params.callText ??
@@ -182,13 +185,19 @@ export async function runChapterConsistencyCheck(params: {
       });
     });
   const tokenConfig = getChapterTokenConfig({ mode: params.mode });
+  let checkJob: { id: string } | null = null;
+  let repairJob: { id: string } | null = null;
+  let activeStep:
+    | "chapter_consistency_check"
+    | "chapter_consistency_repair"
+    | null = null;
 
   try {
     const checkMessages: UpstreamChatMessage[] = [
       { role: "system", content: buildChapterConsistencySystemPrompt() },
       { role: "user", content: buildCheckPrompt(params) },
     ];
-    const checkJob = params.userId && params.workId
+    checkJob = params.userId && params.workId
       ? await beginAiStepJob({
           userId: params.userId,
           workId: params.workId,
@@ -199,13 +208,19 @@ export async function runChapterConsistencyCheck(params: {
           providerId: params.preferredProviderId,
           modelUsed: params.providers?.[0]?.model ?? null,
           promptSnapshot: checkMessages.map((message) => message.content).join("\n\n"),
-        })
-      : null;
-    const checkResult = await callText({
-      messages: checkMessages,
-      temperature: 0.2,
-      maxTokens: tokenConfig.consistencyCheck,
-    });
+      })
+    : null;
+    activeStep = "chapter_consistency_check";
+    const executeCheckCall = () =>
+      callText({
+        messages: checkMessages,
+        temperature: 0.2,
+        maxTokens: tokenConfig.consistencyCheck,
+      }) as Promise<UpstreamTextResult>;
+    const checkResult = params.runAiCall
+      ? await params.runAiCall("chapter_consistency_check", executeCheckCall)
+      : await executeCheckCall();
+    activeStep = null;
     const check =
       checkResult.ok && checkResult.text
         ? parseChapterConsistencyCheck(checkResult.text)
@@ -247,7 +262,7 @@ export async function runChapterConsistencyCheck(params: {
         }),
       },
     ];
-    const repairJob = params.userId && params.workId
+    repairJob = params.userId && params.workId
       ? await beginAiStepJob({
           userId: params.userId,
           workId: params.workId,
@@ -258,13 +273,19 @@ export async function runChapterConsistencyCheck(params: {
           providerId: params.preferredProviderId,
           modelUsed: params.providers?.[0]?.model ?? null,
           promptSnapshot: repairMessages.map((message) => message.content).join("\n\n"),
-        })
-      : null;
-    const repairResult = await callText({
-      messages: repairMessages,
-      temperature: 0.25,
-      maxTokens: tokenConfig.chapterGenerate,
-    });
+      })
+    : null;
+    activeStep = "chapter_consistency_repair";
+    const executeRepairCall = () =>
+      callText({
+        messages: repairMessages,
+        temperature: 0.25,
+        maxTokens: tokenConfig.chapterGenerate,
+      }) as Promise<UpstreamTextResult>;
+    const repairResult = params.runAiCall
+      ? await params.runAiCall("chapter_consistency_repair", executeRepairCall)
+      : await executeRepairCall();
+    activeStep = null;
     const repaired = repairResult.ok && repairResult.text ? extractJson(repairResult.text) : null;
     if (
       repaired &&
@@ -292,7 +313,30 @@ export async function runChapterConsistencyCheck(params: {
       modelUsed: params.providers?.[0]?.model ?? null,
     });
     return { check, repairedContent: null };
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "chapter_consistency_exception";
+    const quotaInsufficient = error instanceof AuthApiError && error.status === 429;
+    if (activeStep === "chapter_consistency_repair" && repairJob?.id) {
+      await failAiStepJob({
+        jobId: repairJob.id,
+        error: message,
+        resultSummary: quotaInsufficient
+          ? "额度不足，跳过修复"
+          : "一致性修复异常，已降级使用原文",
+        providerId: params.preferredProviderId,
+        modelUsed: params.providers?.[0]?.model ?? null,
+      });
+    } else if (checkJob?.id) {
+      await failAiStepJob({
+        jobId: checkJob.id,
+        error: message,
+        resultSummary: quotaInsufficient
+          ? "额度不足，跳过校验"
+          : "一致性校验异常，已降级跳过",
+        providerId: params.preferredProviderId,
+        modelUsed: params.providers?.[0]?.model ?? null,
+      });
+    }
     return { check: null, repairedContent: null };
   }
 }

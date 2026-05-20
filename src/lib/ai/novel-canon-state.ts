@@ -1,3 +1,5 @@
+import { compressNovelCanonState } from "@/lib/ai/novel-canon-compression";
+
 export type NovelMode = "long" | "short";
 
 export type NovelCanonState = {
@@ -246,7 +248,7 @@ export function mergeNovelCanonState(params: {
   }
 
   state.updatedAtChapter = Math.max(state.updatedAtChapter, params.chapterIndex);
-  return state;
+  return compressNovelCanonState(state);
 }
 
 type ExtractionPayloadLike = {
@@ -375,5 +377,5 @@ export function mergeCanonStateFromExtractionPayload(params: {
   }
 
   state.updatedAtChapter = Math.max(state.updatedAtChapter, params.chapterIndex);
-  return state;
+  return compressNovelCanonState(state);
 }

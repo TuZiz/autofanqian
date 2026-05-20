@@ -208,6 +208,9 @@ export function buildChapterUserPrompt(params: {
   const tags = (params.work.tags ?? []).filter(Boolean).slice(0, 5);
   const tagLine = tags.length ? `标签：${tags.join("、")}` : "";
   const extraPrompt = typeof params.extraPrompt === "string" ? params.extraPrompt.trim() : "";
+  const assembledContext =
+    typeof params.assembledContext === "string" ? params.assembledContext.trim() : "";
+  const useAssembledContext = assembledContext.length > 0;
   const shortStory =
     params.mode === "short" ||
     isShortStoryWork(params.work.workType) ||
@@ -319,20 +322,20 @@ export function buildChapterUserPrompt(params: {
     "",
     `主要角色：\n${characters || "-"}`,
     "",
-    previousContext.length
+    !useAssembledContext && previousContext.length
       ? [
           "连续性上下文（必须承接，不要重置人物状态或重复上一章动作）：",
           ...previousContext,
         ].join("\n")
       : "",
-    recentSummaries ? `最近章节摘要：\n${recentSummaries}` : "",
-    writingMemories ? `长期写作记忆与约束：\n${writingMemories}` : "",
-    libraryContext,
-    params.assembledContext ? `NovelContextEngine 组装上下文：\n${params.assembledContext}` : "",
+    !useAssembledContext && recentSummaries ? `最近章节摘要：\n${recentSummaries}` : "",
+    !useAssembledContext && writingMemories ? `长期写作记忆与约束：\n${writingMemories}` : "",
+    !useAssembledContext ? libraryContext : "",
+    useAssembledContext ? `NovelContextEngine 组装上下文：\n${assembledContext}` : "",
     planText ? `ChapterPlan（必须遵守）：\n${planText}` : "",
     continuityWarnings ? `ContinuityWarnings：\n${continuityWarnings}` : "",
     modeRules,
-    previousContext.length || recentSummaries || writingMemories || libraryContext ? "" : "",
+    !useAssembledContext && (previousContext.length || recentSummaries || writingMemories || libraryContext) ? "" : "",
     shortStory
       ? `现在请你生成场景 ${chapterIndex} 的正文草稿。`
       : `现在请你生成第 ${chapterIndex} 章正文草稿。`,

@@ -188,6 +188,10 @@ export async function completeSuccessfulStreamGeneration(params: {
     providers: prepared.providers,
     routeId: prepared.routeId,
     preferredProviderId: usageResult.providerId ?? selectedProvider.id,
+    runAiCall: (action, execute) =>
+      runWithAiQuotaReservation(prepared.user, action, execute, {
+        excludeGenerationJobId: generationJobId,
+      }),
   });
   const checkedDraft = consistency.repairedContent
     ? { ...finalized, content: consistency.repairedContent }

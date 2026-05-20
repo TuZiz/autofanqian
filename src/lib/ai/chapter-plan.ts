@@ -47,6 +47,11 @@ type PlanCallText = (params: {
   maxTokens: number;
 }) => Promise<Pick<UpstreamTextResult, "ok" | "text" | "upstreamMessage">>;
 
+export type ChapterAuxiliaryAiCallRunner = <T extends UpstreamTextResult>(
+  action: string,
+  execute: () => Promise<T>,
+) => Promise<T>;
+
 const longPlanSchema = z
   .object({
     mode: z.literal("long"),
@@ -185,6 +190,7 @@ export async function buildChapterPlan(params: {
   preferredProviderId?: string | null;
   continuityWarnings?: string[];
   callText?: PlanCallText;
+  runAiCall?: ChapterAuxiliaryAiCallRunner;
 }): Promise<ChapterPlan> {
   const fallback = buildFallbackChapterPlan(params);
   const callText =
@@ -230,7 +236,8 @@ export async function buildChapterPlan(params: {
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const result = await callText({
+      const executePlanCall = () =>
+        callText({
         messages:
           attempt === 0
             ? messages
@@ -243,7 +250,10 @@ export async function buildChapterPlan(params: {
               ],
         temperature: 0.25,
         maxTokens: tokenConfig.chapterPlan,
-      });
+        }) as Promise<UpstreamTextResult>;
+      const result = params.runAiCall
+        ? await params.runAiCall("chapter_plan", executePlanCall)
+        : await executePlanCall();
       lastResult = result;
       const plan = result.ok && result.text ? parseChapterPlan(result.text, params.mode) : null;
       if (plan) {

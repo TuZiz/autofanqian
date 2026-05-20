@@ -6,7 +6,8 @@ import type { UpstreamTextResult } from "@/lib/ai/upstream-text";
 export type ChapterAiStepAction =
   | "chapter.plan"
   | "chapter.consistency_check"
-  | "chapter.consistency_repair";
+  | "chapter.consistency_repair"
+  | "chapter.quality_check";
 
 export async function beginAiStepJob(params: {
   userId: string;
