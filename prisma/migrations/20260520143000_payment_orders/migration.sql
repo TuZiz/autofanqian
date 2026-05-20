@@ -33,6 +33,9 @@ CREATE TABLE "PaymentOrder" (
 CREATE UNIQUE INDEX "PaymentOrder_outTradeNo_key" ON "PaymentOrder"("outTradeNo");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PaymentOrder_providerTradeNo_key" ON "PaymentOrder"("providerTradeNo");
+
+-- CreateIndex
 CREATE INDEX "PaymentOrder_userId_createdAt_idx" ON "PaymentOrder"("userId", "createdAt" DESC);
 
 -- CreateIndex

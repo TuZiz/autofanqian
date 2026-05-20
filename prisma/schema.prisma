@@ -211,7 +211,7 @@ model PaymentOrder {
   status          PaymentOrderStatus @default(pending)
 
   outTradeNo      String             @unique
-  providerTradeNo String?
+  providerTradeNo String?            @unique
 
   planId          String
   tier            MembershipTier
