@@ -7,6 +7,7 @@ import {
   completeAiStepJob,
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
+import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
 import { buildChapterPlanSystemPrompt } from "@/lib/ai/chapter-plan-prompt";
 import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
 import {
@@ -16,6 +17,7 @@ import {
   type UpstreamRouteId,
   type UpstreamTextResult,
 } from "@/lib/ai/upstream-text";
+import { AuthApiError } from "@/lib/auth/errors";
 import type { NovelMode } from "@/lib/ai/novel-canon-state";
 
 export type LongChapterPlan = {
@@ -191,8 +193,17 @@ export async function buildChapterPlan(params: {
   continuityWarnings?: string[];
   callText?: PlanCallText;
   runAiCall?: ChapterAuxiliaryAiCallRunner;
+  user?: {
+    email: string;
+    role?: string | null;
+    membershipTier?: string | null;
+  } | null;
 }): Promise<ChapterPlan> {
   const fallback = buildFallbackChapterPlan(params);
+  const flags = getChapterAuxiliaryFlags(params.user);
+  if (!flags.chapterPlan) {
+    return fallback;
+  }
   const callText =
     params.callText ??
     (async ({ messages, temperature, maxTokens }) => {
@@ -266,7 +277,17 @@ export async function buildChapterPlan(params: {
         });
         return plan;
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof AuthApiError && error.status === 429) {
+        await failAiStepJob({
+          jobId: stepJob?.id,
+          error: error.message,
+          resultSummary: "额度不足，使用规则计划",
+          providerId: params.preferredProviderId,
+          modelUsed: params.providers?.[0]?.model ?? null,
+        });
+        return fallback;
+      }
       // fall through to retry/fallback
     }
   }

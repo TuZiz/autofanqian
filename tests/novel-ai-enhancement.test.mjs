@@ -568,6 +568,76 @@ test("canonState compression groups character states and caps short beats", asyn
   assert.ok(compressed.short.mustResolveBeforeEnd.length <= 8);
 });
 
+test("non-stream length repair and quality check use final ordered provider flow", () => {
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const repairIndex = generateSource.indexOf("const lengthRepair = await repairChapterLengthIfNeeded");
+  const qualityIndex = generateSource.indexOf("const quality = await runChapterQualityCheck");
+
+  assert.ok(repairIndex > 0, "length repair call should exist");
+  assert.ok(qualityIndex > repairIndex, "quality check should run after length repair");
+
+  const repairBlock = generateSource.slice(repairIndex, qualityIndex);
+  assert.match(repairBlock, /providers:\s*orderedProviders/);
+  assert.match(repairBlock, /preferredProviderId:\s*result\.providerId \?\? selected\.provider\.id/);
+  assert.doesNotMatch(repairBlock, /providers,\s*\n/);
+  assert.doesNotMatch(repairBlock, /preferredProviderId:\s*primaryProvider\.id/);
+
+  const qualityBlock = generateSource.slice(qualityIndex, generateSource.indexOf("if (prepared.existingChapter", qualityIndex));
+  assert.match(qualityBlock, /title:\s*lengthRepair\.draft\.title/);
+  assert.match(qualityBlock, /content:\s*lengthRepair\.draft\.content/);
+});
+
+test("chapter auxiliary flags default by membership and respect env overrides", async () => {
+  const { getChapterAuxiliaryFlags } = await import("../src/lib/ai/chapter-auxiliary-flags.ts");
+  const keys = [
+    "AI_ENABLE_CHAPTER_PLAN",
+    "AI_ENABLE_CONSISTENCY_CHECK",
+    "AI_ENABLE_CONSISTENCY_REPAIR",
+    "AI_ENABLE_QUALITY_CHECK",
+  ];
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  for (const key of keys) delete process.env[key];
+
+  try {
+    assert.equal(getChapterAuxiliaryFlags({ email: "free@example.com", membershipTier: "default" }).qualityCheck, false);
+    assert.equal(getChapterAuxiliaryFlags({ email: "plus@example.com", membershipTier: "plus" }).qualityCheck, true);
+    assert.equal(getChapterAuxiliaryFlags({ email: "pro@example.com", membershipTier: "pro" }).qualityCheck, true);
+    assert.equal(getChapterAuxiliaryFlags({ email: "max@example.com", membershipTier: "max" }).qualityCheck, true);
+    assert.equal(getChapterAuxiliaryFlags({ email: "admin@example.com", role: "admin" }).qualityCheck, true);
+
+    process.env.AI_ENABLE_CONSISTENCY_REPAIR = "false";
+    assert.equal(getChapterAuxiliaryFlags({ email: "plus@example.com", membershipTier: "plus" }).consistencyRepair, false);
+    process.env.AI_ENABLE_QUALITY_CHECK = "false";
+    assert.equal(getChapterAuxiliaryFlags({ email: "max@example.com", membershipTier: "max" }).qualityCheck, false);
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
+test("quality prompt is modular and does not conflict with chapter body schema", async () => {
+  const {
+    buildChapterQualitySystemPrompt,
+    buildChapterQualityUserPrompt,
+  } = await import("../src/lib/ai/chapter-quality-prompt.ts");
+  const systemPrompt = buildChapterQualitySystemPrompt();
+  const userPrompt = buildChapterQualityUserPrompt({
+    mode: "long",
+    title: "裂纹",
+    content: "林舟继续追查命灯。",
+    assembledContext: "上一章：命灯裂开。",
+    generationPlan: null,
+  });
+
+  assert.match(systemPrompt, /quality JSON/);
+  assert.match(systemPrompt, /不要修文/);
+  assert.doesNotMatch(systemPrompt, /\{"title"/);
+  assert.doesNotMatch(systemPrompt, /"content"\}/);
+  assert.match(userPrompt, /输出 JSON/);
+});
+
 test("quality check parser accepts bounded score JSON", async () => {
   const { parseChapterQualityCheck } = await import("../src/lib/ai/chapter-quality-check.ts");
   const parsed = parseChapterQualityCheck(
@@ -592,4 +662,67 @@ test("quality check records step job and is wired into non-stream generation", (
   assert.match(qualitySource, /parseChapterQualityCheck/);
   assert.match(generateSource, /runChapterQualityCheck\(\{/);
   assert.match(generateSource, /质量评分/);
+});
+
+test("auxiliary AI quota shortage degrades without blocking save", () => {
+  const planSource = read("src/lib/ai/chapter-plan.ts");
+  const consistencySource = read("src/lib/ai/chapter-consistency-check.ts");
+  const qualitySource = read("src/lib/ai/chapter-quality-check.ts");
+
+  assert.match(planSource, /额度不足，使用规则计划/);
+  assert.match(consistencySource, /额度不足，跳过修复/);
+  assert.match(qualitySource, /额度不足，跳过质量评分/);
+  assert.match(planSource + consistencySource + qualitySource, /error instanceof AuthApiError && error\.status === 429/);
+});
+
+test("canon AI compression is optional and background-only", async () => {
+  const { shouldRunCanonAiCompression } = await import("../src/lib/ai/novel-canon-ai-compression.ts");
+  const contextExtractSource = read("src/lib/ai/chapter-context-extract.ts");
+  const previous = process.env.AI_ENABLE_CANON_AI_COMPRESSION;
+  delete process.env.AI_ENABLE_CANON_AI_COMPRESSION;
+
+  const largeState = {
+    mode: "long",
+    long: {
+      mainPlot: "",
+      currentVolume: "",
+      volumeSummaries: Array.from({ length: 120 }, (_, index) => `卷摘要${index}`),
+      characterStates: Array.from({ length: 160 }, (_, index) => `角色：状态${index}`),
+      relationships: [],
+      worldRules: [],
+      openForeshadowings: [],
+      resolvedForeshadowings: [],
+      forbiddenContradictions: [],
+    },
+    short: {
+      theme: "",
+      coreConflict: "",
+      emotionalArc: "",
+      beatsProgress: [],
+      mustResolveBeforeEnd: [],
+      forbiddenNewThreads: [],
+    },
+    updatedAtChapter: 120,
+  };
+
+  try {
+    assert.equal(shouldRunCanonAiCompression(largeState), false);
+    process.env.AI_ENABLE_CANON_AI_COMPRESSION = "true";
+    assert.equal(shouldRunCanonAiCompression(largeState), true);
+    assert.match(contextExtractSource, /runCanonAiCompression\(\{/);
+    assert.match(read("src/lib/ai/novel-canon-ai-compression.ts"), /action:\s*"canon\.compress"/);
+  } finally {
+    if (previous === undefined) delete process.env.AI_ENABLE_CANON_AI_COMPRESSION;
+    else process.env.AI_ENABLE_CANON_AI_COMPRESSION = previous;
+  }
+});
+
+test("chapter quality report reads scores and quality issue payloads", () => {
+  const reportSource = read("src/lib/ai/chapter-quality-report.ts");
+  assert.match(reportSource, /export async function getChapterQualityReport/);
+  assert.match(reportSource, /action:\s*"chapter\.consistency_check"/);
+  assert.match(reportSource, /action:\s*"chapter\.quality_check"/);
+  assert.match(reportSource, /qualityIssues/);
+  assert.match(reportSource, /qualitySuggestions/);
+  assert.match(reportSource, /score=\(\\d\{1,3\}\)/);
 });

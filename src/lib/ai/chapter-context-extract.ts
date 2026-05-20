@@ -4,6 +4,7 @@ import { after } from "next/server";
 
 import { logAiUsage } from "@/lib/ai/usage-log";
 import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
+import { runCanonAiCompression } from "@/lib/ai/novel-canon-ai-compression";
 import {
   buildAiProviderChain,
   callAiText,
@@ -282,6 +283,22 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
     payload,
     workId: params.workId,
   });
+
+  const updatedWork = await prisma.work.findUnique({
+    where: { id: params.workId },
+    select: { canonState: true, workType: true },
+  });
+  if (updatedWork) {
+    await runCanonAiCompression({
+      workId: params.workId,
+      userId: params.user.id,
+      current: updatedWork.canonState,
+      mode: isShortStoryWork(updatedWork.workType) ? "short" : "long",
+      providers,
+      routeId,
+      preferredProviderId: result.providerId ?? providers[0]?.id,
+    });
+  }
 
   await prisma.generationJob.update({
     where: { id: generationJob.id },

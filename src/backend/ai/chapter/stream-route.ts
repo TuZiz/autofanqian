@@ -231,6 +231,7 @@ export async function POST(request: Request) {
             routeId: prepared.routeId,
             preferredProviderId: selected.provider.id,
             continuityWarnings: prepared.continuityWarnings,
+            user: prepared.user,
             runAiCall: (action, execute) =>
               runWithAiQuotaReservation(prepared.user, action, execute),
           });

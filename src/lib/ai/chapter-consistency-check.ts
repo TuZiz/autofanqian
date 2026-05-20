@@ -7,6 +7,7 @@ import {
   completeAiStepJob,
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
+import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
 import {
   buildChapterConsistencySystemPrompt,
   buildChapterRepairSystemPrompt,
@@ -168,7 +169,16 @@ export async function runChapterConsistencyCheck(params: {
   preferredProviderId?: string | null;
   callText?: ConsistencyCallText;
   runAiCall?: ChapterAuxiliaryAiCallRunner;
+  user?: {
+    email: string;
+    role?: string | null;
+    membershipTier?: string | null;
+  } | null;
 }): Promise<ChapterConsistencyRepairResult> {
+  const flags = getChapterAuxiliaryFlags(params.user);
+  if (!flags.consistencyCheck) {
+    return { check: null, repairedContent: null };
+  }
   const callText =
     params.callText ??
     (async ({ messages, temperature, maxTokens }) => {
@@ -191,6 +201,7 @@ export async function runChapterConsistencyCheck(params: {
     | "chapter_consistency_check"
     | "chapter_consistency_repair"
     | null = null;
+  let completedCheck: ChapterConsistencyCheckResult | null = null;
 
   try {
     const checkMessages: UpstreamChatMessage[] = [
@@ -236,6 +247,7 @@ export async function runChapterConsistencyCheck(params: {
       });
       return { check: null, repairedContent: null };
     }
+    completedCheck = check;
     await completeAiStepJob({
       jobId: checkJob?.id,
       result: checkResult as UpstreamTextResult,
@@ -246,6 +258,9 @@ export async function runChapterConsistencyCheck(params: {
       modelUsed: params.providers?.[0]?.model ?? null,
     });
     if (check.score >= 75 && check.passed) {
+      return { check, repairedContent: null };
+    }
+    if (!flags.consistencyRepair) {
       return { check, repairedContent: null };
     }
 
@@ -337,6 +352,6 @@ export async function runChapterConsistencyCheck(params: {
         modelUsed: params.providers?.[0]?.model ?? null,
       });
     }
-    return { check: null, repairedContent: null };
+    return { check: completedCheck, repairedContent: null };
   }
 }

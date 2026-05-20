@@ -188,6 +188,7 @@ export async function completeSuccessfulStreamGeneration(params: {
     providers: prepared.providers,
     routeId: prepared.routeId,
     preferredProviderId: usageResult.providerId ?? selectedProvider.id,
+    user: prepared.user,
     runAiCall: (action, execute) =>
       runWithAiQuotaReservation(prepared.user, action, execute, {
         excludeGenerationJobId: generationJobId,

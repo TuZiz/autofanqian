@@ -294,6 +294,7 @@ export async function generateChapterForUser(params: {
       routeId: prepared.routeId,
       preferredProviderId: selected.provider.id,
       continuityWarnings: prepared.continuityWarnings,
+      user,
       runAiCall: (action, execute) =>
         runWithAiQuotaReservation(user, action, execute, {
           excludeGenerationJobId: generationJob.id,
@@ -381,6 +382,7 @@ export async function generateChapterForUser(params: {
       providers: orderedProviders,
       routeId: prepared.routeId,
       preferredProviderId: result.providerId ?? selected.provider.id,
+      user,
       runAiCall: (action, execute) =>
         runWithAiQuotaReservation(user, action, execute, {
           excludeGenerationJobId: generationJob.id,
@@ -389,37 +391,38 @@ export async function generateChapterForUser(params: {
     const checkedDraft = consistency.repairedContent
       ? { ...draft, content: consistency.repairedContent }
       : draft;
-    const quality = await runChapterQualityCheck({
-      mode: prepared.mode,
-      userId: user.id,
-      workId: prepared.work.id,
-      chapterId: prepared.existingChapter?.id ?? null,
-      chapterIndex: input.index,
-      title: checkedDraft.title,
-      content: checkedDraft.content,
-      assembledContext: prepared.assembledContext,
-      generationPlan,
-      providers: orderedProviders,
-      routeId: prepared.routeId,
-      preferredProviderId: result.providerId ?? selected.provider.id,
-      runAiCall: (action, execute) =>
-        runWithAiQuotaReservation(user, action, execute, {
-          excludeGenerationJobId: generationJob.id,
-        }),
-    });
     const lengthRepair = await repairChapterLengthIfNeeded({
       index: input.index,
       draft: checkedDraft,
       promptSnapshot: promptSnapshotWithPlan,
-      providers,
+      providers: orderedProviders,
       routeId: prepared.routeId,
-      preferredProviderId: primaryProvider.id,
+      preferredProviderId: result.providerId ?? selected.provider.id,
       generationMode: prepared.generationMode,
       workWords: prepared.work.words,
       targetChapters: prepared.work.targetChapters,
       beforeRepairAiCall: () => assertAiQuotaAvailable(user),
       runRepairAiCall: (execute) =>
         runWithAiQuotaReservation(user, "chapter_generate_length_repair", execute),
+    });
+    const quality = await runChapterQualityCheck({
+      mode: prepared.mode,
+      userId: user.id,
+      workId: prepared.work.id,
+      chapterId: prepared.existingChapter?.id ?? null,
+      chapterIndex: input.index,
+      title: lengthRepair.draft.title,
+      content: lengthRepair.draft.content,
+      assembledContext: prepared.assembledContext,
+      generationPlan,
+      providers: orderedProviders,
+      routeId: prepared.routeId,
+      preferredProviderId: result.providerId ?? selected.provider.id,
+      user,
+      runAiCall: (action, execute) =>
+        runWithAiQuotaReservation(user, action, execute, {
+          excludeGenerationJobId: generationJob.id,
+        }),
     });
 
     if (prepared.existingChapter?.content?.trim()) {

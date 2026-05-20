@@ -7,7 +7,12 @@ import {
   completeAiStepJob,
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
+import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
 import type { ChapterAuxiliaryAiCallRunner, ChapterPlan } from "@/lib/ai/chapter-plan";
+import {
+  buildChapterQualitySystemPrompt,
+  buildChapterQualityUserPrompt,
+} from "@/lib/ai/chapter-quality-prompt";
 import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
 import {
   callAiText,
@@ -16,6 +21,7 @@ import {
   type UpstreamRouteId,
   type UpstreamTextResult,
 } from "@/lib/ai/upstream-text";
+import { AuthApiError } from "@/lib/auth/errors";
 import type { NovelMode } from "@/lib/ai/novel-canon-state";
 
 export type ChapterQualityCheckResult = {
@@ -75,33 +81,6 @@ export function parseChapterQualityCheck(text: string): ChapterQualityCheckResul
   };
 }
 
-function buildQualityPrompt(params: {
-  mode: NovelMode;
-  title: string;
-  content: string;
-  assembledContext: string;
-  generationPlan?: ChapterPlan | null;
-}) {
-  return [
-    "你是中文小说章节质量评估编辑，只输出严格 JSON。",
-    "请从爽点节奏、结尾钩子、情绪推进、冲突强度四个角度评分。",
-    "不要改写正文，不要输出 Markdown。",
-    `模式：${params.mode}`,
-    params.generationPlan ? `ChapterPlan：${JSON.stringify(params.generationPlan)}` : "",
-    "",
-    "关键上下文：",
-    params.assembledContext.slice(0, 6000),
-    "",
-    `标题：${params.title}`,
-    "正文：",
-    params.content.slice(0, 16000),
-    "",
-    '输出 JSON：{"score":0-100,"rhythm":0-100,"hook":0-100,"emotion":0-100,"conflict":0-100,"issues":[],"suggestions":[]}',
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
 export async function runChapterQualityCheck(params: {
   mode: NovelMode;
   userId?: string | null;
@@ -117,7 +96,16 @@ export async function runChapterQualityCheck(params: {
   preferredProviderId?: string | null;
   callText?: QualityCallText;
   runAiCall?: ChapterAuxiliaryAiCallRunner;
+  user?: {
+    email: string;
+    role?: string | null;
+    membershipTier?: string | null;
+  } | null;
 }): Promise<ChapterQualityCheckResult | null> {
+  const flags = getChapterAuxiliaryFlags(params.user);
+  if (!flags.qualityCheck) {
+    return null;
+  }
   const callText =
     params.callText ??
     (async ({ messages, temperature, maxTokens }) => {
@@ -135,12 +123,8 @@ export async function runChapterQualityCheck(params: {
     });
   const tokenConfig = getChapterTokenConfig({ mode: params.mode });
   const messages: UpstreamChatMessage[] = [
-    {
-      role: "system",
-      content:
-        '你是中文小说章节质量评分器。只输出 {"score","rhythm","hook","emotion","conflict","issues","suggestions"} JSON。',
-    },
-    { role: "user", content: buildQualityPrompt(params) },
+    { role: "system", content: buildChapterQualitySystemPrompt() },
+    { role: "user", content: buildChapterQualityUserPrompt(params) },
   ];
   const stepJob =
     params.userId && params.workId
@@ -183,16 +167,22 @@ export async function runChapterQualityCheck(params: {
     await completeAiStepJob({
       jobId: stepJob?.id,
       result: result as UpstreamTextResult,
-      resultSummary: `章节质量评分完成，score=${quality.score}`,
+      resultSummary: `章节质量评分完成，score=${quality.score} ${JSON.stringify({
+        issues: quality.issues,
+        suggestions: quality.suggestions,
+      })}`,
       providerId: params.preferredProviderId,
       modelUsed: params.providers?.[0]?.model ?? null,
     });
     return quality;
   } catch (error) {
+    const quotaInsufficient = error instanceof AuthApiError && error.status === 429;
     await failAiStepJob({
       jobId: stepJob?.id,
       error: error instanceof Error ? error.message : "chapter_quality_check_exception",
-      resultSummary: "章节质量评分异常，已降级跳过",
+      resultSummary: quotaInsufficient
+        ? "额度不足，跳过质量评分"
+        : "章节质量评分异常，已降级跳过",
       providerId: params.preferredProviderId,
       modelUsed: params.providers?.[0]?.model ?? null,
     });
