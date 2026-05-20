@@ -54,7 +54,8 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
               <th className="px-4 py-2.5 font-semibold">编号</th>
               <th className="px-4 py-2.5 font-semibold">邮箱</th>
               <th className="px-4 py-2.5 font-semibold">昵称</th>
-              <th className="px-4 py-2.5 font-semibold">用户组</th>
+              <th className="px-4 py-2.5 font-semibold">身份</th>
+              <th className="px-4 py-2.5 font-semibold">套餐</th>
               <th className="px-4 py-2.5 font-semibold">状态</th>
               <th className="px-4 py-2.5 font-semibold">注册时间</th>
               <th className="px-4 py-2.5 font-semibold">最后登录</th>
@@ -94,10 +95,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                         }
                       >
                         {user.isAdmin ? <Shield className="h-3 w-3" /> : null}
-                        {user.displayGroup}
-                      </AppChip>
-                      <AppChip className={getMembershipTierBadgeClassName(user.membershipTier)}>
-                        {membershipTierLabels[user.membershipTier]}
+                        {user.isAdmin ? user.displayGroup : "普通用户"}
                       </AppChip>
                     </div>
                     {user.isRootAdmin ? (
@@ -106,6 +104,11 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
                         根管理员
                       </span>
                     ) : null}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <AppChip className={getMembershipTierBadgeClassName(user.membershipTier)}>
+                      {membershipTierLabels[user.membershipTier]}
+                    </AppChip>
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-start justify-between gap-3">
@@ -209,7 +212,7 @@ export function AdminUsersTable({ users }: AdminUsersTableProps) {
 function EmptyRow({ text }: { text: string }) {
   return (
     <tr>
-      <td colSpan={8} className="px-6 py-10 text-center text-sm font-semibold text-[var(--theme-text-muted)]">
+      <td colSpan={9} className="px-6 py-10 text-center text-sm font-semibold text-[var(--theme-text-muted)]">
         {text}
       </td>
     </tr>
