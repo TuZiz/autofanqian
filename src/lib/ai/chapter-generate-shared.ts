@@ -1,9 +1,14 @@
 import { buildChapterSystemPrompt, buildChapterUserPrompt } from "@/lib/ai/chapter-prompt";
 import { extractChapterDraftFromText } from "@/lib/ai/chapter-draft";
+import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
 import type {
   ChapterGenerateInput,
   PreparedChapterGeneration,
 } from "@/lib/ai/chapter-generate-types";
+import {
+  buildNovelContext,
+  type NovelAssembledContext,
+} from "@/lib/ai/novel-context-engine";
 import {
   buildAiProviderChain,
   getProviderApiKeyEnvName,
@@ -27,9 +32,6 @@ export {
   type ChapterGenerateInput,
   type PreparedChapterGeneration,
 } from "@/lib/ai/chapter-generate-types";
-
-const DEFAULT_CHAPTER_MAX_TOKENS = 1600;
-const DEFAULT_CHAPTER_TEMPERATURE = 0.85;
 
 export function countWords(text: string) {
   return text.replace(/\s+/g, "").length;
@@ -125,6 +127,7 @@ export async function prepareChapterGeneration(params: {
       title: true,
       synopsis: true,
       outline: true,
+      canonState: true,
       targetChapters: true,
       plannedUntilChapter: true,
       deletedAt: true,
@@ -255,8 +258,8 @@ export async function prepareChapterGeneration(params: {
   const writingMemories = await prisma.writingMemory.findMany({
     where: { novelId: work.id, isActive: true },
     orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
-    take: input.index === 1 ? 4 : 6,
-    select: { content: true },
+    take: input.index === 1 ? 8 : 16,
+    select: { content: true, priority: true, chapterId: true, updatedAt: true },
   });
 
   const [characters, worldSettings, timelineEvents, foreshadowings] = await Promise.all([
@@ -271,13 +274,14 @@ export async function prepareChapterGeneration(params: {
         currentState: true,
         goal: true,
         desc: true,
+        lastChapter: true,
       },
     }),
     prisma.worldSetting.findMany({
       where: { novelId: work.id, deletedAt: null },
       orderBy: [{ lastUpdatedChapter: "desc" }, { updatedAt: "desc" }],
       take: input.index === 1 ? 4 : 6,
-      select: { kind: true, name: true, desc: true },
+      select: { kind: true, name: true, desc: true, lastUpdatedChapter: true },
     }),
     prisma.timelineEvent.findMany({
       where: {
@@ -303,10 +307,80 @@ export async function prepareChapterGeneration(params: {
         payoff: true,
         status: true,
         plantedChapter: true,
+        resolvedChapter: true,
         importance: true,
       },
     }),
   ]);
+
+  const fallbackContext = {
+    previousSummary: previousChapter?.summary ?? null,
+    previousEnding: clampText(previousChapter?.content, 900),
+    recentSummaries,
+    writingMemories: writingMemories.map((item) => item.content),
+    characters: characters.map((item) =>
+      clampText(
+        `${item.name}锛?{item.role || item.identity || "瑙掕壊"}锛夛細${item.currentState || item.goal || item.desc}`,
+        120,
+      ),
+    ),
+    worldSettings: worldSettings.map((item) =>
+      clampText(`${item.kind}/${item.name}锛?{item.desc}`, 120),
+    ),
+    timelineEvents: timelineEvents.map((item) =>
+      clampText(
+        `${item.chapterIndex ? `绗?{item.chapterIndex}绔?` : ""}${item.storyTime ? `${item.storyTime} ` : ""}${item.title || item.summary}锛?{item.summary}`,
+        140,
+      ),
+    ),
+    foreshadowings: foreshadowings.map((item) =>
+      clampText(
+        `${item.title || "浼忕瑪"}锛?{item.status}锛岄噸瑕佸害${item.importance}锛夛細${item.hint}${item.payoff ? `锛涘厬鐜版柟鍚戯細${item.payoff}` : ""}`,
+        140,
+      ),
+    ),
+  };
+  const mode = isShortStoryWork(work.workType) ? "short" : "long";
+  let assembledContext: NovelAssembledContext = {
+    mode,
+    text: "",
+    continuityWarnings: [],
+    context: fallbackContext,
+    sections: {},
+  };
+
+  try {
+    assembledContext = await buildNovelContext({
+      workId: work.id,
+      chapterIndex: input.index,
+      work: {
+        id: work.id,
+        workType: work.workType,
+        title: work.title,
+        idea: work.idea,
+        synopsis: work.synopsis,
+        outline,
+        canonState: work.canonState,
+      },
+      previousChapters,
+      writingMemories,
+      characters,
+      worldSettings,
+      timelineEvents,
+      foreshadowings,
+    });
+  } catch (error) {
+    console.warn("NovelContextEngine fallback to legacy context", error);
+  }
+
+  const shortTargetWords =
+    isShortStoryWork(work.workType) && "beats" in outline
+      ? outline.beats.find((beat) => beat.index === input.index)?.targetWords
+      : null;
+  const tokenConfig = getChapterTokenConfig({
+    mode: assembledContext.mode,
+    shortTargetWords,
+  });
 
   const promptSnapshot = buildChapterUserPrompt({
     chapterIndex: input.index,
@@ -323,7 +397,11 @@ export async function prepareChapterGeneration(params: {
       synopsis: work.synopsis,
     },
     outline,
-    context: {
+    context: assembledContext.context,
+    assembledContext: assembledContext.text,
+    mode: assembledContext.mode,
+    continuityWarnings: assembledContext.continuityWarnings,
+    legacyContext: {
       previousSummary: previousChapter?.summary ?? null,
       previousEnding: clampText(previousChapter?.content, 900),
       recentSummaries,
@@ -370,6 +448,7 @@ export async function prepareChapterGeneration(params: {
       title: work.title,
       synopsis: work.synopsis,
       outline,
+      canonState: work.canonState,
       targetChapters: work.targetChapters,
       plannedUntilChapter,
     },
@@ -391,7 +470,14 @@ export async function prepareChapterGeneration(params: {
       { role: "user", content: promptSnapshot },
     ],
     promptSnapshot,
-    maxTokens: DEFAULT_CHAPTER_MAX_TOKENS,
-    temperature: DEFAULT_CHAPTER_TEMPERATURE,
+    promptContext: assembledContext.context,
+    assembledContext: assembledContext.text,
+    generationPlan: null,
+    continuityWarnings: assembledContext.continuityWarnings,
+    mode: assembledContext.mode,
+    extraPrompt: input.extraPrompt ?? null,
+    contextExtractMaxTokens: tokenConfig.contextExtract,
+    maxTokens: tokenConfig.chapterGenerate,
+    temperature: tokenConfig.temperature,
   };
 }

@@ -1,5 +1,7 @@
 import type { StoryOutline, StoryOutlineRole } from "@/lib/create/outline-draft";
 import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
+import type { ChapterPlan } from "@/lib/ai/chapter-plan";
+import type { NovelMode } from "@/lib/ai/novel-canon-state";
 import { isShortStoryWork } from "@/shared/work-type";
 
 type ChapterPromptOutline = StoryOutline | ShortStoryOutline;
@@ -147,6 +149,10 @@ function formatShortBeat(beat: ShortStoryOutline["beats"][number]) {
   ].join("\n");
 }
 
+function formatPlanForPrompt(plan?: ChapterPlan | null) {
+  return plan ? JSON.stringify(plan, null, 2) : "";
+}
+
 export function buildChapterSystemPrompt() {
   return [
     "你是一名资深中文网文作者与编辑。",
@@ -192,12 +198,21 @@ export function buildChapterUserPrompt(params: {
     timelineEvents?: string[];
     foreshadowings?: string[];
   };
+  assembledContext?: string | null;
+  generationPlan?: ChapterPlan | null;
+  mode?: NovelMode;
+  continuityWarnings?: string[];
+  legacyContext?: unknown;
   extraPrompt?: string | null;
 }) {
   const tags = (params.work.tags ?? []).filter(Boolean).slice(0, 5);
   const tagLine = tags.length ? `标签：${tags.join("、")}` : "";
   const extraPrompt = typeof params.extraPrompt === "string" ? params.extraPrompt.trim() : "";
-  const shortStory = isShortStoryWork(params.work.workType) || isShortStoryOutline(params.outline);
+  const shortStory =
+    params.mode === "short" ||
+    isShortStoryWork(params.work.workType) ||
+    isShortStoryOutline(params.outline);
+  const mode: NovelMode = shortStory ? "short" : "long";
 
   const metaLines = [
     params.work.genreLabel || params.work.genreId ? `类型：${params.work.genreLabel || params.work.genreId}` : "",
@@ -270,6 +285,26 @@ export function buildChapterUserPrompt(params: {
       ? `未回收伏笔：\n${(params.context?.foreshadowings ?? []).slice(0, 4).map((item) => `- ${clampInline(item, 108)}`).join("\n")}`
       : "",
   ].filter(Boolean).join("\n\n");
+  const planText = formatPlanForPrompt(params.generationPlan);
+  const continuityWarnings = (params.continuityWarnings ?? [])
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((item) => `- ${clampInline(item, 160)}`)
+    .join("\n");
+  const modeRules =
+    mode === "short"
+      ? [
+          "短篇强制规则：",
+          "- 不要写成长篇开头，不要新增无法回收的大坑。",
+          "- 当前场景必须完成 beatGoal；每段都要推进冲突或情绪。",
+          "- 结尾必须服务整体短篇落点；如果是最后 beat，必须收束主题和主要冲突。",
+        ].join("\n")
+      : [
+          "长篇强制规则：",
+          "- 必须承接上一章结尾，不允许重置人物状态。",
+          "- 不允许重复上一章已完成剧情，不允许随意解决伏笔。",
+          "- 必须推进当前卷目标，结尾必须有继续阅读钩子。",
+        ].join("\n");
 
   return [
     `作品标题：${params.work.title || params.outline.title}`,
@@ -293,6 +328,10 @@ export function buildChapterUserPrompt(params: {
     recentSummaries ? `最近章节摘要：\n${recentSummaries}` : "",
     writingMemories ? `长期写作记忆与约束：\n${writingMemories}` : "",
     libraryContext,
+    params.assembledContext ? `NovelContextEngine 组装上下文：\n${params.assembledContext}` : "",
+    planText ? `ChapterPlan（必须遵守）：\n${planText}` : "",
+    continuityWarnings ? `ContinuityWarnings：\n${continuityWarnings}` : "",
+    modeRules,
     previousContext.length || recentSummaries || writingMemories || libraryContext ? "" : "",
     shortStory
       ? `现在请你生成场景 ${chapterIndex} 的正文草稿。`

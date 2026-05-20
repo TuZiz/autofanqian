@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 import type { UpstreamProvider, UpstreamRouteId } from "@/lib/ai/upstream-text";
+import type { ChapterPlan } from "@/lib/ai/chapter-plan";
+import type { NovelAssembledContext } from "@/lib/ai/novel-context-engine";
+import type { NovelMode } from "@/lib/ai/novel-canon-state";
 import type { SessionUser } from "@/lib/auth/user";
 import type { StoryOutline } from "@/lib/create/outline-draft";
 import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
@@ -37,6 +40,7 @@ export type PreparedChapterGeneration = {
     title: string;
     synopsis: string;
     outline: StoryOutline | ShortStoryOutline;
+    canonState?: unknown;
     targetChapters: number | null;
     plannedUntilChapter: number;
   };
@@ -53,6 +57,13 @@ export type PreparedChapterGeneration = {
   preferredProvider: UpstreamProvider;
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
   promptSnapshot: string;
+  promptContext: NovelAssembledContext["context"];
+  assembledContext: string;
+  generationPlan?: ChapterPlan | null;
+  continuityWarnings: string[];
+  mode: NovelMode;
+  extraPrompt?: string | null;
+  contextExtractMaxTokens: number;
   maxTokens: number;
   temperature: number;
 };

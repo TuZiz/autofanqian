@@ -2,6 +2,7 @@ import {
   combineTextResultUsage,
   repairChapterLengthIfNeeded,
 } from "@/lib/ai/chapter-length-repair";
+import { mergeNovelCanonState } from "@/lib/ai/novel-canon-state";
 import {
   finalizeGeneratedDraft,
   type PreparedChapterGeneration,
@@ -242,6 +243,25 @@ export async function completeSuccessfulStreamGeneration(params: {
       createdAt: true,
     },
   });
+
+  try {
+    await prisma.work.update({
+      where: { id: prepared.work.id },
+      data: {
+        canonState: mergeNovelCanonState({
+          current: prepared.work.canonState,
+          mode: prepared.mode,
+          chapterIndex: index,
+          chapterTitle: finalDraft.title,
+          chapterSummary: chapter.summary,
+          chapterContent: finalDraft.content,
+          generationPlan: prepared.generationPlan,
+        }),
+      },
+    });
+  } catch (canonError) {
+    console.warn("update stream canonState failed", canonError);
+  }
 
   await prisma.chapterDraft.deleteMany({
     where: { workId: prepared.work.id, index },

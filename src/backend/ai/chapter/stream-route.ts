@@ -15,6 +15,10 @@ import {
   chapterGenerateBodySchema,
 } from "@/lib/ai/chapter-generate-shared";
 import {
+  buildChapterPlan,
+  formatChapterPlanForPrompt,
+} from "@/lib/ai/chapter-plan";
+import {
   beginChapterGenerationLock,
   clearChapterGenerationAbortHandler,
   endChapterGenerationLock,
@@ -215,9 +219,33 @@ export async function POST(request: Request) {
             selected.provider,
             ...smartProviders.filter((provider) => provider.id !== selected.provider.id),
           ];
+          const generationPlan = await buildChapterPlan({
+            mode: prepared.mode,
+            chapterIndex: parsedBody.data.index,
+            assembledContext: prepared.assembledContext,
+            providers: orderedProviders,
+            routeId: prepared.routeId,
+            preferredProviderId: selected.provider.id,
+            continuityWarnings: prepared.continuityWarnings,
+          });
+          const promptSnapshotWithPlan = [
+            prepared.promptSnapshot,
+            "",
+            "【ChapterPlan：必须遵守】",
+            formatChapterPlanForPrompt(generationPlan),
+          ].join("\n");
+          const preparedWithPlan = {
+            ...prepared,
+            promptSnapshot: promptSnapshotWithPlan,
+            generationPlan,
+            messages: [
+              prepared.messages[0],
+              { role: "user" as const, content: promptSnapshotWithPlan },
+            ],
+          };
 
           const generationJob = await createStreamGenerationJob({
-            prepared,
+            prepared: preparedWithPlan,
             provider: selected.provider,
             chapterIndex: parsedBody.data.index,
             idempotencyKey: parsedBody.data.idempotencyKey ?? null,
@@ -258,11 +286,11 @@ export async function POST(request: Request) {
               routeId: "gpt",
               preferredProviderId: selected.provider.id,
               messages: buildStreamMessages({
-                baseUserPrompt: prepared.promptSnapshot,
-                generationMode: prepared.generationMode,
+                baseUserPrompt: preparedWithPlan.promptSnapshot,
+                generationMode: preparedWithPlan.generationMode,
               }),
-              temperature: prepared.temperature,
-              maxTokens: prepared.maxTokens,
+              temperature: preparedWithPlan.temperature,
+              maxTokens: preparedWithPlan.maxTokens,
               signal: abortController.signal,
               reasoningEffort: "low",
               onChunk: async (chunk) => {
@@ -291,7 +319,7 @@ export async function POST(request: Request) {
               await completeFailedStreamGeneration({
                 generationJobId,
                 index: parsedBody.data.index,
-                prepared,
+                prepared: preparedWithPlan,
                 selectedProvider: selected.provider,
                 streamedText,
                 usageResult,
@@ -306,7 +334,7 @@ export async function POST(request: Request) {
           const completed = await completeSuccessfulStreamGeneration({
             generationJobId,
             index: parsedBody.data.index,
-            prepared,
+            prepared: preparedWithPlan,
             selectedProvider: selected.provider,
             usageResult: { ...usageResult, text: usageResult.text },
           });

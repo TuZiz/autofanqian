@@ -3,6 +3,7 @@ import "server-only";
 import { after } from "next/server";
 
 import { logAiUsage } from "@/lib/ai/usage-log";
+import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
 import {
   buildAiProviderChain,
   callAiText,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/ai/upstream-text";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { prisma } from "@/lib/prisma";
+import { isShortStoryWork } from "@/shared/work-type";
 import {
   parseContextExtractionResponse,
   summarizeContextExtractionResult,
@@ -58,6 +60,7 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
           title: true,
           tag: true,
           synopsis: true,
+          workType: true,
         },
       }),
       prisma.character.findMany({
@@ -136,6 +139,9 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
     timelineEvents,
     foreshadowings,
   });
+  const contextExtractMaxTokens = getChapterTokenConfig({
+    mode: isShortStoryWork(work.workType) ? "short" : "long",
+  }).contextExtract;
 
   const pendingJob = await prisma.generationJob.findFirst({
     where: {
@@ -201,7 +207,7 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
       { role: "user", content: userPrompt },
     ],
     temperature: 0.25,
-    maxTokens: 1800,
+    maxTokens: contextExtractMaxTokens,
     attempts: 2,
   });
 
@@ -231,7 +237,7 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
         },
       ],
       temperature: 0.15,
-      maxTokens: 1800,
+      maxTokens: contextExtractMaxTokens,
       attempts: 1,
     });
 

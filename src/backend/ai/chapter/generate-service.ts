@@ -1,8 +1,14 @@
 import { queueChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
+import { runChapterConsistencyCheck } from "@/lib/ai/chapter-consistency-check";
 import {
   combineTextResultUsage,
   repairChapterLengthIfNeeded,
 } from "@/lib/ai/chapter-length-repair";
+import {
+  buildChapterPlan,
+  formatChapterPlanForPrompt,
+  type ChapterPlan,
+} from "@/lib/ai/chapter-plan";
 import {
   finalizeGeneratedDraft,
   prepareChapterGeneration,
@@ -23,6 +29,7 @@ import {
   runWithAiQuotaReservation,
 } from "@/lib/ai/quota";
 import { logAiUsage } from "@/lib/ai/usage-log";
+import { mergeNovelCanonState } from "@/lib/ai/novel-canon-state";
 import {
   buildChapterSmartProviderChain,
   callAiText,
@@ -46,6 +53,25 @@ type GeneratedChapterResponse = {
   };
   chapter: ReturnType<typeof serializeGeneratedChapter> & { details: unknown };
 };
+
+function buildMessagesWithPlan(
+  prepared: Awaited<ReturnType<typeof prepareChapterGeneration>>,
+  generationPlan: ChapterPlan,
+) {
+  const planBlock = [
+    "",
+    "【ChapterPlan：必须遵守】",
+    formatChapterPlanForPrompt(generationPlan),
+  ].join("\n");
+
+  return [
+    prepared.messages[0],
+    {
+      role: "user" as const,
+      content: `${prepared.promptSnapshot}${planBlock}`,
+    },
+  ];
+}
 
 export async function getCompletedChapterGenerationResult(params: {
   userId: string;
@@ -256,6 +282,28 @@ export async function generateChapterForUser(params: {
       selected.provider,
       ...providers.filter((provider) => provider.id !== selected.provider?.id),
     ];
+    const generationPlan = await buildChapterPlan({
+      mode: prepared.mode,
+      chapterIndex: input.index,
+      assembledContext: prepared.assembledContext,
+      providers: orderedProviders,
+      routeId: prepared.routeId,
+      preferredProviderId: selected.provider.id,
+      continuityWarnings: prepared.continuityWarnings,
+    });
+    const generationMessages = buildMessagesWithPlan(prepared, generationPlan);
+    const promptSnapshotWithPlan = generationMessages[1]?.content ?? prepared.promptSnapshot;
+
+    await prisma.generationJob
+      .update({
+        where: { id: generationJob.id },
+        data: {
+          promptSnapshot: promptSnapshotWithPlan.slice(0, 20000),
+          heartbeatAt: new Date(),
+        },
+      })
+      .catch(() => undefined);
+
     const result = await runWithAiQuotaReservation(
       user,
       "chapter_generate",
@@ -264,7 +312,7 @@ export async function generateChapterForUser(params: {
           providers: orderedProviders,
           routeId: "gpt",
           preferredProviderId: selected.provider.id,
-          messages: prepared.messages,
+          messages: generationMessages,
           temperature: prepared.temperature,
           maxTokens: prepared.maxTokens,
           attempts: 1,
@@ -312,10 +360,23 @@ export async function generateChapterForUser(params: {
       index: input.index,
       rawText: result.text,
     });
+    const consistency = await runChapterConsistencyCheck({
+      mode: prepared.mode,
+      title: draft.title,
+      content: draft.content,
+      assembledContext: prepared.assembledContext,
+      generationPlan,
+      providers: orderedProviders,
+      routeId: prepared.routeId,
+      preferredProviderId: result.providerId ?? selected.provider.id,
+    });
+    const checkedDraft = consistency.repairedContent
+      ? { ...draft, content: consistency.repairedContent }
+      : draft;
     const lengthRepair = await repairChapterLengthIfNeeded({
       index: input.index,
-      draft,
-      promptSnapshot: prepared.promptSnapshot,
+      draft: checkedDraft,
+      promptSnapshot: promptSnapshotWithPlan,
       providers,
       routeId: prepared.routeId,
       preferredProviderId: primaryProvider.id,
@@ -369,6 +430,26 @@ export async function generateChapterForUser(params: {
         createdAt: true,
       },
     });
+
+    try {
+      await prisma.work.update({
+        where: { id: prepared.work.id },
+        data: {
+          canonState: mergeNovelCanonState({
+            current: prepared.work.canonState,
+            mode: prepared.mode,
+            chapterIndex: input.index,
+            chapterTitle: lengthRepair.draft.title,
+            chapterSummary: chapter.summary,
+            chapterContent: lengthRepair.draft.content,
+            generationPlan,
+            consistencyIssues: consistency.check?.issues ?? [],
+          }),
+        },
+      });
+    } catch (canonError) {
+      console.warn("update canonState failed", canonError);
+    }
 
     const combinedUsage = combineTextResultUsage([result, lengthRepair.repairResult]);
 
