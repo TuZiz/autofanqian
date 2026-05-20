@@ -302,6 +302,29 @@ test("AI quota reservations are schema-backed, expiring and concurrency-safe", (
   assert.match(quotaSource, /dailyCalls: Math\.max\(successCallCount, dailyCounterUsage\.requestCount\) \+ pendingDailyReservations/);
 });
 
+test("AI quota reservations support idempotency and exclude the current generation job", () => {
+  const schemaSource = read("prisma/schema.prisma");
+  const quotaSource = read("src/lib/ai/quota.ts");
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const streamRouteSource = read("src/backend/ai/chapter/stream-route.ts");
+
+  assert.match(schemaSource, /@@unique\(\[userId, action, idempotencyKey\]\)/);
+  assert.match(quotaSource, /export type AiQuotaReservationOptions = \{/);
+  assert.match(quotaSource, /idempotencyKey\?: string \| null/);
+  assert.match(quotaSource, /estimatedOutputChars\?: number \| null/);
+  assert.match(quotaSource, /excludeGenerationJobId\?: string \| null/);
+  assert.match(quotaSource, /userId_action_idempotencyKey/);
+  assert.match(quotaSource, /existingReservation\?\.status === "pending"/);
+  assert.match(quotaSource, /existingReservation\?\.status === "committed"/);
+  assert.match(quotaSource, /idempotencyKey,/);
+  assert.match(quotaSource, /estimatedOutputChars,/);
+  assert.match(quotaSource, /activeGenerationJobWhere\.id = \{ not: params\.excludeGenerationJobId \}/);
+  assert.match(generateSource, /excludeGenerationJobId: generationJob\.id/);
+  assert.match(generateSource, /idempotencyKey: input\.idempotencyKey \?\? null/);
+  assert.match(streamRouteSource, /excludeGenerationJobId: generationJobId/);
+  assert.match(streamRouteSource, /idempotencyKey: parsedBody\.data\.idempotencyKey \?\? null/);
+});
+
 test("App Router AI routes delegate to backend quota-protected handlers", () => {
   const routeExpectations = [
     ["src/app/api/ai/idea/route.ts", "@/backend/ai/idea/generate-route"],
@@ -470,6 +493,7 @@ test("chapter generation uses durable DB jobs instead of in-memory duplicate loc
   assert.match(schemaSource, /activeLockKey\s+String\?/);
   assert.match(schemaSource, /@@unique\(\[activeLockKey\]\)/);
   assert.match(schemaSource, /idempotencyKey\s+String\?/);
+  assert.match(schemaSource, /@@unique\(\[userId, action, idempotencyKey\]\)/);
   assert.match(schemaSource, /heartbeatAt\s+DateTime\?/);
   assert.match(migrationSource, /CREATE UNIQUE INDEX "GenerationJob_activeLockKey_key"/);
   assert.match(migrationSource, /CREATE UNIQUE INDEX "GenerationJob_active_chapter_generation_key"/);
@@ -520,7 +544,9 @@ test("reservation-protected AI actions are not followed by manual usage logging"
 
   for (const [file, action] of protectedActions) {
     const source = read(file);
-    const callIndex = source.indexOf(`runWithAiQuotaReservation(user, "${action}"`);
+    const callIndex = source.search(
+      new RegExp(`runWithAiQuotaReservation\\(\\s*user,\\s*"${action}"`),
+    );
     assert.notEqual(callIndex, -1, `${file} must reserve quota for ${action}`);
 
     const nextProtectedCallIndex = source.indexOf("runWithAiQuotaReservation(", callIndex + 1);
@@ -537,8 +563,8 @@ test("reservation-protected AI actions are not followed by manual usage logging"
 test("chapter provider probes keep manual usage logging outside reserved generation calls", () => {
   const generateSource = read("src/backend/ai/chapter/generate-service.ts");
   const probeLogIndex = generateSource.indexOf("await logAiUsage({");
-  const generationIndex = generateSource.indexOf(
-    'runWithAiQuotaReservation(user, "chapter_generate"',
+  const generationIndex = generateSource.search(
+    /runWithAiQuotaReservation\(\s*user,\s*"chapter_generate"/,
   );
 
   assert.notEqual(probeLogIndex, -1);
@@ -679,7 +705,7 @@ test("chapter generation and stream generation use aggregated action names", () 
   const generateSource = read("src/backend/ai/chapter/generate-service.ts");
   const streamSource = read("src/backend/ai/chapter/stream-route.ts");
 
-  assert.match(generateSource, /runWithAiQuotaReservation\(user, "chapter_generate"[\s\S]*callAiText\(/);
+  assert.match(generateSource, /runWithAiQuotaReservation\(\s*user,\s*"chapter_generate"[\s\S]*callAiText\(/);
   assert.match(generateSource, /generated\.selectedProviderId = selected\.provider\.id/);
   assert.doesNotMatch(generateSource, /action: `chapter_generate_\$\{input\.index\}`/);
   assert.doesNotMatch(generateSource, /action: `chapter_generate_length_repair_\$\{input\.index\}`/);

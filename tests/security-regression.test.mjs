@@ -162,6 +162,8 @@ test("AI upstream has request observability, abort propagation and circuit break
   assert.doesNotMatch(observabilitySource, /messages|prompt|apiKey/i);
   assert.match(healthSource, /isProviderCircuitOpen/);
   assert.match(healthSource, /recordProviderCircuitResult/);
+  assert.match(healthSource, /state\.openedUntil > 0 && state\.openedUntil <= Date\.now\(\)/);
+  assert.match(healthSource, /return state\.openedUntil > Date\.now\(\)/);
   assert.match(textServiceSource, /const requestId = createUpstreamRequestId\(\)/);
   assert.match(textServiceSource, /logUpstreamRequest\(\{/);
   assert.match(textServiceSource, /recordProviderCircuitResult\(provider\.id/);
@@ -169,6 +171,26 @@ test("AI upstream has request observability, abort propagation and circuit break
   assert.match(requestSource, /externalSignal: params\.signal/);
   assert.match(requestSource, /status: 499/);
   assert.match(streamRouteSource, /signal: abortController\.signal/);
+});
+
+test("provider circuit preserves failures until threshold and clears on success", async () => {
+  const {
+    isProviderCircuitOpen,
+    recordProviderCircuitResult,
+  } = await import("../src/backend/ai/upstream/health.ts");
+
+  recordProviderCircuitResult("gpt_primary", true);
+  assert.equal(isProviderCircuitOpen("gpt_primary"), false);
+
+  recordProviderCircuitResult("gpt_primary", false);
+  assert.equal(isProviderCircuitOpen("gpt_primary"), false);
+  recordProviderCircuitResult("gpt_primary", false);
+  assert.equal(isProviderCircuitOpen("gpt_primary"), false);
+  recordProviderCircuitResult("gpt_primary", false);
+  assert.equal(isProviderCircuitOpen("gpt_primary"), true);
+
+  recordProviderCircuitResult("gpt_primary", true);
+  assert.equal(isProviderCircuitOpen("gpt_primary"), false);
 });
 
 test("idea generation route has a single user and quota check", () => {

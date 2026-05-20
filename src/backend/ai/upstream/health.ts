@@ -66,11 +66,11 @@ export function setCachedProviderHealth(
 export function isProviderCircuitOpen(providerId: UpstreamPhysicalProviderId) {
   const state = providerFailureState.get(providerId);
   if (!state) return false;
-  if (state.openedUntil <= Date.now()) {
+  if (state.openedUntil > 0 && state.openedUntil <= Date.now()) {
     providerFailureState.delete(providerId);
     return false;
   }
-  return true;
+  return state.openedUntil > Date.now();
 }
 
 export function recordProviderCircuitResult(

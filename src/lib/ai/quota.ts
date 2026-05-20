@@ -75,7 +75,7 @@ type RunWithAiQuotaReservationOps = {
   reserve(
     user: AiQuotaUser,
     action: string,
-    options?: { estimatedTokens?: number | null },
+    options?: AiQuotaReservationOptions,
   ): Promise<AiQuotaReservationHandle>;
   finalize(params: {
     reservation: AiQuotaReservationHandle;
@@ -87,6 +87,13 @@ type RunWithAiQuotaReservationOps = {
 };
 
 const RESERVATION_TTL_MS = 5 * 60_000;
+
+export type AiQuotaReservationOptions = {
+  estimatedTokens?: number | null;
+  estimatedOutputChars?: number | null;
+  idempotencyKey?: string | null;
+  excludeGenerationJobId?: string | null;
+};
 
 function getTodayRange(now = new Date()) {
   const start = new Date(now);
@@ -135,6 +142,7 @@ async function getAiQuotaUsageSnapshot(params: {
   dailyTokenLimit: number;
   minuteCallLimit: number;
   monthlyGeneratedCharLimit: number;
+  excludeGenerationJobId?: string | null;
 }) {
   const { client, userId, now } = params;
   const { start, end } = getTodayRange(now);
@@ -148,6 +156,14 @@ async function getAiQuotaUsageSnapshot(params: {
       { status: "committed_failed" },
     ],
   };
+  const activeGenerationJobWhere: Prisma.GenerationJobWhereInput = {
+    createdAt: { gte: minuteStart },
+    status: { in: ["queued", "running"] },
+    novel: { userId },
+  };
+  if (params.excludeGenerationJobId) {
+    activeGenerationJobWhere.id = { not: params.excludeGenerationJobId };
+  }
 
   const [
     successCallCount,
@@ -258,11 +274,7 @@ async function getAiQuotaUsageSnapshot(params: {
       : Promise.resolve(0),
     !isUnlimitedMembershipLimit(params.minuteCallLimit)
       ? client.generationJob.count({
-          where: {
-            createdAt: { gte: minuteStart },
-            status: { in: ["queued", "running"] },
-            novel: { userId },
-          },
+          where: activeGenerationJobWhere,
         })
       : Promise.resolve(0),
     (
@@ -387,7 +399,7 @@ export async function assertAiQuotaAvailable(user: AiQuotaUser) {
 export async function reserveAiQuota(
   user: AiQuotaUser,
   action: string,
-  options?: { estimatedTokens?: number | null },
+  options?: AiQuotaReservationOptions,
 ): Promise<AiQuotaReservationHandle> {
   if (isAdminUser(user)) return null;
 
@@ -398,10 +410,50 @@ export async function reserveAiQuota(
     typeof options?.estimatedTokens === "number" && options.estimatedTokens > 0
       ? Math.round(options.estimatedTokens)
       : null;
+  const estimatedOutputChars =
+    typeof options?.estimatedOutputChars === "number" && options.estimatedOutputChars > 0
+      ? Math.round(options.estimatedOutputChars)
+      : null;
+  const idempotencyKey = options?.idempotencyKey?.trim() || null;
 
   try {
     const reservation = await prisma.$transaction(
       async (tx) => {
+        const existingReservation = idempotencyKey
+          ? await tx.aiQuotaReservation.findUnique({
+              where: {
+                userId_action_idempotencyKey: {
+                  userId: user.id,
+                  action,
+                  idempotencyKey,
+                },
+              },
+              select: {
+                id: true,
+                userId: true,
+                action: true,
+                status: true,
+                expiresAt: true,
+              },
+            })
+          : null;
+
+        if (existingReservation?.status === "pending" && existingReservation.expiresAt > now) {
+          return {
+            id: existingReservation.id,
+            userId: existingReservation.userId,
+            action: existingReservation.action,
+          };
+        }
+
+        if (existingReservation?.status === "committed") {
+          throw new AuthApiError(409, "该 AI 请求已经处理过，请刷新查看结果。");
+        }
+
+        if (existingReservation?.status === "committed_failed") {
+          throw new AuthApiError(409, "该 AI 请求状态异常，请稍后重试。");
+        }
+
         const usage = await getAiQuotaUsageSnapshot({
           client: tx,
           userId: user.id,
@@ -411,6 +463,7 @@ export async function reserveAiQuota(
           dailyTokenLimit: limits.dailyTokens,
           minuteCallLimit: limits.minuteAiCalls,
           monthlyGeneratedCharLimit: limits.monthlyGeneratedChars,
+          excludeGenerationJobId: options?.excludeGenerationJobId ?? null,
         });
 
         assertMembershipAiUsageAvailable(limits, usage);
@@ -422,11 +475,30 @@ export async function reserveAiQuota(
           limits,
         });
 
+        if (existingReservation) {
+          return tx.aiQuotaReservation.update({
+            where: { id: existingReservation.id },
+            data: {
+              status: "pending",
+              estimatedTokens,
+              estimatedOutputChars,
+              expiresAt,
+            },
+            select: {
+              id: true,
+              userId: true,
+              action: true,
+            },
+          });
+        }
+
         return tx.aiQuotaReservation.create({
           data: {
             userId: user.id,
             action,
+            idempotencyKey,
             estimatedTokens,
+            estimatedOutputChars,
             expiresAt,
           },
           select: {
@@ -449,6 +521,37 @@ export async function reserveAiQuota(
         429,
         `${limits.label} 当前请求过于密集，请稍后再试。`,
       );
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002" &&
+      idempotencyKey
+    ) {
+      const existingReservation = await prisma.aiQuotaReservation.findUnique({
+        where: {
+          userId_action_idempotencyKey: {
+            userId: user.id,
+            action,
+            idempotencyKey,
+          },
+        },
+        select: {
+          id: true,
+          userId: true,
+          action: true,
+          status: true,
+          expiresAt: true,
+        },
+      });
+
+      if (existingReservation?.status === "pending" && existingReservation.expiresAt > now) {
+        return {
+          id: existingReservation.id,
+          userId: existingReservation.userId,
+          action: existingReservation.action,
+        };
+      }
     }
 
     throw error;
@@ -618,7 +721,7 @@ export async function runWithAiQuotaReservation<T extends UpstreamTextResult>(
   user: AiQuotaUser,
   action: string,
   execute: () => Promise<T>,
-  options?: { estimatedTokens?: number | null },
+  options?: AiQuotaReservationOptions,
 ): Promise<T> {
   return runWithAiQuotaReservationUsingOps(user, action, execute, {
     options,
@@ -635,7 +738,7 @@ export async function runWithAiQuotaReservationUsingOps<T extends UpstreamTextRe
   action: string,
   execute: () => Promise<T>,
   params: {
-    options?: { estimatedTokens?: number | null };
+    options?: AiQuotaReservationOptions;
     ops: RunWithAiQuotaReservationOps;
   },
 ): Promise<T> {

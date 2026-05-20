@@ -13,7 +13,7 @@ import {
   beginChapterGenerationLock,
   endChapterGenerationLock,
 } from "@/lib/ai/chapter-generation-lock";
-import { beginGenerationJob } from "@/lib/ai/generation-jobs";
+import { beginGenerationJob, failGenerationJob } from "@/lib/ai/generation-jobs";
 import {
   assertAiQuotaAvailable,
   runWithAiQuotaReservation,
@@ -62,6 +62,9 @@ export async function generateChapterForUser(params: {
     throw new AuthApiError(409, "该章节正在生成中，请等待生成结束后再操作。");
   }
 
+  let generationJobFinalized = false;
+  let generationJobId: string | null = null;
+
   try {
     const generationAction =
       prepared.generationMode === "regenerate"
@@ -83,6 +86,7 @@ export async function generateChapterForUser(params: {
           : "chapter.generate",
       promptSnapshot: prepared.promptSnapshot,
     });
+    generationJobId = generationJob.id;
 
     const selected = await selectHealthyProviderForChapter({
       providers,
@@ -148,23 +152,31 @@ export async function generateChapterForUser(params: {
       selected.provider,
       ...providers.filter((provider) => provider.id !== selected.provider?.id),
     ];
-    const result = await runWithAiQuotaReservation(user, "chapter_generate", async () => {
-      const generated = await callAiText({
-        providers: orderedProviders,
-        routeId: "gpt",
-        preferredProviderId: selected.provider.id,
-        messages: prepared.messages,
-        temperature: prepared.temperature,
-        maxTokens: prepared.maxTokens,
-        attempts: 1,
-        reasoningEffort: "low",
-      });
+    const result = await runWithAiQuotaReservation(
+      user,
+      "chapter_generate",
+      async () => {
+        const generated = await callAiText({
+          providers: orderedProviders,
+          routeId: "gpt",
+          preferredProviderId: selected.provider.id,
+          messages: prepared.messages,
+          temperature: prepared.temperature,
+          maxTokens: prepared.maxTokens,
+          attempts: 1,
+          reasoningEffort: "low",
+        });
 
-      generated.selectedProviderId = selected.provider.id;
-      generated.probeDurationMs = selected.probeDurationMs;
-      generated.fallbackCount = selected.fallbackCount;
-      return generated;
-    });
+        generated.selectedProviderId = selected.provider.id;
+        generated.probeDurationMs = selected.probeDurationMs;
+        generated.fallbackCount = selected.fallbackCount;
+        return generated;
+      },
+      {
+        idempotencyKey: input.idempotencyKey ?? null,
+        excludeGenerationJobId: generationJob.id,
+      },
+    );
 
     if (!result.ok || !result.text) {
       await prisma.generationJob.update({
@@ -277,6 +289,7 @@ export async function generateChapterForUser(params: {
         completedAt: new Date(),
       },
     });
+    generationJobFinalized = true;
 
     await prisma.generationJob.create({
       data: {
@@ -314,6 +327,15 @@ export async function generateChapterForUser(params: {
         details: chapter.details ?? [],
       },
     };
+  } catch (error) {
+    if (generationJobId && !generationJobFinalized) {
+      await failGenerationJob(
+        generationJobId,
+        error instanceof Error ? error.message : "chapter_generation_failed",
+        { routeId: prepared.routeId },
+      );
+    }
+    throw error;
   } finally {
     endChapterGenerationLock(generationLock.key);
   }

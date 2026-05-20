@@ -75,7 +75,13 @@ export async function beginGenerationJob(params: BeginGenerationJobParams) {
 
   if (params.idempotencyKey) {
     const existing = await prisma.generationJob.findUnique({
-      where: { idempotencyKey: params.idempotencyKey },
+      where: {
+        userId_action_idempotencyKey: {
+          userId: params.userId,
+          action: params.action,
+          idempotencyKey: params.idempotencyKey,
+        },
+      },
     });
     if (existing) {
       const message = ACTIVE_GENERATION_STATUSES.includes(

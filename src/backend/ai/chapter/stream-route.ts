@@ -235,6 +235,10 @@ export async function POST(request: Request) {
           const quotaReservation = await reserveAiQuota(
             prepared.user,
             "chapter_generate_stream",
+            {
+              idempotencyKey: parsedBody.data.idempotencyKey ?? null,
+              excludeGenerationJobId: generationJobId,
+            },
           );
           try {
             usageResult = await streamAiText({

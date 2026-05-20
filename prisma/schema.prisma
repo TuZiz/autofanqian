@@ -704,7 +704,7 @@ model GenerationJob {
   chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
 
   @@unique([activeLockKey])
-  @@unique([idempotencyKey])
+  @@unique([userId, action, idempotencyKey])
   @@index([novelId, action, createdAt(sort: Desc)])
   @@index([userId, novelId, chapterIndex, action, status])
   @@index([userId, novelId, chapterId, action, status])
