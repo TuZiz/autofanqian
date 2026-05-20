@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "PaymentProvider" AS ENUM ('alipay');
 
 -- CreateEnum
