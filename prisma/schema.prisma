@@ -117,21 +117,21 @@ enum PromptTemplateCategory {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  code          Int        @unique @default(autoincrement())
-  email         String     @unique
-  name          String?
-  passwordHash  String?
-  emailVerified Boolean    @default(false)
-  status        UserStatus @default(active)
-  role          UserRole   @default(user)
-  membershipTier MembershipTier @default(default)
+  id                  String         @id @default(cuid())
+  code                Int            @unique @default(autoincrement())
+  email               String         @unique
+  name                String?
+  passwordHash        String?
+  emailVerified       Boolean        @default(false)
+  status              UserStatus     @default(active)
+  role                UserRole       @default(user)
+  membershipTier      MembershipTier @default(default)
   membershipExpiresAt DateTime?
-  bannedReason  String?
-  bannedAt      DateTime?
-  lastLoginAt   DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  bannedReason        String?
+  bannedAt            DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   sessions             UserSession[]
   loginAttempts        LoginAttempt[]
@@ -202,33 +202,6 @@ model AppConfig {
   value     Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model PaymentOrder {
-  id              String             @id @default(cuid())
-  userId          String
-  provider        PaymentProvider    @default(alipay)
-  status          PaymentOrderStatus @default(pending)
-
-  outTradeNo      String             @unique
-  providerTradeNo String?            @unique
-
-  planId          String
-  tier            MembershipTier
-  durationDays    Int
-  amountCents     Int
-  subject         String
-
-  paidAt          DateTime?
-  expiresAt       DateTime?
-  rawNotify       Json?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt(sort: Desc)])
-  @@index([status, createdAt(sort: Desc)])
 }
 
 model CreateTemplate {
@@ -305,20 +278,47 @@ model AiUsageEvent {
 }
 
 model AiQuotaReservation {
-  id              String                   @id @default(cuid())
-  userId          String
-  action          String
-  status          AiQuotaReservationStatus @default(pending)
-  estimatedTokens Int?
+  id                   String                   @id @default(cuid())
+  userId               String
+  action               String
+  status               AiQuotaReservationStatus @default(pending)
+  estimatedTokens      Int?
   estimatedOutputChars Int?
-  createdAt       DateTime                 @default(now())
-  expiresAt       DateTime
+  createdAt            DateTime                 @default(now())
+  expiresAt            DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status, expiresAt])
   @@index([userId, createdAt(sort: Desc)])
   @@index([action, status, createdAt(sort: Desc)])
+}
+
+model PaymentOrder {
+  id       String             @id @default(cuid())
+  userId   String
+  provider PaymentProvider    @default(alipay)
+  status   PaymentOrderStatus @default(pending)
+
+  outTradeNo      String  @unique
+  providerTradeNo String? @unique
+
+  planId       String
+  tier         MembershipTier
+  durationDays Int
+  amountCents  Int
+  subject      String
+
+  paidAt    DateTime?
+  expiresAt DateTime?
+  rawNotify Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 model Work {
