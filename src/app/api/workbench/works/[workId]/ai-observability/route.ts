@@ -15,6 +15,7 @@ const paramsSchema = z.object({
 const querySchema = z.object({
   trendLimit: z.coerce.number().int().min(1).max(100).optional(),
   modelMinJobs: z.coerce.number().int().min(1).max(100).optional(),
+  chapterLimit: z.coerce.number().int().min(1).max(300).optional(),
 });
 
 export async function GET(
@@ -34,6 +35,7 @@ export async function GET(
       to,
       trendLimit: query.trendLimit,
       modelMinJobs: query.modelMinJobs,
+      chapterLimit: query.chapterLimit,
     });
 
     return successResponse(data, { message: "OK" });

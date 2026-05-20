@@ -1077,16 +1077,35 @@ test("work AI observability dashboard aggregates quality and cost reports", () =
   const apiSource = read("src/app/api/workbench/works/[workId]/ai-observability/route.ts");
 
   assert.match(source, /export async function getWorkAiObservability/);
+  assert.match(source, /getGenerationCostReport/);
+  assert.match(source, /getChapterGenerationObservability/);
+  assert.match(source, /buildModelRecommendationReport/);
   assert.match(source, /getWorkQualityTrend/);
   assert.match(source, /getModelQualityReport/);
   assert.match(source, /getAuxiliaryAiCostReport/);
   assert.match(source, /getChapterQualityReport/);
+  assert.match(source, /summary/);
+  assert.match(source, /modelRecommendation/);
+  assert.match(source, /generationCost/);
+  assert.match(source, /chapterGeneration/);
   assert.match(source, /latestChapterReport/);
+  assert.match(source, /avgQualityScore/);
+  assert.match(source, /avgConsistencyScore/);
+  assert.match(source, /totalGenerationTokens/);
+  assert.match(source, /totalAuxiliaryTokens/);
+  assert.match(source, /repairedChapterCount/);
+  assert.match(source, /lengthRepairedChapterCount/);
+  assert.match(source, /bestQualityModel/);
+  assert.match(source, /bestValueModel/);
+  assert.match(source, /fastestModel/);
+  assert.match(source, /chapterLimit/);
   assert.match(apiSource, /requireWorkAccess\(params\.workId\)/);
   assert.match(apiSource, /parseDateRangeFromSearchParams/);
   assert.match(apiSource, /getWorkAiObservability\(params\.workId/);
   assert.match(apiSource, /trendLimit/);
   assert.match(apiSource, /modelMinJobs/);
+  assert.match(apiSource, /chapterLimit/);
+  assert.match(apiSource, /max\(300\)/);
 });
 
 test("model recommendation report exposes quality value speed and exclusions", () => {
@@ -1128,4 +1147,17 @@ test("generation cost and chapter observability include main generation actions"
   assert.match(chapterSource, /generateDurationMs/);
   assert.match(chapterSource, /repaired/);
   assert.match(chapterSource, /lengthRepaired/);
+  assert.match(chapterSource, /ChapterGenerationObservabilityOptions/);
+  assert.match(chapterSource, /from\?: Date/);
+  assert.match(chapterSource, /to\?: Date/);
+  assert.match(chapterSource, /limit\?: number/);
+  assert.match(chapterSource, /Math\.min\(300/);
+  assert.match(chapterSource, /prisma\.generationJob\.groupBy\(\{/);
+  assert.match(chapterSource, /_max:\s*\{ createdAt: true \}/);
+  assert.match(chapterSource, /chapterIndex:\s*\{ in: chapterIndexes \}/);
+  assert.match(chapterSource, /createdAt: buildCreatedAtWhere\(options\)/);
+  assert.match(chapterSource, /generateSucceeded/);
+  assert.match(chapterSource, /generateFailed/);
+  assert.match(chapterSource, /repairSucceeded/);
+  assert.match(chapterSource, /lengthRepairSucceeded/);
 });
