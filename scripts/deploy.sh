@@ -18,7 +18,7 @@ cd "$APP_DIR"
 echo "Deploying ${APP_NAME} from origin/${BRANCH}..."
 git fetch origin "$BRANCH"
 git reset --hard "origin/${BRANCH}"
-npm ci
+npm ci --include=dev
 npm run db:generate
 npx prisma migrate deploy
 npm run build

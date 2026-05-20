@@ -139,7 +139,7 @@ export async function getLatestGithubRelease() {
 export async function getVersionStatus(): Promise<VersionStatus> {
   const local = await readLocalBuildInfo();
   const latest = await getLatestGithubRelease();
-  const latestVersion = latest.latestVersion ?? local.version;
+  const latestVersion = latest.latestVersion ?? null;
   const latestCommit = latest.latestCommit;
   const hasVersionUpdate = latest.latestVersion ? compareVersions(local.version, latest.latestVersion) < 0 : false;
   const hasCommitUpdate = Boolean(latestCommit && local.commit !== "unknown" && !latestCommit.startsWith(local.commit));
@@ -149,7 +149,7 @@ export async function getVersionStatus(): Promise<VersionStatus> {
     currentCommit: local.commit,
     currentBranch: local.branch,
     builtAt: local.builtAt || null,
-    latestVersion,
+    latestVersion: latestVersion ?? local.version,
     latestCommit,
     hasUpdate: hasVersionUpdate || hasCommitUpdate,
     releaseUrl: latest.releaseUrl,

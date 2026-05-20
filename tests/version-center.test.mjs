@@ -25,7 +25,7 @@ test("deploy script uses fixed commands and lock without printing secrets", () =
   assert.match(deployScript, /flock -n 9/);
   assert.match(deployScript, /git fetch origin "\$BRANCH"/);
   assert.match(deployScript, /git reset --hard "origin\/\$\{?BRANCH\}?"|git reset --hard "origin\/\$BRANCH"/);
-  assert.match(deployScript, /npm ci/);
+  assert.match(deployScript, /npm ci --include=dev/);
   assert.match(deployScript, /npm run db:generate/);
   assert.match(deployScript, /npx prisma migrate deploy/);
   assert.doesNotMatch(deployScript, /npm run db:push/);
