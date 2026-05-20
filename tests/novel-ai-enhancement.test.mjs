@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 process.env.DATABASE_URL ??= "postgresql://test:test@127.0.0.1:5432/test";
+
+const rootDir = process.cwd();
+
+function read(relativePath) {
+  return readFileSync(path.join(rootDir, relativePath), "utf8");
+}
 
 test("LongStoryContextStrategy scoring prefers relevant open foreshadowing", async () => {
   const { scoreLongContextItem, buildNovelContextFromData } = await import(
@@ -80,6 +88,69 @@ test("LongStoryContextStrategy scoring prefers relevant open foreshadowing", asy
   assert.doesNotMatch(context.text, /旧宴会/);
 });
 
+test("LongStoryContextStrategy can select relevant foreshadowing from larger candidate pool", async () => {
+  const { buildNovelContextFromData } = await import("../src/lib/ai/novel-context-engine.ts");
+  const foreshadowings = [
+    ...Array.from({ length: 19 }, (_, index) => ({
+      title: `普通伏笔${index}`,
+      hint: `路人线索${index}`,
+      status: "open",
+      importance: 20,
+      plantedChapter: index + 1,
+    })),
+    {
+      title: "青岚命灯",
+      hint: "林舟必须在青岚城修复命灯",
+      payoff: "与当前卷目标直接相关",
+      status: "open",
+      importance: 95,
+      plantedChapter: 2,
+    },
+  ];
+
+  const context = buildNovelContextFromData({
+    work: {
+      id: "work-large",
+      workType: "long_novel",
+      title: "命灯",
+      idea: "少年修复命灯",
+      synopsis: "青岚城危机",
+      canonState: null,
+      outline: {
+        tag: "玄幻",
+        title: "命灯",
+        synopsis: "青岚城危机",
+        volumes: [
+          {
+            name: "青岚城卷",
+            desc: "命灯危机",
+            startChapter: 1,
+            endChapter: 20,
+            segments: [
+              {
+                title: "修复命灯",
+                desc: "林舟必须在青岚城修复命灯",
+                startChapter: 8,
+                endChapter: 12,
+              },
+            ],
+          },
+        ],
+        characters: [{ name: "林舟", role: "protagonist", desc: "执灯人" }],
+      },
+    },
+    chapterIndex: 10,
+    previousChapters: [],
+    writingMemories: [],
+    characters: [{ name: "林舟", role: "protagonist", currentState: "追查命灯" }],
+    worldSettings: [],
+    timelineEvents: [],
+    foreshadowings,
+  });
+
+  assert.match(context.text, /青岚命灯/);
+});
+
 test("ShortStoryContextStrategy keeps context focused and capped", async () => {
   const { buildNovelContextFromData } = await import("../src/lib/ai/novel-context-engine.ts");
   const foreshadowings = Array.from({ length: 12 }, (_, index) => ({
@@ -141,6 +212,25 @@ test("ShortStoryContextStrategy keeps context focused and capped", async () => {
   assert.match(context.text, /不要新增家族阴谋/);
 });
 
+test("fallbackContext templates are readable and free of mojibake fragments", () => {
+  const source = read("src/lib/ai/chapter-generate-shared.ts");
+  const start = source.indexOf("const fallbackContext =");
+  const end = source.indexOf("const mode =", start);
+  const block = source.slice(start, end);
+
+  assert.match(block, /角色/);
+  assert.match(block, /伏笔/);
+  assert.match(block, /第\$\{item\.chapterIndex\}章/);
+  assert.doesNotMatch(block, /锛|瑙|绗|浼|閿|鐟|娴/);
+});
+
+test("prepareChapterGeneration provides enough candidates for NovelContextEngine", () => {
+  const source = read("src/lib/ai/chapter-generate-shared.ts");
+  assert.match(source, /take:\s*48/);
+  assert.match(source, /take:\s*64/);
+  assert.match(source, /take:\s*input\.index === 1 \? 0 : 64/);
+});
+
 test("ChapterPlan long fallback does not block generation", async () => {
   const { buildChapterPlan } = await import("../src/lib/ai/chapter-plan.ts");
   const plan = await buildChapterPlan({
@@ -169,6 +259,55 @@ test("ChapterPlan short fallback does not block generation", async () => {
   assert.equal(plan.mode, "short");
   assert.ok(plan.beatGoal.length > 0);
   assert.ok(plan.mustNotOpen.some((item) => item.includes("长期") || item.includes("大坑")));
+});
+
+test("plan and consistency prompts avoid chapter body schema conflicts", async () => {
+  const { buildChapterPlanSystemPrompt } = await import("../src/lib/ai/chapter-plan-prompt.ts");
+  const {
+    buildChapterConsistencySystemPrompt,
+    buildChapterRepairSystemPrompt,
+  } = await import("../src/lib/ai/chapter-consistency-prompt.ts");
+
+  const planPrompt = buildChapterPlanSystemPrompt("long");
+  const consistencyPrompt = buildChapterConsistencySystemPrompt();
+  const repairPrompt = buildChapterRepairSystemPrompt();
+
+  assert.doesNotMatch(planPrompt, /\{"title": "\.\.\.", "content": "\.\.\."\}/);
+  assert.doesNotMatch(consistencyPrompt, /\{"title": "\.\.\.", "content": "\.\.\."\}/);
+  assert.doesNotMatch(planPrompt, /正文草稿/);
+  assert.doesNotMatch(consistencyPrompt, /正文草稿/);
+  assert.match(repairPrompt, /title/);
+  assert.match(repairPrompt, /content/);
+});
+
+test("normal and stream generation both carry ChapterPlan and ConsistencyCheck", () => {
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const streamRouteSource = read("src/backend/ai/chapter/stream-route.ts");
+  const streamPersistenceSource = read("src/backend/ai/chapter/stream-persistence.ts");
+
+  assert.match(generateSource, /buildChapterPlan\(\{/);
+  assert.match(streamRouteSource, /buildChapterPlan\(\{/);
+  assert.match(generateSource, /runChapterConsistencyCheck\(\{/);
+  assert.match(streamPersistenceSource, /runChapterConsistencyCheck\(\{/);
+  assert.match(streamPersistenceSource, /checkedDraft/);
+  assert.match(streamPersistenceSource, /已自动修复连续性问题/);
+});
+
+test("AI step jobs are recorded for plan, check and repair", () => {
+  const jobSource = read("src/lib/ai/chapter-ai-step-job.ts");
+  const planSource = read("src/lib/ai/chapter-plan.ts");
+  const consistencySource = read("src/lib/ai/chapter-consistency-check.ts");
+
+  for (const action of [
+    "chapter.plan",
+    "chapter.consistency_check",
+    "chapter.consistency_repair",
+  ]) {
+    assert.match(jobSource + planSource + consistencySource, new RegExp(action));
+  }
+  assert.match(jobSource, /promptSnapshot.*slice\(0, 20000\)/s);
+  assert.match(jobSource, /inputTokens/);
+  assert.match(jobSource, /durationMs/);
 });
 
 test("ConsistencyCheck long parser accepts valid JSON", async () => {
@@ -259,4 +398,60 @@ test("canonState short merge stays compact", async () => {
   assert.ok(state.short.beatsProgress.length <= CANON_STATE_LIMITS.shortBeatsProgress);
   assert.ok(state.short.mustResolveBeforeEnd.length <= CANON_STATE_LIMITS.shortMustResolveBeforeEnd);
   assert.ok(state.short.forbiddenNewThreads.length <= CANON_STATE_LIMITS.shortForbiddenNewThreads);
+});
+
+test("context extraction payload merges into long canonState", async () => {
+  const { mergeCanonStateFromExtractionPayload } = await import(
+    "../src/lib/ai/novel-canon-state.ts"
+  );
+  const state = mergeCanonStateFromExtractionPayload({
+    current: null,
+    mode: "long",
+    chapterIndex: 5,
+    chapterTitle: "灯下誓言",
+    payload: {
+      summary: "林舟确认命灯规则。",
+      memories: [
+        { kind: "constraint", priority: 90, content: "命灯不可被外人触碰" },
+        { kind: "continuity", priority: 80, content: "林舟左臂仍有伤" },
+      ],
+      timelineEvents: [{ title: "确认规则", summary: "命灯规则被确认" }],
+      foreshadowings: [
+        { title: "旧誓约", hint: "青岚城旧誓约", status: "open" },
+        { title: "黑伞", hint: "黑伞来历", payoff: "已揭示", status: "resolved" },
+      ],
+      characterUpdates: [{ name: "林舟", currentState: "左臂受伤" }],
+    },
+  });
+
+  assert.match(state.long.characterStates.join("\n"), /林舟/);
+  assert.match(state.long.worldRules.join("\n"), /命灯不可/);
+  assert.match(state.long.openForeshadowings.join("\n"), /旧誓约/);
+  assert.match(state.long.resolvedForeshadowings.join("\n"), /黑伞/);
+});
+
+test("context extraction payload merges into short canonState compactly", async () => {
+  const { mergeCanonStateFromExtractionPayload, CANON_STATE_LIMITS } = await import(
+    "../src/lib/ai/novel-canon-state.ts"
+  );
+  const state = mergeCanonStateFromExtractionPayload({
+    current: {
+      mode: "short",
+      short: {
+        mustResolveBeforeEnd: ["电话另一端是谁"],
+      },
+    },
+    mode: "short",
+    chapterIndex: 2,
+    chapterTitle: "真相",
+    payload: {
+      summary: "许眠接起电话。",
+      memories: [{ kind: "plot_thread", priority: 80, content: "必须解释电话来源" }],
+      foreshadowings: [{ title: "电话", hint: "电话另一端是谁", status: "resolved" }],
+    },
+  });
+
+  assert.match(state.short.beatsProgress.join("\n"), /许眠接起电话/);
+  assert.doesNotMatch(state.short.mustResolveBeforeEnd.join("\n"), /电话另一端是谁/);
+  assert.ok(state.short.mustResolveBeforeEnd.length <= CANON_STATE_LIMITS.shortMustResolveBeforeEnd);
 });

@@ -258,7 +258,7 @@ export async function prepareChapterGeneration(params: {
   const writingMemories = await prisma.writingMemory.findMany({
     where: { novelId: work.id, isActive: true },
     orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
-    take: input.index === 1 ? 8 : 16,
+    take: 48,
     select: { content: true, priority: true, chapterId: true, updatedAt: true },
   });
 
@@ -266,7 +266,7 @@ export async function prepareChapterGeneration(params: {
     prisma.character.findMany({
       where: { novelId: work.id, deletedAt: null },
       orderBy: [{ lastChapter: "desc" }, { updatedAt: "desc" }],
-      take: input.index === 1 ? 4 : 6,
+      take: 64,
       select: {
         name: true,
         role: true,
@@ -280,7 +280,7 @@ export async function prepareChapterGeneration(params: {
     prisma.worldSetting.findMany({
       where: { novelId: work.id, deletedAt: null },
       orderBy: [{ lastUpdatedChapter: "desc" }, { updatedAt: "desc" }],
-      take: input.index === 1 ? 4 : 6,
+      take: 64,
       select: { kind: true, name: true, desc: true, lastUpdatedChapter: true },
     }),
     prisma.timelineEvent.findMany({
@@ -290,7 +290,7 @@ export async function prepareChapterGeneration(params: {
         chapterIndex: { lt: input.index },
       },
       orderBy: [{ chapterIndex: "desc" }, { order: "desc" }],
-      take: input.index === 1 ? 0 : 4,
+      take: input.index === 1 ? 0 : 64,
       select: { title: true, summary: true, storyTime: true, chapterIndex: true },
     }),
     prisma.foreshadowing.findMany({
@@ -300,7 +300,7 @@ export async function prepareChapterGeneration(params: {
         status: { in: ["open", "partial"] },
       },
       orderBy: [{ importance: "desc" }, { updatedAt: "desc" }],
-      take: input.index === 1 ? 2 : 4,
+      take: 64,
       select: {
         title: true,
         hint: true,
@@ -320,22 +320,22 @@ export async function prepareChapterGeneration(params: {
     writingMemories: writingMemories.map((item) => item.content),
     characters: characters.map((item) =>
       clampText(
-        `${item.name}锛?{item.role || item.identity || "瑙掕壊"}锛夛細${item.currentState || item.goal || item.desc}`,
+        `${item.name}（${item.role || item.identity || "角色"}）：${item.currentState || item.goal || item.desc}`,
         120,
       ),
     ),
     worldSettings: worldSettings.map((item) =>
-      clampText(`${item.kind}/${item.name}锛?{item.desc}`, 120),
+      clampText(`${item.kind}/${item.name}：${item.desc}`, 120),
     ),
     timelineEvents: timelineEvents.map((item) =>
       clampText(
-        `${item.chapterIndex ? `绗?{item.chapterIndex}绔?` : ""}${item.storyTime ? `${item.storyTime} ` : ""}${item.title || item.summary}锛?{item.summary}`,
+        `${item.chapterIndex ? `第${item.chapterIndex}章 ` : ""}${item.storyTime ? `${item.storyTime} ` : ""}${item.title || item.summary}：${item.summary}`,
         140,
       ),
     ),
     foreshadowings: foreshadowings.map((item) =>
       clampText(
-        `${item.title || "浼忕瑪"}锛?{item.status}锛岄噸瑕佸害${item.importance}锛夛細${item.hint}${item.payoff ? `锛涘厬鐜版柟鍚戯細${item.payoff}` : ""}`,
+        `${item.title || "伏笔"}（${item.status}，重要度${item.importance}）：${item.hint}${item.payoff ? `；兑现方向：${item.payoff}` : ""}`,
         140,
       ),
     ),

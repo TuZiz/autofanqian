@@ -286,6 +286,9 @@ export async function generateChapterForUser(params: {
       mode: prepared.mode,
       chapterIndex: input.index,
       assembledContext: prepared.assembledContext,
+      userId: user.id,
+      workId: prepared.work.id,
+      chapterId: prepared.existingChapter?.id ?? null,
       providers: orderedProviders,
       routeId: prepared.routeId,
       preferredProviderId: selected.provider.id,
@@ -362,6 +365,10 @@ export async function generateChapterForUser(params: {
     });
     const consistency = await runChapterConsistencyCheck({
       mode: prepared.mode,
+      userId: user.id,
+      workId: prepared.work.id,
+      chapterId: prepared.existingChapter?.id ?? null,
+      chapterIndex: input.index,
       title: draft.title,
       content: draft.content,
       assembledContext: prepared.assembledContext,

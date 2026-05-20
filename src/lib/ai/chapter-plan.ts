@@ -2,7 +2,12 @@ import "server-only";
 
 import { z } from "zod";
 
-import { buildChapterSystemPrompt } from "@/lib/ai/chapter-prompt";
+import {
+  beginAiStepJob,
+  completeAiStepJob,
+  failAiStepJob,
+} from "@/lib/ai/chapter-ai-step-job";
+import { buildChapterPlanSystemPrompt } from "@/lib/ai/chapter-plan-prompt";
 import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
 import {
   callAiText,
@@ -172,6 +177,9 @@ export async function buildChapterPlan(params: {
   chapterIndex: number;
   assembledContext: string;
   currentGoal?: string | null;
+  userId?: string | null;
+  workId?: string | null;
+  chapterId?: string | null;
   providers?: UpstreamProvider[];
   routeId?: UpstreamRouteId;
   preferredProviderId?: string | null;
@@ -198,13 +206,27 @@ export async function buildChapterPlan(params: {
     });
 
   const messages: UpstreamChatMessage[] = [
-    { role: "system", content: buildChapterSystemPrompt() },
+    { role: "system", content: buildChapterPlanSystemPrompt(params.mode) },
     {
       role: "user",
       content: buildPlanPrompt(params),
     },
   ];
   const tokenConfig = getChapterTokenConfig({ mode: params.mode });
+  const stepJob = params.userId && params.workId
+    ? await beginAiStepJob({
+        userId: params.userId,
+        workId: params.workId,
+        chapterId: params.chapterId ?? null,
+        chapterIndex: params.chapterIndex,
+        action: "chapter.plan",
+        routeId: params.routeId,
+        providerId: params.preferredProviderId,
+        modelUsed: params.providers?.[0]?.model ?? null,
+        promptSnapshot: messages.map((message) => message.content).join("\n\n"),
+      })
+    : null;
+  let lastResult: Pick<UpstreamTextResult, "ok" | "text" | "upstreamMessage"> | null = null;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -222,13 +244,31 @@ export async function buildChapterPlan(params: {
         temperature: 0.25,
         maxTokens: tokenConfig.chapterPlan,
       });
+      lastResult = result;
       const plan = result.ok && result.text ? parseChapterPlan(result.text, params.mode) : null;
-      if (plan) return plan;
+      if (plan) {
+        await completeAiStepJob({
+          jobId: stepJob?.id,
+          result: result as UpstreamTextResult,
+          resultSummary: "章节计划生成成功",
+          providerId: params.preferredProviderId,
+          modelUsed: params.providers?.[0]?.model ?? null,
+        });
+        return plan;
+      }
     } catch {
       // fall through to retry/fallback
     }
   }
 
+  await failAiStepJob({
+    jobId: stepJob?.id,
+    result: lastResult as UpstreamTextResult | null,
+    error: lastResult?.upstreamMessage ?? "chapter_plan_failed",
+    resultSummary: "章节计划生成失败，已降级使用规则计划",
+    providerId: params.preferredProviderId,
+    modelUsed: params.providers?.[0]?.model ?? null,
+  });
   return fallback;
 }
 

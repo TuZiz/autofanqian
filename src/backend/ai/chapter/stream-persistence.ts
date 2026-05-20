@@ -2,6 +2,7 @@ import {
   combineTextResultUsage,
   repairChapterLengthIfNeeded,
 } from "@/lib/ai/chapter-length-repair";
+import { runChapterConsistencyCheck } from "@/lib/ai/chapter-consistency-check";
 import { mergeNovelCanonState } from "@/lib/ai/novel-canon-state";
 import {
   finalizeGeneratedDraft,
@@ -174,9 +175,26 @@ export async function completeSuccessfulStreamGeneration(params: {
     index,
     rawText: usageResult.text,
   });
+  const consistency = await runChapterConsistencyCheck({
+    mode: prepared.mode,
+    userId: prepared.user.id,
+    workId: prepared.work.id,
+    chapterId: prepared.existingChapter?.id ?? null,
+    chapterIndex: index,
+    title: finalized.title,
+    content: finalized.content,
+    assembledContext: prepared.assembledContext,
+    generationPlan: prepared.generationPlan,
+    providers: prepared.providers,
+    routeId: prepared.routeId,
+    preferredProviderId: usageResult.providerId ?? selectedProvider.id,
+  });
+  const checkedDraft = consistency.repairedContent
+    ? { ...finalized, content: consistency.repairedContent }
+    : finalized;
   const lengthRepair = await repairChapterLengthIfNeeded({
     index,
-    draft: finalized,
+    draft: checkedDraft,
     promptSnapshot: prepared.promptSnapshot,
     providers: prepared.providers,
     routeId: prepared.routeId,
@@ -256,6 +274,7 @@ export async function completeSuccessfulStreamGeneration(params: {
           chapterSummary: chapter.summary,
           chapterContent: finalDraft.content,
           generationPlan: prepared.generationPlan,
+          consistencyIssues: consistency.check?.issues ?? [],
         }),
       },
     });
@@ -272,9 +291,13 @@ export async function completeSuccessfulStreamGeneration(params: {
     routeId: "gpt",
     providerId: usageResult.providerId ?? selectedProvider.id,
     modelUsed: usageResult.modelUsed ?? selectedProvider.model,
-    resultSummary: lengthRepair.repairApplied
-      ? `已生成第${index}章，${finalWordCount}字。${lengthRepair.repairNote ?? "已自动校正字数。"}`
-      : `已生成第${index}章，${finalWordCount}字。`,
+    resultSummary: [
+      lengthRepair.repairApplied
+        ? `已生成第${index}章，${finalWordCount}字。${lengthRepair.repairNote ?? "已自动校正字数。"}`
+        : `已生成第${index}章，${finalWordCount}字。`,
+      consistency.repairedContent ? "已自动修复连续性问题。" : "",
+      consistency.check?.score ? `一致性评分：${consistency.check.score}` : "",
+    ].filter(Boolean).join(" "),
     inputTokens: combinedUsage.inputTokens,
     outputTokens: combinedUsage.outputTokens,
     totalTokens: combinedUsage.totalTokens,

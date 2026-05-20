@@ -2,7 +2,15 @@ import "server-only";
 
 import { z } from "zod";
 
-import { buildChapterSystemPrompt } from "@/lib/ai/chapter-prompt";
+import {
+  beginAiStepJob,
+  completeAiStepJob,
+  failAiStepJob,
+} from "@/lib/ai/chapter-ai-step-job";
+import {
+  buildChapterConsistencySystemPrompt,
+  buildChapterRepairSystemPrompt,
+} from "@/lib/ai/chapter-consistency-prompt";
 import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
 import {
   callAiText,
@@ -145,6 +153,10 @@ function buildRepairPrompt(params: {
 
 export async function runChapterConsistencyCheck(params: {
   mode: NovelMode;
+  userId?: string | null;
+  workId?: string | null;
+  chapterId?: string | null;
+  chapterIndex?: number | null;
   title: string;
   content: string;
   assembledContext: string;
@@ -172,11 +184,25 @@ export async function runChapterConsistencyCheck(params: {
   const tokenConfig = getChapterTokenConfig({ mode: params.mode });
 
   try {
+    const checkMessages: UpstreamChatMessage[] = [
+      { role: "system", content: buildChapterConsistencySystemPrompt() },
+      { role: "user", content: buildCheckPrompt(params) },
+    ];
+    const checkJob = params.userId && params.workId
+      ? await beginAiStepJob({
+          userId: params.userId,
+          workId: params.workId,
+          chapterId: params.chapterId ?? null,
+          chapterIndex: params.chapterIndex ?? null,
+          action: "chapter.consistency_check",
+          routeId: params.routeId,
+          providerId: params.preferredProviderId,
+          modelUsed: params.providers?.[0]?.model ?? null,
+          promptSnapshot: checkMessages.map((message) => message.content).join("\n\n"),
+        })
+      : null;
     const checkResult = await callText({
-      messages: [
-        { role: "system", content: buildChapterSystemPrompt() },
-        { role: "user", content: buildCheckPrompt(params) },
-      ],
+      messages: checkMessages,
       temperature: 0.2,
       maxTokens: tokenConfig.consistencyCheck,
     });
@@ -184,25 +210,58 @@ export async function runChapterConsistencyCheck(params: {
       checkResult.ok && checkResult.text
         ? parseChapterConsistencyCheck(checkResult.text)
         : null;
-    if (!check) return { check: null, repairedContent: null };
+    if (!check) {
+      await failAiStepJob({
+        jobId: checkJob?.id,
+        result: checkResult as UpstreamTextResult,
+        error: checkResult.upstreamMessage ?? "chapter_consistency_check_failed",
+        resultSummary: "一致性校验失败，已降级跳过",
+        providerId: params.preferredProviderId,
+        modelUsed: params.providers?.[0]?.model ?? null,
+      });
+      return { check: null, repairedContent: null };
+    }
+    await completeAiStepJob({
+      jobId: checkJob?.id,
+      result: checkResult as UpstreamTextResult,
+      resultSummary: check.passed
+        ? `一致性校验通过，score=${check.score}`
+        : `一致性校验未通过，score=${check.score}`,
+      providerId: params.preferredProviderId,
+      modelUsed: params.providers?.[0]?.model ?? null,
+    });
     if (check.score >= 75 && check.passed) {
       return { check, repairedContent: null };
     }
 
+    const repairMessages: UpstreamChatMessage[] = [
+      { role: "system", content: buildChapterRepairSystemPrompt() },
+      {
+        role: "user",
+        content: buildRepairPrompt({
+          mode: params.mode,
+          title: params.title,
+          content: params.content,
+          check,
+          assembledContext: params.assembledContext,
+        }),
+      },
+    ];
+    const repairJob = params.userId && params.workId
+      ? await beginAiStepJob({
+          userId: params.userId,
+          workId: params.workId,
+          chapterId: params.chapterId ?? null,
+          chapterIndex: params.chapterIndex ?? null,
+          action: "chapter.consistency_repair",
+          routeId: params.routeId,
+          providerId: params.preferredProviderId,
+          modelUsed: params.providers?.[0]?.model ?? null,
+          promptSnapshot: repairMessages.map((message) => message.content).join("\n\n"),
+        })
+      : null;
     const repairResult = await callText({
-      messages: [
-        { role: "system", content: buildChapterSystemPrompt() },
-        {
-          role: "user",
-          content: buildRepairPrompt({
-            mode: params.mode,
-            title: params.title,
-            content: params.content,
-            check,
-            assembledContext: params.assembledContext,
-          }),
-        },
-      ],
+      messages: repairMessages,
       temperature: 0.25,
       maxTokens: tokenConfig.chapterGenerate,
     });
@@ -214,9 +273,24 @@ export async function runChapterConsistencyCheck(params: {
       typeof (repaired as { content?: unknown }).content === "string"
     ) {
       const content = (repaired as { content: string }).content.trim();
+      await completeAiStepJob({
+        jobId: repairJob?.id,
+        result: repairResult as UpstreamTextResult,
+        resultSummary: "一致性校验未通过，已尝试修复",
+        providerId: params.preferredProviderId,
+        modelUsed: params.providers?.[0]?.model ?? null,
+      });
       return { check, repairedContent: content || null };
     }
 
+    await failAiStepJob({
+      jobId: repairJob?.id,
+      result: repairResult as UpstreamTextResult,
+      error: repairResult.upstreamMessage ?? "chapter_consistency_repair_failed",
+      resultSummary: "一致性校验未通过，已尝试修复",
+      providerId: params.preferredProviderId,
+      modelUsed: params.providers?.[0]?.model ?? null,
+    });
     return { check, repairedContent: null };
   } catch {
     return { check: null, repairedContent: null };

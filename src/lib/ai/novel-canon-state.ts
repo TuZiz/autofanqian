@@ -248,3 +248,132 @@ export function mergeNovelCanonState(params: {
   state.updatedAtChapter = Math.max(state.updatedAtChapter, params.chapterIndex);
   return state;
 }
+
+type ExtractionPayloadLike = {
+  summary?: string | null;
+  memories?: Array<{
+    kind?: string | null;
+    priority?: number | null;
+    content: string;
+  }>;
+  timelineEvents?: Array<{
+    title?: string | null;
+    summary: string;
+    storyTime?: string | null;
+  }>;
+  foreshadowings?: Array<{
+    title?: string | null;
+    hint: string;
+    payoff?: string | null;
+    status?: string | null;
+  }>;
+  characterUpdates?: Array<{
+    name: string;
+    currentState?: string | null;
+    goal?: string | null;
+    notes?: string | null;
+  }>;
+};
+
+function removeResolvedItems(items: string[], resolvedHints: string[]) {
+  if (!resolvedHints.length) return items;
+  return items.filter((item) => !resolvedHints.some((hint) => item.includes(hint)));
+}
+
+export function mergeCanonStateFromExtractionPayload(params: {
+  current: unknown;
+  mode: NovelMode;
+  chapterIndex: number;
+  chapterTitle?: string | null;
+  payload: ExtractionPayloadLike;
+}): NovelCanonState {
+  const state = normalizeNovelCanonState(params.current, params.mode);
+  const title = readString(params.chapterTitle);
+  const summary = readString(params.payload.summary);
+  const chapterLine = `${params.mode === "short" ? "Beat" : "第"}${params.chapterIndex}${params.mode === "short" ? "" : "章"}${title ? `《${title}》` : ""}${summary ? `：${summary}` : ""}`;
+  const memories = params.payload.memories ?? [];
+  const timelineEvents = params.payload.timelineEvents ?? [];
+  const foreshadowings = params.payload.foreshadowings ?? [];
+  const characterUpdates = params.payload.characterUpdates ?? [];
+
+  if (params.mode === "short") {
+    const resolvedHints = foreshadowings
+      .filter((item) => item.status === "resolved")
+      .map((item) => readString(item.hint))
+      .filter(Boolean);
+    const mustResolveAdditions = memories
+      .filter((item) => item.kind === "plot_thread" || item.kind === "continuity")
+      .map((item) => item.content);
+
+    state.mode = "short";
+    state.short.beatsProgress = mergeLimited(
+      state.short.beatsProgress,
+      [chapterLine],
+      CANON_STATE_LIMITS.shortBeatsProgress,
+    );
+    state.short.mustResolveBeforeEnd = removeResolvedItems(
+      mergeLimited(
+        state.short.mustResolveBeforeEnd,
+        mustResolveAdditions,
+        CANON_STATE_LIMITS.shortMustResolveBeforeEnd,
+      ),
+      resolvedHints,
+    ).slice(0, CANON_STATE_LIMITS.shortMustResolveBeforeEnd);
+  } else {
+    const characterStates = characterUpdates.map((item) =>
+      `${item.name}：${item.currentState || item.goal || item.notes || ""}`,
+    );
+    const plotLines = timelineEvents.map((item) =>
+      `${item.storyTime ? `${item.storyTime} ` : ""}${item.title || "事件"}：${item.summary}`,
+    );
+    const worldRules = memories
+      .filter((item) => item.kind === "constraint" || item.kind === "continuity" || item.kind === "detail")
+      .map((item) => item.content);
+    const openForeshadowings = foreshadowings
+      .filter((item) => item.status === "open" || item.status === "partial")
+      .map((item) => `${item.title || "伏笔"}：${item.hint}${item.payoff ? `；兑现方向：${item.payoff}` : ""}`);
+    const resolvedForeshadowings = foreshadowings
+      .filter((item) => item.status === "resolved")
+      .map((item) => `${item.title || "伏笔"}：${item.hint}${item.payoff ? `；已兑现：${item.payoff}` : ""}`);
+
+    state.mode = "long";
+    state.long.characterStates = mergeLimited(
+      state.long.characterStates,
+      characterStates,
+      CANON_STATE_LIMITS.longCharacterStates,
+    );
+    state.long.volumeSummaries = mergeLimited(
+      state.long.volumeSummaries,
+      [chapterLine, ...plotLines],
+      120,
+    );
+    state.long.worldRules = mergeLimited(
+      state.long.worldRules,
+      worldRules,
+      CANON_STATE_LIMITS.longWorldRules,
+    );
+    state.long.openForeshadowings = removeResolvedItems(
+      mergeLimited(
+        state.long.openForeshadowings,
+        openForeshadowings,
+        CANON_STATE_LIMITS.longOpenForeshadowings,
+      ),
+      resolvedForeshadowings.map((item) => item.split("：").at(1) ?? item),
+    ).slice(0, CANON_STATE_LIMITS.longOpenForeshadowings);
+    state.long.resolvedForeshadowings = mergeLimited(
+      state.long.resolvedForeshadowings,
+      resolvedForeshadowings,
+      160,
+    );
+    state.long.forbiddenContradictions = mergeLimited(
+      state.long.forbiddenContradictions,
+      memories
+        .filter((item) => item.kind === "constraint" || item.kind === "continuity")
+        .map((item) => item.content),
+      120,
+    );
+  }
+
+  state.updatedAtChapter = Math.max(state.updatedAtChapter, params.chapterIndex);
+  return state;
+}

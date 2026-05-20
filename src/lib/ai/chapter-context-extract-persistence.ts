@@ -1,6 +1,10 @@
 import { type ForeshadowingStatus, type MemoryKind } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import {
+  mergeCanonStateFromExtractionPayload,
+  normalizeNovelCanonState,
+} from "@/lib/ai/novel-canon-state";
 import type {
   ContextExtractionChapter,
   ContextExtractionCharacter,
@@ -152,6 +156,27 @@ export async function applyContextExtractionPayload(params: {
           currentState: item.currentState ?? item.notes ?? matched.currentState,
           goal: item.goal ?? matched.goal,
           lastChapter: index,
+        },
+      });
+    }
+
+    const work = await tx.work.findUnique({
+      where: { id: workId },
+      select: { canonState: true, workType: true },
+    });
+    if (work) {
+      const mode = work.workType === "short_story" ? "short" : "long";
+      const current = normalizeNovelCanonState(work.canonState, mode);
+      await tx.work.update({
+        where: { id: workId },
+        data: {
+          canonState: mergeCanonStateFromExtractionPayload({
+            current,
+            mode,
+            chapterIndex: index,
+            chapterTitle: "title" in chapter && typeof chapter.title === "string" ? chapter.title : null,
+            payload,
+          }),
         },
       });
     }
