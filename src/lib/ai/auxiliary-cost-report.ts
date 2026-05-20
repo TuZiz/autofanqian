@@ -5,6 +5,14 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type AuxiliaryAiCostAction =
+  | "chapter.generate"
+  | "chapter.generate.stream"
+  | "regenerate.all"
+  | "regenerate.all.stream"
+  | "chapter_generate"
+  | "chapter_regenerate"
+  | "chapter_generate_length_repair"
+  | "chapter_generate_stream_length_repair"
   | "chapter.plan"
   | "chapter.consistency_check"
   | "chapter.consistency_repair"
@@ -20,6 +28,7 @@ export type AuxiliaryAiCostReportFilter = AuxiliaryAiCostReportRange & {
   userId?: string | null;
   workId?: string | null;
   action?: AuxiliaryAiCostAction | null;
+  actions?: readonly AuxiliaryAiCostAction[];
 };
 
 export type AuxiliaryAiCostReportItem = {
@@ -69,15 +78,32 @@ const AUXILIARY_AI_ACTIONS: AuxiliaryAiCostAction[] = [
   "canon.compress",
 ];
 
+export const GENERATION_COST_ACTIONS: AuxiliaryAiCostAction[] = [
+  "chapter.generate",
+  "chapter.generate.stream",
+  "regenerate.all",
+  "regenerate.all.stream",
+  "chapter_generate",
+  "chapter_regenerate",
+  "chapter_generate_length_repair",
+  "chapter_generate_stream_length_repair",
+  "chapter.plan",
+  "chapter.consistency_check",
+  "chapter.consistency_repair",
+  "chapter.quality_check",
+  "canon.compress",
+];
+
 function average(total: number, count: number) {
   return count > 0 ? Math.round(total / count) : 0;
 }
 
 function buildWhere(filter: AuxiliaryAiCostReportFilter = {}): Prisma.GenerationJobWhereInput {
+  const actions = filter.action ? [filter.action] : filter.actions ?? AUXILIARY_AI_ACTIONS;
   return {
     ...(filter.workId ? { novelId: filter.workId } : {}),
     ...(filter.userId ? { userId: filter.userId } : {}),
-    action: { in: filter.action ? [filter.action] : AUXILIARY_AI_ACTIONS },
+    action: { in: [...actions] },
     createdAt: {
       ...(filter.from ? { gte: filter.from } : {}),
       ...(filter.to ? { lte: filter.to } : {}),
@@ -123,6 +149,7 @@ function toDimensionItem(
 async function getAuxiliaryAiCostSummary(
   filter: AuxiliaryAiCostReportFilter = {},
 ): Promise<AuxiliaryAiCostReport> {
+  const actions = filter.action ? [filter.action] : filter.actions ?? AUXILIARY_AI_ACTIONS;
   const rows = await prisma.generationJob.groupBy({
     by: ["action"],
     where: buildWhere(filter),
@@ -134,7 +161,7 @@ async function getAuxiliaryAiCostSummary(
     },
   });
 
-  const byAction = AUXILIARY_AI_ACTIONS.map((action) => {
+  const byAction = actions.map((action) => {
     const row = rows.find((item) => item.action === action);
     const totalTokens = row?._sum.totalTokens ?? 0;
     const inputTokens = row?._sum.inputTokens ?? 0;

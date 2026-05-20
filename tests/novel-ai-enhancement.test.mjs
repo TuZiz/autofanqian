@@ -1071,3 +1071,61 @@ test("model quality report aggregates provider model quality observability", () 
   assert.match(modelQualitySource, /parseConsistencyReportResultJson/);
   assert.match(modelQualitySource, /parseQualityReportScore/);
 });
+
+test("work AI observability dashboard aggregates quality and cost reports", () => {
+  const source = read("src/lib/ai/work-ai-observability.ts");
+  const apiSource = read("src/app/api/workbench/works/[workId]/ai-observability/route.ts");
+
+  assert.match(source, /export async function getWorkAiObservability/);
+  assert.match(source, /getWorkQualityTrend/);
+  assert.match(source, /getModelQualityReport/);
+  assert.match(source, /getAuxiliaryAiCostReport/);
+  assert.match(source, /getChapterQualityReport/);
+  assert.match(source, /latestChapterReport/);
+  assert.match(apiSource, /requireWorkAccess\(params\.workId\)/);
+  assert.match(apiSource, /parseDateRangeFromSearchParams/);
+  assert.match(apiSource, /getWorkAiObservability\(params\.workId/);
+  assert.match(apiSource, /trendLimit/);
+  assert.match(apiSource, /modelMinJobs/);
+});
+
+test("model recommendation report exposes quality value speed and exclusions", () => {
+  const source = read("src/lib/ai/model-recommendation-report.ts");
+
+  assert.match(source, /bestQuality/);
+  assert.match(source, /bestValue/);
+  assert.match(source, /fastest/);
+  assert.match(source, /notRecommended/);
+  assert.match(source, /reason/);
+  assert.match(source, /sampleWarning/);
+  assert.match(source, /质量与 token 成本比例较优/);
+});
+
+test("generation cost and chapter observability include main generation actions", () => {
+  const costSource = read("src/lib/ai/generation-cost-report.ts");
+  const auxiliaryCostSource = read("src/lib/ai/auxiliary-cost-report.ts");
+  const chapterSource = read("src/lib/ai/chapter-generation-observability.ts");
+
+  for (const action of [
+    "chapter.generate",
+    "chapter.generate.stream",
+    "chapter_generate",
+    "chapter_regenerate",
+    "chapter_generate_length_repair",
+    "chapter.plan",
+    "chapter.consistency_check",
+    "chapter.quality_check",
+    "canon.compress",
+  ]) {
+    assert.match(costSource + auxiliaryCostSource + chapterSource, new RegExp(action.replaceAll(".", "\\.")));
+  }
+  assert.match(costSource, /getGenerationCostReport/);
+  assert.match(costSource, /getGlobalAuxiliaryAiCostReport/);
+  assert.match(chapterSource, /getChapterGenerationObservability/);
+  assert.match(chapterSource, /generateProviderId/);
+  assert.match(chapterSource, /generateModelUsed/);
+  assert.match(chapterSource, /generateTokens/);
+  assert.match(chapterSource, /generateDurationMs/);
+  assert.match(chapterSource, /repaired/);
+  assert.match(chapterSource, /lengthRepaired/);
+});
