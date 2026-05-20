@@ -618,6 +618,23 @@ model AdminAuditLog {
   @@index([createdAt(sort: Desc)])
 }
 
+model DeployJob {
+  id             String    @id @default(cuid())
+  status         String    @default("running")
+  startedById    String?
+  startedByEmail String?
+  currentVersion String?
+  targetVersion  String?
+  commitBefore   String?
+  commitAfter    String?
+  log            String    @default("")
+  error          String?
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+
+  @@index([status, startedAt])
+}
+
 model GenerationJob {
   id                    String              @id @default(cuid())
   novelId               String

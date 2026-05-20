@@ -22,6 +22,7 @@ import { AdminConfigSection } from "./admin-config-section";
 import { AdminPlanningSection } from "./admin-planning-section";
 import { AdminStatsSection } from "./admin-stats-section";
 import { AdminTemplateSection } from "./admin-template-section";
+import { AdminVersionPopover } from "./admin-version-popover";
 
 type DashboardAdminViewProps = {
   admin: DashboardAdminController;
@@ -31,6 +32,7 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
   const activeGenres = admin.config?.genres.filter((genre) => genre.active).length ?? 0;
   const totalGenres = admin.config?.genres.length ?? 0;
   const activePlatforms = admin.config?.platforms.filter((item) => item.active).length ?? 0;
+  const canUpdateSystem = Boolean(admin.user?.isRootAdmin || admin.user?.role === "super_admin");
   const totalOptions =
     (admin.config?.platforms.length ?? 0) +
     (admin.config?.dnaStyles.length ?? 0) +
@@ -60,6 +62,7 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-[var(--theme-text-strong)]">总览与配置</h1>
+                <AdminVersionPopover canUpdate={canUpdateSystem} />
                 <AdminAutoSaveStatus admin={admin} />
               </div>
               <p className="mt-1 max-w-3xl truncate text-sm font-semibold text-[var(--theme-text-secondary)]">
