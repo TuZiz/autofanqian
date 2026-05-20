@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 import type { UpstreamTextResult } from "@/lib/ai/upstream-text";
 
@@ -49,6 +51,7 @@ export async function completeAiStepJob(params: {
   jobId?: string | null;
   result?: UpstreamTextResult | null;
   resultSummary: string;
+  resultJson?: Prisma.InputJsonValue;
   providerId?: string | null;
   modelUsed?: string | null;
 }) {
@@ -66,6 +69,7 @@ export async function completeAiStepJob(params: {
         totalTokens: params.result?.usage?.totalTokens ?? null,
         durationMs: params.result?.durationMs ?? null,
         resultSummary: params.resultSummary,
+        resultJson: params.resultJson ?? undefined,
         finishedAt: now,
         completedAt: now,
         heartbeatAt: now,
@@ -79,6 +83,7 @@ export async function failAiStepJob(params: {
   result?: UpstreamTextResult | null;
   error: string;
   resultSummary?: string;
+  resultJson?: Prisma.InputJsonValue;
   providerId?: string | null;
   modelUsed?: string | null;
 }) {
@@ -98,6 +103,7 @@ export async function failAiStepJob(params: {
         error: params.error,
         errorMessage: params.error,
         resultSummary: params.resultSummary ?? params.error,
+        resultJson: params.resultJson ?? undefined,
         finishedAt: now,
         completedAt: now,
         heartbeatAt: now,

@@ -379,6 +379,7 @@ export async function generateChapterForUser(params: {
       content: draft.content,
       assembledContext: prepared.assembledContext,
       generationPlan,
+      isFinalShortBeat: prepared.isFinalShortBeat,
       providers: orderedProviders,
       routeId: prepared.routeId,
       preferredProviderId: result.providerId ?? selected.provider.id,

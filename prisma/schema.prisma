@@ -686,6 +686,7 @@ model GenerationJob {
   promptTemplateVersion Int?
   promptSnapshot        String?
   resultSummary         String?
+  resultJson            Json?
   error                 String?
   errorMessage          String?
   inputTokens           Int?

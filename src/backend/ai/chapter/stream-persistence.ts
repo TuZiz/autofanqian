@@ -185,6 +185,7 @@ export async function completeSuccessfulStreamGeneration(params: {
     content: finalized.content,
     assembledContext: prepared.assembledContext,
     generationPlan: prepared.generationPlan,
+    isFinalShortBeat: prepared.isFinalShortBeat,
     providers: prepared.providers,
     routeId: prepared.routeId,
     preferredProviderId: usageResult.providerId ?? selectedProvider.id,

@@ -660,25 +660,33 @@ test("quality check parser accepts bounded score JSON", async () => {
   });
 });
 
-test("auxiliary timeout throws explicit action errors", async () => {
-  const { withAuxiliaryTimeout, isAuxiliaryTimeoutError } = await import(
+test("auxiliary timeout signal aborts and throws explicit action errors", async () => {
+  const { withAuxiliaryTimeoutSignal, isAuxiliaryTimeoutError } = await import(
     "../src/lib/ai/chapter-auxiliary-timeout.ts"
   );
   const previous = process.env.AI_QUALITY_CHECK_TIMEOUT_MS;
   process.env.AI_QUALITY_CHECK_TIMEOUT_MS = "1";
+  let aborted = false;
 
   try {
     await assert.rejects(
       () =>
-        withAuxiliaryTimeout(
+        withAuxiliaryTimeoutSignal(
           "chapter_quality_check",
-          () => new Promise((resolve) => setTimeout(() => resolve("late"), 30)),
+          (signal) =>
+            new Promise((resolve) => {
+              signal.addEventListener("abort", () => {
+                aborted = true;
+              });
+              setTimeout(() => resolve("late"), 30);
+            }),
         ),
       (error) =>
         error instanceof Error &&
         error.message === "auxiliary_timeout:chapter_quality_check" &&
         isAuxiliaryTimeoutError(error, "chapter_quality_check"),
     );
+    assert.equal(aborted, true);
   } finally {
     if (previous === undefined) delete process.env.AI_QUALITY_CHECK_TIMEOUT_MS;
     else process.env.AI_QUALITY_CHECK_TIMEOUT_MS = previous;
@@ -699,7 +707,11 @@ test("ChapterPlan and QualityCheck timeout degrade safely", async () => {
       chapterIndex: 3,
       assembledContext: "上一章结尾：命灯裂开。",
       user: { email: "plus@example.com", membershipTier: "plus" },
-      callText: () => new Promise((resolve) => setTimeout(() => resolve({ ok: true, text: "{}" }), 30)),
+      callText: ({ signal }) =>
+        new Promise((resolve) => {
+          assert.ok(signal instanceof AbortSignal);
+          setTimeout(() => resolve({ ok: true, text: "{}" }), 30);
+        }),
     });
     assert.equal(plan.mode, "long");
     assert.ok(plan.chapterGoal.length > 0);
@@ -710,7 +722,11 @@ test("ChapterPlan and QualityCheck timeout degrade safely", async () => {
       content: "林舟继续追查命灯。",
       assembledContext: "上一章：命灯裂开。",
       user: { email: "plus@example.com", membershipTier: "plus" },
-      callText: () => new Promise((resolve) => setTimeout(() => resolve({ ok: true, text: "{}" }), 30)),
+      callText: ({ signal }) =>
+        new Promise((resolve) => {
+          assert.ok(signal instanceof AbortSignal);
+          setTimeout(() => resolve({ ok: true, text: "{}" }), 30);
+        }),
     });
     assert.equal(quality, null);
   } finally {
@@ -729,6 +745,7 @@ test("quality check records step job and is wired into non-stream generation", (
   assert.match(generateSource, /runChapterQualityCheck\(\{/);
   assert.match(generateSource, /质量评分/);
   assert.match(qualitySource, /JSON=\$\{JSON\.stringify/);
+  assert.match(qualitySource, /resultJson:\s*quality/);
 });
 
 test("auxiliary AI quota shortage degrades without blocking save", () => {
@@ -787,17 +804,31 @@ test("canon AI compression is optional and background-only", async () => {
 test("canon compress uses unified AI step job and timeout fallback", () => {
   const source = read("src/lib/ai/novel-canon-ai-compression.ts");
   assert.match(source, /from "@\/lib\/ai\/ai-step-job"/);
-  assert.match(source, /withAuxiliaryTimeout\("canon_compress"/);
+  assert.match(source, /withAuxiliaryTimeoutSignal\("canon_compress"/);
   assert.match(source, /canonState AI 压缩超时，已跳过/);
+  assert.match(source, /resultJson:\s*\{/);
   assert.doesNotMatch(source, /prisma\.generationJob\s*\.\s*create/);
 });
 
-test("chapter quality report parses resultSummary but never promptSnapshot", async () => {
+test("chapter quality report prefers resultJson and never promptSnapshot", async () => {
   const {
     parseQualityReportPayload,
+    parseQualityReportResultJson,
     parseQualityReportScore,
   } = await import("../src/lib/ai/chapter-quality-report.ts");
   const reportSource = read("src/lib/ai/chapter-quality-report.ts");
+
+  const resultJson = parseQualityReportResultJson({
+    score: 91,
+    rhythm: 88,
+    hook: 90,
+    emotion: 92,
+    conflict: 89,
+    issues: ["钩子稍弱"],
+    suggestions: ["加强结尾压力"],
+  });
+  assert.equal(resultJson?.score, 91);
+  assert.deepEqual(resultJson?.issues, ["钩子稍弱"]);
 
   const parsed = parseQualityReportPayload(
     '章节质量评分完成，score=86 JSON={"issues":["节奏略慢"],"suggestions":["压缩铺垫"],"rhythm":82,"hook":90,"emotion":84,"conflict":88}',
@@ -808,6 +839,7 @@ test("chapter quality report parses resultSummary but never promptSnapshot", asy
   assert.equal(parseQualityReportScore("章节质量评分完成，score=73"), 73);
   assert.equal(parseQualityReportPayload('promptSnapshot 示例 {"issues":["不应读取"]}'), null);
   assert.doesNotMatch(reportSource, /promptSnapshot/);
+  assert.match(reportSource, /resultJson:\s*true/);
 });
 
 test("short final beat context enables final closure consistency checks", async () => {
@@ -864,6 +896,32 @@ test("short final beat context enables final closure consistency checks", async 
   assert.doesNotMatch(nonFinal.text, /当前是短篇最后 beat/);
 });
 
+test("consistency check uses structured final beat flag instead of context regex", async () => {
+  const { runChapterConsistencyCheck } = await import("../src/lib/ai/chapter-consistency-check.ts");
+  const consistencySource = read("src/lib/ai/chapter-consistency-check.ts");
+  let prompt = "";
+
+  await runChapterConsistencyCheck({
+    mode: "short",
+    title: "道别",
+    content: "许眠完成告别。",
+    assembledContext: "这里没有最后 beat 文字。",
+    isFinalShortBeat: true,
+    callText: async ({ messages }) => {
+      prompt = messages.map((message) => message.content).join("\n");
+      return {
+        ok: true,
+        text: '{"passed":true,"score":88,"issues":[],"repairPrompt":""}',
+      };
+    },
+  });
+
+  assert.match(prompt, /是否回收核心冲突/);
+  assert.match(prompt, /是否完成主题落点/);
+  assert.match(consistencySource, /params\.isFinalShortBeat === true/);
+  assert.doesNotMatch(consistencySource, /assembledContext\).*最后/);
+});
+
 test("chapter quality report reads scores and quality issue payloads", () => {
   const reportSource = read("src/lib/ai/chapter-quality-report.ts");
   assert.match(reportSource, /export async function getChapterQualityReport/);
@@ -882,4 +940,23 @@ test("work quality trend aggregates latest chapter jobs in ascending order", () 
   assert.match(trendSource, /keepLatestByChapterAndAction/);
   assert.match(trendSource, /\.sort\(\(left, right\) => left - right\)/);
   assert.match(trendSource, /parseQualityReportPayload/);
+  assert.match(trendSource, /distinct:\s*\["chapterIndex"\]/);
+  assert.doesNotMatch(trendSource, /safeLimit\s*\*\s*6/);
+});
+
+test("ai step jobs support resultJson and quality API enforces work access", () => {
+  const stepJobSource = read("src/lib/ai/ai-step-job.ts");
+  const schemaSource = read("prisma/schema.prisma");
+  const apiSource = read("src/app/api/workbench/works/[workId]/chapters/[index]/quality/route.ts");
+  const upstreamText = read("src/backend/ai/upstream/text-service.ts");
+  const upstreamRequest = read("src/backend/ai/upstream/request.ts");
+
+  assert.match(schemaSource, /resultJson\s+Json\?/);
+  assert.match(stepJobSource, /resultJson\?: Prisma\.InputJsonValue/);
+  assert.match(stepJobSource, /resultJson: params\.resultJson/);
+  assert.match(apiSource, /requireWorkAccess\(params\.workId\)/);
+  assert.match(apiSource, /getChapterQualityReport\(params\.workId, params\.index\)/);
+  assert.match(upstreamText, /signal\?: AbortSignal/);
+  assert.match(upstreamRequest, /signal: requestTimeout\.signal/);
+  assert.match(upstreamRequest, /upstream_aborted/);
 });

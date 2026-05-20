@@ -8,7 +8,7 @@ import {
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
 import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
-import { withAuxiliaryTimeout } from "@/lib/ai/chapter-auxiliary-timeout";
+import { withAuxiliaryTimeoutSignal } from "@/lib/ai/chapter-auxiliary-timeout";
 import {
   buildChapterConsistencySystemPrompt,
   buildChapterRepairSystemPrompt,
@@ -42,6 +42,7 @@ type ConsistencyCallText = (params: {
   messages: UpstreamChatMessage[];
   temperature: number;
   maxTokens: number;
+  signal?: AbortSignal;
 }) => Promise<Pick<UpstreamTextResult, "ok" | "text" | "upstreamMessage">>;
 
 const consistencySchema = z
@@ -88,12 +89,12 @@ function buildCheckPrompt(params: {
   mode: NovelMode;
   assembledContext: string;
   generationPlan?: ChapterPlan | null;
+  isFinalShortBeat?: boolean;
   title: string;
   content: string;
 }) {
   const isFinalShortBeat =
-    params.mode === "short" &&
-    /当前是短篇最后 beat|最后一个 beat|最后 beat/.test(params.assembledContext);
+    params.mode === "short" && params.isFinalShortBeat === true;
   const checks =
     params.mode === "short"
       ? [
@@ -175,6 +176,7 @@ export async function runChapterConsistencyCheck(params: {
   content: string;
   assembledContext: string;
   generationPlan?: ChapterPlan | null;
+  isFinalShortBeat?: boolean;
   providers?: UpstreamProvider[];
   routeId?: UpstreamRouteId;
   preferredProviderId?: string | null;
@@ -192,7 +194,7 @@ export async function runChapterConsistencyCheck(params: {
   }
   const callText =
     params.callText ??
-    (async ({ messages, temperature, maxTokens }) => {
+    (async ({ messages, temperature, maxTokens, signal }) => {
       if (!params.providers?.length) return { ok: false, upstreamMessage: "no_provider" };
       return callAiText({
         providers: params.providers,
@@ -203,6 +205,7 @@ export async function runChapterConsistencyCheck(params: {
         maxTokens,
         attempts: 1,
         reasoningEffort: "low",
+        signal,
       });
     });
   const tokenConfig = getChapterTokenConfig({ mode: params.mode });
@@ -233,17 +236,18 @@ export async function runChapterConsistencyCheck(params: {
       })
     : null;
     activeStep = "chapter_consistency_check";
-    const executeCheckCall = () =>
+    const executeCheckCall = (signal: AbortSignal) =>
       callText({
         messages: checkMessages,
         temperature: 0.2,
         maxTokens: tokenConfig.consistencyCheck,
+        signal,
       }) as Promise<UpstreamTextResult>;
     const checkResult = params.runAiCall
       ? await params.runAiCall("chapter_consistency_check", () =>
-          withAuxiliaryTimeout("chapter_consistency_check", executeCheckCall),
+          withAuxiliaryTimeoutSignal("chapter_consistency_check", executeCheckCall),
         )
-      : await withAuxiliaryTimeout("chapter_consistency_check", executeCheckCall);
+      : await withAuxiliaryTimeoutSignal("chapter_consistency_check", executeCheckCall);
     activeStep = null;
     const check =
       checkResult.ok && checkResult.text
@@ -264,6 +268,7 @@ export async function runChapterConsistencyCheck(params: {
     await completeAiStepJob({
       jobId: checkJob?.id,
       result: checkResult as UpstreamTextResult,
+      resultJson: check,
       resultSummary: check.passed
         ? `一致性校验通过，score=${check.score}`
         : `一致性校验未通过，score=${check.score}`,
@@ -304,17 +309,18 @@ export async function runChapterConsistencyCheck(params: {
       })
     : null;
     activeStep = "chapter_consistency_repair";
-    const executeRepairCall = () =>
+    const executeRepairCall = (signal: AbortSignal) =>
       callText({
         messages: repairMessages,
         temperature: 0.25,
         maxTokens: tokenConfig.chapterGenerate,
+        signal,
       }) as Promise<UpstreamTextResult>;
     const repairResult = params.runAiCall
       ? await params.runAiCall("chapter_consistency_repair", () =>
-          withAuxiliaryTimeout("chapter_consistency_repair", executeRepairCall),
+          withAuxiliaryTimeoutSignal("chapter_consistency_repair", executeRepairCall),
         )
-      : await withAuxiliaryTimeout("chapter_consistency_repair", executeRepairCall);
+      : await withAuxiliaryTimeoutSignal("chapter_consistency_repair", executeRepairCall);
     activeStep = null;
     const repaired = repairResult.ok && repairResult.text ? extractJson(repairResult.text) : null;
     if (

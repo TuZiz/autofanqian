@@ -377,6 +377,8 @@ export async function prepareChapterGeneration(params: {
     isShortStoryWork(work.workType) && "beats" in outline
       ? outline.beats.find((beat) => beat.index === input.index)?.targetWords
       : null;
+  const isFinalShortBeat =
+    assembledContext.mode === "short" && assembledContext.sections.isFinalBeat === "true";
   const tokenConfig = getChapterTokenConfig({
     mode: assembledContext.mode,
     shortTargetWords,
@@ -475,6 +477,7 @@ export async function prepareChapterGeneration(params: {
     generationPlan: null,
     continuityWarnings: assembledContext.continuityWarnings,
     mode: assembledContext.mode,
+    isFinalShortBeat,
     extraPrompt: input.extraPrompt ?? null,
     contextExtractMaxTokens: tokenConfig.contextExtract,
     maxTokens: tokenConfig.chapterGenerate,

@@ -8,7 +8,7 @@ import {
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
 import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
-import { withAuxiliaryTimeout } from "@/lib/ai/chapter-auxiliary-timeout";
+import { withAuxiliaryTimeoutSignal } from "@/lib/ai/chapter-auxiliary-timeout";
 import { buildChapterPlanSystemPrompt } from "@/lib/ai/chapter-plan-prompt";
 import { getChapterTokenConfig } from "@/lib/ai/chapter-token-config";
 import {
@@ -48,6 +48,7 @@ type PlanCallText = (params: {
   messages: UpstreamChatMessage[];
   temperature: number;
   maxTokens: number;
+  signal?: AbortSignal;
 }) => Promise<Pick<UpstreamTextResult, "ok" | "text" | "upstreamMessage">>;
 
 export type ChapterAuxiliaryAiCallRunner = <T extends UpstreamTextResult>(
@@ -207,7 +208,7 @@ export async function buildChapterPlan(params: {
   }
   const callText =
     params.callText ??
-    (async ({ messages, temperature, maxTokens }) => {
+    (async ({ messages, temperature, maxTokens, signal }) => {
       if (!params.providers?.length) {
         return { ok: false, upstreamMessage: "no_provider" };
       }
@@ -220,6 +221,7 @@ export async function buildChapterPlan(params: {
         maxTokens,
         attempts: 1,
         reasoningEffort: "low",
+        signal,
       });
     });
 
@@ -248,7 +250,7 @@ export async function buildChapterPlan(params: {
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const executePlanCall = () =>
+      const executePlanCall = (signal: AbortSignal) =>
         callText({
         messages:
           attempt === 0
@@ -262,12 +264,13 @@ export async function buildChapterPlan(params: {
               ],
         temperature: 0.25,
         maxTokens: tokenConfig.chapterPlan,
+        signal,
         }) as Promise<UpstreamTextResult>;
       const result = params.runAiCall
         ? await params.runAiCall("chapter_plan", () =>
-            withAuxiliaryTimeout("chapter_plan", executePlanCall),
+            withAuxiliaryTimeoutSignal("chapter_plan", executePlanCall),
           )
-        : await withAuxiliaryTimeout("chapter_plan", executePlanCall);
+        : await withAuxiliaryTimeoutSignal("chapter_plan", executePlanCall);
       lastResult = result;
       const plan = result.ok && result.text ? parseChapterPlan(result.text, params.mode) : null;
       if (plan) {

@@ -62,6 +62,7 @@ export type PreparedChapterGeneration = {
   generationPlan?: ChapterPlan | null;
   continuityWarnings: string[];
   mode: NovelMode;
+  isFinalShortBeat?: boolean;
   extraPrompt?: string | null;
   contextExtractMaxTokens: number;
   maxTokens: number;

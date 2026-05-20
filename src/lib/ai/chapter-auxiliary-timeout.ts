@@ -59,3 +59,26 @@ export async function withAuxiliaryTimeout<T>(
     if (timer) clearTimeout(timer);
   }
 }
+
+export async function withAuxiliaryTimeoutSignal<T>(
+  action: ChapterAuxiliaryTimeoutAction,
+  execute: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const timeoutMs = readTimeoutMs(action);
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      execute(controller.signal),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort(new Error(`auxiliary_timeout:${action}`));
+          reject(new Error(`auxiliary_timeout:${action}`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}

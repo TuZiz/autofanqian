@@ -9,7 +9,7 @@ import {
 } from "@/lib/ai/ai-step-job";
 import {
   isAuxiliaryTimeoutError,
-  withAuxiliaryTimeout,
+  withAuxiliaryTimeoutSignal,
 } from "@/lib/ai/chapter-auxiliary-timeout";
 import { compressNovelCanonState } from "@/lib/ai/novel-canon-compression";
 import {
@@ -94,7 +94,7 @@ export async function runCanonAiCompression(params: {
   });
 
   try {
-    const result = await withAuxiliaryTimeout("canon_compress", () =>
+    const result = await withAuxiliaryTimeoutSignal("canon_compress", (signal) =>
       callAiText({
         providers: params.providers,
         routeId: params.routeId,
@@ -111,6 +111,7 @@ export async function runCanonAiCompression(params: {
         maxTokens: 1800,
         attempts: 1,
         reasoningEffort: "low",
+        signal,
       }),
     );
     const raw = result.ok && result.text ? extractJson(result.text) : null;
@@ -143,6 +144,22 @@ export async function runCanonAiCompression(params: {
     await completeAiStepJob({
       jobId: job?.id,
       result,
+      resultJson: {
+        before: {
+          volumeSummaries: state.long.volumeSummaries.length,
+          characterStates: state.long.characterStates.length,
+          worldRules: state.long.worldRules.length,
+          openForeshadowings: state.long.openForeshadowings.length,
+          forbiddenContradictions: state.long.forbiddenContradictions.length,
+        },
+        after: {
+          volumeSummaries: compressed.long.volumeSummaries.length,
+          characterStates: compressed.long.characterStates.length,
+          worldRules: compressed.long.worldRules.length,
+          openForeshadowings: compressed.long.openForeshadowings.length,
+          forbiddenContradictions: compressed.long.forbiddenContradictions.length,
+        },
+      },
       resultSummary: "canonState AI 压缩完成",
       providerId: params.preferredProviderId,
       modelUsed: params.providers[0]?.model ?? null,

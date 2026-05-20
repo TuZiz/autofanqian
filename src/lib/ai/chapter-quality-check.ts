@@ -8,7 +8,7 @@ import {
   failAiStepJob,
 } from "@/lib/ai/chapter-ai-step-job";
 import { getChapterAuxiliaryFlags } from "@/lib/ai/chapter-auxiliary-flags";
-import { withAuxiliaryTimeout } from "@/lib/ai/chapter-auxiliary-timeout";
+import { withAuxiliaryTimeoutSignal } from "@/lib/ai/chapter-auxiliary-timeout";
 import type { ChapterAuxiliaryAiCallRunner, ChapterPlan } from "@/lib/ai/chapter-plan";
 import {
   buildChapterQualitySystemPrompt,
@@ -39,6 +39,7 @@ type QualityCallText = (params: {
   messages: UpstreamChatMessage[];
   temperature: number;
   maxTokens: number;
+  signal?: AbortSignal;
 }) => Promise<Pick<UpstreamTextResult, "ok" | "text" | "upstreamMessage">>;
 
 const scoreSchema = z.coerce.number().min(0).max(100).default(0);
@@ -109,7 +110,7 @@ export async function runChapterQualityCheck(params: {
   }
   const callText =
     params.callText ??
-    (async ({ messages, temperature, maxTokens }) => {
+    (async ({ messages, temperature, maxTokens, signal }) => {
       if (!params.providers?.length) return { ok: false, upstreamMessage: "no_provider" };
       return callAiText({
         providers: params.providers,
@@ -120,6 +121,7 @@ export async function runChapterQualityCheck(params: {
         maxTokens,
         attempts: 1,
         reasoningEffort: "low",
+        signal,
       });
     });
   const tokenConfig = getChapterTokenConfig({ mode: params.mode });
@@ -143,17 +145,18 @@ export async function runChapterQualityCheck(params: {
       : null;
 
   try {
-    const executeQualityCall = () =>
+    const executeQualityCall = (signal: AbortSignal) =>
       callText({
         messages,
         temperature: 0.15,
         maxTokens: Math.min(tokenConfig.consistencyCheck, 1200),
+        signal,
       }) as Promise<UpstreamTextResult>;
     const result = params.runAiCall
       ? await params.runAiCall("chapter_quality_check", () =>
-          withAuxiliaryTimeout("chapter_quality_check", executeQualityCall),
+          withAuxiliaryTimeoutSignal("chapter_quality_check", executeQualityCall),
         )
-      : await withAuxiliaryTimeout("chapter_quality_check", executeQualityCall);
+      : await withAuxiliaryTimeoutSignal("chapter_quality_check", executeQualityCall);
     const quality = result.ok && result.text ? parseChapterQualityCheck(result.text) : null;
     if (!quality) {
       await failAiStepJob({
@@ -170,6 +173,7 @@ export async function runChapterQualityCheck(params: {
     await completeAiStepJob({
       jobId: stepJob?.id,
       result: result as UpstreamTextResult,
+      resultJson: quality,
       resultSummary: `章节质量评分完成，score=${quality.score} JSON=${JSON.stringify({
         issues: quality.issues,
         suggestions: quality.suggestions,

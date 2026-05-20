@@ -1,6 +1,10 @@
 import "server-only";
 
+import { z } from "zod";
+
+import type { ChapterConsistencyCheckResult } from "@/lib/ai/chapter-consistency-check";
 import { parseChapterQualityCheck } from "@/lib/ai/chapter-quality-check";
+import type { ChapterQualityCheckResult } from "@/lib/ai/chapter-quality-check";
 import { prisma } from "@/lib/prisma";
 
 export type ChapterQualityReport = {
@@ -50,6 +54,32 @@ export function parseQualityReportPayload(text: string | null | undefined) {
   }
 }
 
+const consistencyResultSchema = z
+  .object({
+    score: z.coerce.number().min(0).max(100).default(0),
+    issues: z.array(z.string()).default([]),
+  })
+  .passthrough();
+
+export function parseQualityReportResultJson(value: unknown): ChapterQualityCheckResult | null {
+  const parsed =
+    typeof value === "string"
+      ? parseChapterQualityCheck(value)
+      : parseChapterQualityCheck(JSON.stringify(value));
+  return parsed;
+}
+
+export function parseConsistencyReportResultJson(
+  value: unknown,
+): Pick<ChapterConsistencyCheckResult, "score" | "issues"> | null {
+  const parsed = consistencyResultSchema.safeParse(value);
+  if (!parsed.success) return null;
+  return {
+    score: parsed.data.score,
+    issues: parsed.data.issues.map((item) => item.trim()).filter(Boolean),
+  };
+}
+
 export async function getChapterQualityReport(
   workId: string,
   chapterIndex: number,
@@ -62,7 +92,7 @@ export async function getChapterQualityReport(
         action: "chapter.consistency_check",
       },
       orderBy: { createdAt: "desc" },
-      select: { resultSummary: true },
+      select: { resultSummary: true, resultJson: true },
     }),
     prisma.generationJob.findFirst({
       where: {
@@ -71,13 +101,17 @@ export async function getChapterQualityReport(
         action: "chapter.quality_check",
       },
       orderBy: { createdAt: "desc" },
-      select: { resultSummary: true },
+      select: { resultSummary: true, resultJson: true },
     }),
   ]);
 
-  const quality = parseQualityReportPayload(qualityJob?.resultSummary);
+  const consistencyJson = parseConsistencyReportResultJson(consistencyJob?.resultJson);
+  const quality =
+    parseQualityReportResultJson(qualityJob?.resultJson) ??
+    parseQualityReportPayload(qualityJob?.resultSummary);
   return {
-    consistencyScore: parseQualityReportScore(consistencyJob?.resultSummary),
+    consistencyScore:
+      consistencyJson?.score ?? parseQualityReportScore(consistencyJob?.resultSummary),
     qualityScore: quality?.score ?? parseQualityReportScore(qualityJob?.resultSummary),
     qualityIssues: quality?.issues ?? [],
     qualitySuggestions: quality?.suggestions ?? [],

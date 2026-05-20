@@ -142,7 +142,7 @@ export async function callUpstream(
       return {
         ok: false,
         status: 499,
-        json: { error: { message: "AI 生成已取消" } },
+        json: { error: { message: "upstream_aborted" } },
       };
     }
 
