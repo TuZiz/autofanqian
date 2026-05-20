@@ -974,6 +974,7 @@ test("ai step jobs support resultJson and quality API enforces work access", () 
   const costApiSource = read("src/app/api/workbench/works/[workId]/auxiliary-cost/route.ts");
   const adminCostApiSource = read("src/app/api/admin/ai/auxiliary-cost/route.ts");
   const modelQualityApiSource = read("src/app/api/workbench/works/[workId]/model-quality-report/route.ts");
+  const dateRangeSource = read("src/lib/http/date-range.ts");
   const upstreamText = read("src/backend/ai/upstream/text-service.ts");
   const upstreamRequest = read("src/backend/ai/upstream/request.ts");
   const upstreamStreamRequest = read("src/backend/ai/upstream/stream-request.ts");
@@ -986,14 +987,20 @@ test("ai step jobs support resultJson and quality API enforces work access", () 
   assert.match(trendApiSource, /requireWorkAccess\(params\.workId\)/);
   assert.match(trendApiSource, /getWorkQualityTrend\(params\.workId/);
   assert.match(costApiSource, /requireWorkAccess\(params\.workId\)/);
+  assert.match(costApiSource, /parseDateRangeFromSearchParams/);
   assert.match(costApiSource, /getAuxiliaryAiCostReport\(params\.workId/);
-  assert.match(costApiSource, /must be a valid ISO date/);
-  assert.match(costApiSource, /from must be earlier than to\./);
   assert.match(adminCostApiSource, /requireAdminUser\(\)/);
+  assert.match(adminCostApiSource, /parseDateRangeFromSearchParams/);
   assert.match(adminCostApiSource, /getGlobalAuxiliaryAiCostReport\(\{/);
-  assert.match(adminCostApiSource, /from must be earlier than to\./);
   assert.match(modelQualityApiSource, /requireWorkAccess\(params\.workId\)/);
+  assert.match(modelQualityApiSource, /parseDateRangeFromSearchParams/);
   assert.match(modelQualityApiSource, /getModelQualityReport\(params\.workId/);
+  assert.match(modelQualityApiSource, /minJobs/);
+  assert.match(dateRangeSource, /parseOptionalDate/);
+  assert.match(dateRangeSource, /assertValidDateRange/);
+  assert.match(dateRangeSource, /parseDateRangeFromSearchParams/);
+  assert.match(dateRangeSource, /must be a valid ISO date/);
+  assert.match(dateRangeSource, /from must be earlier than to\./);
   assert.match(upstreamText, /signal\?: AbortSignal/);
   assert.match(upstreamRequest, /signal: requestTimeout\.signal/);
   assert.match(upstreamRequest, /upstream_aborted/);
@@ -1034,6 +1041,10 @@ test("backfill and auxiliary cost report cover quality persistence", () => {
   assert.match(costSource, /getGlobalAuxiliaryAiCostReport/);
   assert.match(costSource, /byUser/);
   assert.match(costSource, /byWork/);
+  assert.match(costSource, /byProvider/);
+  assert.match(costSource, /byModel/);
+  assert.match(costSource, /by:\s*\["providerId"\]/);
+  assert.match(costSource, /by:\s*\["providerId", "modelUsed"\]/);
 });
 
 test("model quality report aggregates provider model quality observability", () => {
@@ -1044,6 +1055,16 @@ test("model quality report aggregates provider model quality observability", () 
   assert.match(modelQualitySource, /modelUsed/);
   assert.match(modelQualitySource, /avgConsistencyScore/);
   assert.match(modelQualitySource, /avgQualityScore/);
+  assert.match(modelQualitySource, /consistencyJobCount/);
+  assert.match(modelQualitySource, /qualityJobCount/);
+  assert.match(modelQualitySource, /consistencyTokens/);
+  assert.match(modelQualitySource, /qualityTokens/);
+  assert.match(modelQualitySource, /avgConsistencyDurationMs/);
+  assert.match(modelQualitySource, /avgQualityDurationMs/);
+  assert.match(modelQualitySource, /sampleWarning/);
+  assert.match(modelQualitySource, /样本量过低/);
+  assert.match(modelQualitySource, /评分数据不完整/);
+  assert.match(modelQualitySource, /minJobs/);
   assert.match(modelQualitySource, /jobCount/);
   assert.match(modelQualitySource, /totalTokens/);
   assert.match(modelQualitySource, /avgDurationMs/);

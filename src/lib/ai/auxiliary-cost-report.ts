@@ -43,6 +43,8 @@ export type AuxiliaryAiCostReport = {
 export type AuxiliaryAiCostDimensionItem = {
   userId?: string | null;
   workId?: string | null;
+  providerId?: string | null;
+  modelUsed?: string | null;
   totalTokens: number;
   inputTokens: number;
   outputTokens: number;
@@ -55,6 +57,8 @@ export type AuxiliaryAiCostDimensionItem = {
 export type GlobalAuxiliaryAiCostReport = AuxiliaryAiCostReport & {
   byUser: AuxiliaryAiCostDimensionItem[];
   byWork: AuxiliaryAiCostDimensionItem[];
+  byProvider: AuxiliaryAiCostDimensionItem[];
+  byModel: AuxiliaryAiCostDimensionItem[];
 };
 
 const AUXILIARY_AI_ACTIONS: AuxiliaryAiCostAction[] = [
@@ -82,10 +86,12 @@ function buildWhere(filter: AuxiliaryAiCostReportFilter = {}): Prisma.Generation
 }
 
 function toDimensionItem(
-  key: "userId" | "workId",
+  key: "userId" | "workId" | "providerId" | "model",
   row: {
     userId?: string | null;
     novelId?: string | null;
+    providerId?: string | null;
+    modelUsed?: string | null;
     _count: { _all: number };
     _sum: { totalTokens: number | null; inputTokens: number | null; outputTokens: number | null };
   },
@@ -94,8 +100,16 @@ function toDimensionItem(
   const inputTokens = row._sum.inputTokens ?? 0;
   const outputTokens = row._sum.outputTokens ?? 0;
   const jobCount = row._count._all ?? 0;
+  const dimension =
+    key === "userId"
+      ? { userId: row.userId ?? null }
+      : key === "workId"
+        ? { workId: row.novelId ?? null }
+        : key === "providerId"
+          ? { providerId: row.providerId ?? null }
+          : { providerId: row.providerId ?? null, modelUsed: row.modelUsed ?? null };
   return {
-    [key]: key === "userId" ? row.userId ?? null : row.novelId ?? null,
+    ...dimension,
     totalTokens,
     inputTokens,
     outputTokens,
@@ -159,7 +173,7 @@ export async function getGlobalAuxiliaryAiCostReport(
   filter: AuxiliaryAiCostReportFilter = {},
 ): Promise<GlobalAuxiliaryAiCostReport> {
   const where = buildWhere(filter);
-  const [summary, byUserRows, byWorkRows] = await Promise.all([
+  const [summary, byUserRows, byWorkRows, byProviderRows, byModelRows] = await Promise.all([
     getAuxiliaryAiCostSummary(filter),
     prisma.generationJob.groupBy({
       by: ["userId"],
@@ -185,11 +199,37 @@ export async function getGlobalAuxiliaryAiCostReport(
       orderBy: { _sum: { totalTokens: "desc" } },
       take: 100,
     }),
+    prisma.generationJob.groupBy({
+      by: ["providerId"],
+      where,
+      _count: { _all: true },
+      _sum: {
+        totalTokens: true,
+        inputTokens: true,
+        outputTokens: true,
+      },
+      orderBy: { _sum: { totalTokens: "desc" } },
+      take: 100,
+    }),
+    prisma.generationJob.groupBy({
+      by: ["providerId", "modelUsed"],
+      where,
+      _count: { _all: true },
+      _sum: {
+        totalTokens: true,
+        inputTokens: true,
+        outputTokens: true,
+      },
+      orderBy: { _sum: { totalTokens: "desc" } },
+      take: 100,
+    }),
   ]);
 
   return {
     ...summary,
     byUser: byUserRows.map((row) => toDimensionItem("userId", row)),
     byWork: byWorkRows.map((row) => toDimensionItem("workId", row)),
+    byProvider: byProviderRows.map((row) => toDimensionItem("providerId", row)),
+    byModel: byModelRows.map((row) => toDimensionItem("model", row)),
   };
 }
