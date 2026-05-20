@@ -1011,6 +1011,7 @@ test("ai step jobs support resultJson and quality API enforces work access", () 
 test("backfill and auxiliary cost report cover quality persistence", () => {
   const backfillSource = read("scripts/backfill-generation-job-result-json.mjs");
   const costSource = read("src/lib/ai/auxiliary-cost-report.ts");
+  const actionSource = read("src/lib/ai/generation-actions.ts");
 
   assert.match(backfillSource, /--dry-run/);
   assert.match(backfillSource, /--apply/);
@@ -1030,7 +1031,7 @@ test("backfill and auxiliary cost report cover quality persistence", () => {
     "chapter.quality_check",
     "canon.compress",
   ]) {
-    assert.match(costSource, new RegExp(action.replace(".", "\\.")));
+    assert.match(actionSource, new RegExp(action.replace(".", "\\.")));
   }
   assert.match(costSource, /groupBy\(\{/);
   assert.match(costSource, /totalTokens/);
@@ -1099,6 +1100,7 @@ test("work AI observability dashboard aggregates quality and cost reports", () =
   assert.match(source, /bestValueModel/);
   assert.match(source, /fastestModel/);
   assert.match(source, /chapterLimit/);
+  assert.match(source, /getWorkQualityTrend\(workId, \{\s*limit: trendLimit,\s*orderBy: "chapterIndex",\s*from: options\.from,\s*to: options\.to,/s);
   assert.match(apiSource, /requireWorkAccess\(params\.workId\)/);
   assert.match(apiSource, /parseDateRangeFromSearchParams/);
   assert.match(apiSource, /getWorkAiObservability\(params\.workId/);
@@ -1106,6 +1108,47 @@ test("work AI observability dashboard aggregates quality and cost reports", () =
   assert.match(apiSource, /modelMinJobs/);
   assert.match(apiSource, /chapterLimit/);
   assert.match(apiSource, /max\(300\)/);
+});
+
+test("work quality trend supports date ranges and dashboard page renders observability modules", () => {
+  const trendSource = read("src/lib/ai/work-quality-trend.ts");
+  const actionSource = read("src/lib/ai/generation-actions.ts");
+  const costSource = read("src/lib/ai/auxiliary-cost-report.ts");
+  const generationCostSource = read("src/lib/ai/generation-cost-report.ts");
+  const chapterSource = read("src/lib/ai/chapter-generation-observability.ts");
+  const pageSource = read("src/app/dashboard/novel/[id]/ai-observability/page.tsx");
+  const viewSource = read("src/components/workbench/work-ai-observability-view.tsx");
+  const tableSource = read("src/components/workbench/work-ai-observability-tables.tsx");
+  const hookSource = read("src/lib/workbench/use-ai-observability.ts");
+
+  assert.match(trendSource, /from\?: Date/);
+  assert.match(trendSource, /to\?: Date/);
+  assert.match(trendSource, /buildCreatedAtWhere/);
+  assert.match(trendSource, /createdAt: buildCreatedAtWhere\(options\)/);
+  assert.match(trendSource, /createdAt: buildCreatedAtWhere\(normalized\)/);
+  assert.match(actionSource, /MAIN_GENERATION_ACTIONS/);
+  assert.match(actionSource, /LENGTH_REPAIR_ACTIONS/);
+  assert.match(actionSource, /AUXILIARY_AI_ACTIONS/);
+  assert.match(actionSource, /GENERATION_COST_ACTIONS/);
+  assert.match(actionSource, /OBSERVABILITY_ACTIONS/);
+  assert.match(costSource, /@\/lib\/ai\/generation-actions/);
+  assert.match(generationCostSource, /@\/lib\/ai\/generation-actions/);
+  assert.match(chapterSource, /@\/lib\/ai\/generation-actions/);
+  assert.match(pageSource, /WorkAiObservabilityView/);
+  assert.match(hookSource, /api\/workbench\/works\/\$\{encodeURIComponent\(workId\)\}\/ai-observability/);
+  assert.match(hookSource, /trendLimit/);
+  assert.match(hookSource, /modelMinJobs/);
+  assert.match(hookSource, /chapterLimit/);
+  for (const keyword of [
+    "summary",
+    "modelRecommendation",
+    "qualityTrend",
+    "modelQuality",
+    "chapterGeneration",
+    "generationCost",
+  ]) {
+    assert.match(viewSource + tableSource, new RegExp(keyword));
+  }
 });
 
 test("model recommendation report exposes quality value speed and exclusions", () => {
@@ -1122,8 +1165,8 @@ test("model recommendation report exposes quality value speed and exclusions", (
 
 test("generation cost and chapter observability include main generation actions", () => {
   const costSource = read("src/lib/ai/generation-cost-report.ts");
-  const auxiliaryCostSource = read("src/lib/ai/auxiliary-cost-report.ts");
   const chapterSource = read("src/lib/ai/chapter-generation-observability.ts");
+  const actionSource = read("src/lib/ai/generation-actions.ts");
 
   for (const action of [
     "chapter.generate",
@@ -1136,7 +1179,7 @@ test("generation cost and chapter observability include main generation actions"
     "chapter.quality_check",
     "canon.compress",
   ]) {
-    assert.match(costSource + auxiliaryCostSource + chapterSource, new RegExp(action.replaceAll(".", "\\.")));
+    assert.match(actionSource, new RegExp(action.replaceAll(".", "\\.")));
   }
   assert.match(costSource, /getGenerationCostReport/);
   assert.match(costSource, /getGlobalAuxiliaryAiCostReport/);

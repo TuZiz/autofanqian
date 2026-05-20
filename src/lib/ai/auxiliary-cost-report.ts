@@ -2,22 +2,15 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 
+import {
+  AUXILIARY_AI_ACTIONS,
+  GENERATION_COST_ACTIONS,
+  type GenerationCostAction,
+} from "@/lib/ai/generation-actions";
 import { prisma } from "@/lib/prisma";
 
-export type AuxiliaryAiCostAction =
-  | "chapter.generate"
-  | "chapter.generate.stream"
-  | "regenerate.all"
-  | "regenerate.all.stream"
-  | "chapter_generate"
-  | "chapter_regenerate"
-  | "chapter_generate_length_repair"
-  | "chapter_generate_stream_length_repair"
-  | "chapter.plan"
-  | "chapter.consistency_check"
-  | "chapter.consistency_repair"
-  | "chapter.quality_check"
-  | "canon.compress";
+export type AuxiliaryAiCostAction = GenerationCostAction;
+export { AUXILIARY_AI_ACTIONS, GENERATION_COST_ACTIONS };
 
 export type AuxiliaryAiCostReportRange = {
   from?: Date;
@@ -69,30 +62,6 @@ export type GlobalAuxiliaryAiCostReport = AuxiliaryAiCostReport & {
   byProvider: AuxiliaryAiCostDimensionItem[];
   byModel: AuxiliaryAiCostDimensionItem[];
 };
-
-const AUXILIARY_AI_ACTIONS: AuxiliaryAiCostAction[] = [
-  "chapter.plan",
-  "chapter.consistency_check",
-  "chapter.consistency_repair",
-  "chapter.quality_check",
-  "canon.compress",
-];
-
-export const GENERATION_COST_ACTIONS: AuxiliaryAiCostAction[] = [
-  "chapter.generate",
-  "chapter.generate.stream",
-  "regenerate.all",
-  "regenerate.all.stream",
-  "chapter_generate",
-  "chapter_regenerate",
-  "chapter_generate_length_repair",
-  "chapter_generate_stream_length_repair",
-  "chapter.plan",
-  "chapter.consistency_check",
-  "chapter.consistency_repair",
-  "chapter.quality_check",
-  "canon.compress",
-];
 
 function average(total: number, count: number) {
   return count > 0 ? Math.round(total / count) : 0;

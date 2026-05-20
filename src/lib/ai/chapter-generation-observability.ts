@@ -6,6 +6,11 @@ import {
   parseQualityReportResultJson,
   parseQualityReportScore,
 } from "@/lib/ai/chapter-quality-report";
+import {
+  LENGTH_REPAIR_ACTIONS,
+  MAIN_GENERATION_ACTIONS,
+  OBSERVABILITY_ACTIONS,
+} from "@/lib/ai/generation-actions";
 import { prisma } from "@/lib/prisma";
 
 export type ChapterGenerationObservabilityItem = {
@@ -29,24 +34,6 @@ export type ChapterGenerationObservabilityOptions = {
   to?: Date;
   limit?: number;
 };
-
-const GENERATE_ACTIONS = [
-  "chapter.generate",
-  "chapter.generate.stream",
-  "regenerate.all",
-  "regenerate.all.stream",
-  "chapter_generate",
-  "chapter_regenerate",
-];
-
-const OBSERVABILITY_ACTIONS = [
-  ...GENERATE_ACTIONS,
-  "chapter.consistency_check",
-  "chapter.quality_check",
-  "chapter.consistency_repair",
-  "chapter_generate_length_repair",
-  "chapter_generate_stream_length_repair",
-];
 
 type ChapterGenerationJobRow = {
   chapterIndex: number | null;
@@ -94,7 +81,7 @@ async function getRecentChapterIndexes(
     where: {
       novelId: workId,
       chapterIndex: { not: null },
-      action: { in: OBSERVABILITY_ACTIONS },
+      action: { in: [...OBSERVABILITY_ACTIONS] },
       createdAt: buildCreatedAtWhere(options),
     },
     _max: { createdAt: true },
@@ -109,7 +96,7 @@ async function getRecentChapterIndexes(
 
 function getLatestGenerateJob(latest: Map<string, ChapterGenerationJobRow>, chapterIndex: number) {
   return (
-    GENERATE_ACTIONS.map((action) => latest.get(`${chapterIndex}:${action}`))
+    MAIN_GENERATION_ACTIONS.map((action) => latest.get(`${chapterIndex}:${action}`))
       .filter((row): row is ChapterGenerationJobRow => Boolean(row))
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0] ?? null
   );
@@ -126,7 +113,7 @@ export async function getChapterGenerationObservability(
     where: {
       novelId: workId,
       chapterIndex: { in: chapterIndexes },
-      action: { in: OBSERVABILITY_ACTIONS },
+      action: { in: [...OBSERVABILITY_ACTIONS] },
       createdAt: buildCreatedAtWhere(options),
     },
     orderBy: [{ chapterIndex: "asc" }, { createdAt: "desc" }],
@@ -154,7 +141,9 @@ export async function getChapterGenerationObservability(
       parseQualityReportResultJson(quality?.resultJson) ??
       parseQualityReportPayload(quality?.resultSummary);
     const generateRows = rows.filter(
-      (row) => row.chapterIndex === chapterIndex && GENERATE_ACTIONS.includes(row.action),
+      (row) =>
+        row.chapterIndex === chapterIndex &&
+        MAIN_GENERATION_ACTIONS.includes(row.action as (typeof MAIN_GENERATION_ACTIONS)[number]),
     );
     const hasSucceededGenerate = generateRows.some((row) => row.status === "succeeded");
     const generateSucceeded = generate ? generate.status === "succeeded" : null;
@@ -169,8 +158,7 @@ export async function getChapterGenerationObservability(
     const lengthRepairSucceeded = rows.some(
       (row) =>
         row.chapterIndex === chapterIndex &&
-        (row.action === "chapter_generate_length_repair" ||
-          row.action === "chapter_generate_stream_length_repair") &&
+        LENGTH_REPAIR_ACTIONS.includes(row.action as (typeof LENGTH_REPAIR_ACTIONS)[number]) &&
         row.status === "succeeded",
     );
 

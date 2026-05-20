@@ -17,6 +17,8 @@ export type WorkQualityTrendOptions = {
   limit?: number;
   orderBy?: "chapterIndex" | "updatedAt";
   sortOutput?: "chapterIndex" | "updatedAt";
+  from?: Date;
+  to?: Date;
 };
 
 type QualityTrendJobRow = {
@@ -33,7 +35,7 @@ type QualityTrendJobRow = {
 
 const QUALITY_ACTIONS = ["chapter.consistency_check", "chapter.quality_check"] as const;
 
-function normalizeOptions(options?: number | WorkQualityTrendOptions): Required<WorkQualityTrendOptions> {
+function normalizeOptions(options?: number | WorkQualityTrendOptions) {
   const raw =
     typeof options === "number"
       ? { limit: options }
@@ -42,6 +44,15 @@ function normalizeOptions(options?: number | WorkQualityTrendOptions): Required<
     limit: Math.max(1, Math.min(100, Math.floor(raw.limit ?? 30))),
     orderBy: raw.orderBy === "updatedAt" ? "updatedAt" : "chapterIndex",
     sortOutput: raw.sortOutput === "updatedAt" ? "updatedAt" : "chapterIndex",
+    from: raw.from,
+    to: raw.to,
+  };
+}
+
+function buildCreatedAtWhere(options: Pick<WorkQualityTrendOptions, "from" | "to">) {
+  return {
+    ...(options.from ? { gte: options.from } : {}),
+    ...(options.to ? { lte: options.to } : {}),
   };
 }
 
@@ -58,16 +69,20 @@ function keepLatestByChapterAndAction(rows: QualityTrendJobRow[]) {
   return latest;
 }
 
-async function getRecentChapterIndexesByChapterIndex(workId: string, limit: number) {
+async function getRecentChapterIndexesByChapterIndex(
+  workId: string,
+  options: Pick<Required<ReturnType<typeof normalizeOptions>>, "limit" | "from" | "to">,
+) {
   const chapterRows = await prisma.generationJob.groupBy({
     by: ["chapterIndex"],
     where: {
       novelId: workId,
       chapterIndex: { not: null },
       action: { in: [...QUALITY_ACTIONS] },
+      createdAt: buildCreatedAtWhere(options),
     },
     orderBy: [{ chapterIndex: "desc" }],
-    take: limit,
+    take: options.limit,
   });
 
   return chapterRows
@@ -75,17 +90,21 @@ async function getRecentChapterIndexesByChapterIndex(workId: string, limit: numb
     .filter((chapterIndex): chapterIndex is number => typeof chapterIndex === "number");
 }
 
-async function getRecentChapterIndexesByUpdatedAt(workId: string, limit: number) {
+async function getRecentChapterIndexesByUpdatedAt(
+  workId: string,
+  options: Pick<Required<ReturnType<typeof normalizeOptions>>, "limit" | "from" | "to">,
+) {
   const rows = await prisma.generationJob.groupBy({
     by: ["chapterIndex"],
     where: {
       novelId: workId,
       chapterIndex: { not: null },
       action: { in: [...QUALITY_ACTIONS] },
+      createdAt: buildCreatedAtWhere(options),
     },
     _max: { createdAt: true },
     orderBy: [{ _max: { createdAt: "desc" } }],
-    take: limit,
+    take: options.limit,
   });
 
   return rows
@@ -100,8 +119,8 @@ export async function getWorkQualityTrend(
   const normalized = normalizeOptions(options);
   const chapterIndexes =
     normalized.orderBy === "updatedAt"
-      ? await getRecentChapterIndexesByUpdatedAt(workId, normalized.limit)
-      : await getRecentChapterIndexesByChapterIndex(workId, normalized.limit);
+      ? await getRecentChapterIndexesByUpdatedAt(workId, normalized)
+      : await getRecentChapterIndexesByChapterIndex(workId, normalized);
 
   if (!chapterIndexes.length) return [];
 
@@ -110,6 +129,7 @@ export async function getWorkQualityTrend(
       novelId: workId,
       chapterIndex: { in: chapterIndexes },
       action: { in: [...QUALITY_ACTIONS] },
+      createdAt: buildCreatedAtWhere(normalized),
     },
     orderBy: [{ chapterIndex: "desc" }, { createdAt: "desc" }],
     select: {

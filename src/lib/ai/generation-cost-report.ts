@@ -1,10 +1,7 @@
 import "server-only";
 
-import {
-  GENERATION_COST_ACTIONS,
-  getGlobalAuxiliaryAiCostReport,
-  type AuxiliaryAiCostReportRange,
-} from "@/lib/ai/auxiliary-cost-report";
+import { getGlobalAuxiliaryAiCostReport, type AuxiliaryAiCostReportRange } from "@/lib/ai/auxiliary-cost-report";
+import { GENERATION_COST_ACTIONS } from "@/lib/ai/generation-actions";
 
 export async function getGenerationCostReport(
   workId: string,

@@ -50,7 +50,12 @@ export async function getWorkAiObservability(
     chapterGeneration,
     latestChapterReport,
   ] = await Promise.all([
-    getWorkQualityTrend(workId, { limit: trendLimit, orderBy: "chapterIndex" }),
+    getWorkQualityTrend(workId, {
+      limit: trendLimit,
+      orderBy: "chapterIndex",
+      from: options.from,
+      to: options.to,
+    }),
     getModelQualityReport(workId, {
       from: options.from,
       to: options.to,
