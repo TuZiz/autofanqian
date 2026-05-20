@@ -325,6 +325,35 @@ test("AI quota reservations support idempotency and exclude the current generati
   assert.match(streamRouteSource, /idempotencyKey: parsedBody\.data\.idempotencyKey \?\? null/);
 });
 
+test("completed generation idempotency returns the existing chapter result", () => {
+  const jobSource = read("src/lib/ai/generation-jobs.ts");
+  const generateSource = read("src/backend/ai/chapter/generate-service.ts");
+  const routeSource = read("src/backend/ai/chapter/generate-route.ts");
+
+  assert.match(jobSource, /export type BeginGenerationJobResult/);
+  assert.match(jobSource, /kind: "completed"/);
+  assert.match(jobSource, /existing\.status === "succeeded"/);
+  assert.match(jobSource, /return \{ kind: "completed", job: existing \}/);
+  assert.match(generateSource, /export async function getCompletedChapterGenerationResult/);
+  assert.match(generateSource, /prisma\.generationJob\.findFirst/);
+  assert.match(generateSource, /normalizeGenerationJobSuccessStatus\(generationJob\.status\) !== "succeeded"/);
+  assert.match(generateSource, /serializeGeneratedChapter\(chapter\)/);
+  assert.match(generateSource, /generationJobResult\.kind === "completed"/);
+  assert.match(routeSource, /getCompletedChapterGenerationResult\(\{/);
+  assertBefore(
+    routeSource,
+    "await assertCanCreateChapter(user, parsedBody.data.workId",
+    "const cachedGeneration = await getCompletedChapterGenerationResult",
+    "ownership before cached idempotency",
+  );
+  assertBefore(
+    routeSource,
+    "const cachedGeneration = await getCompletedChapterGenerationResult",
+    "await assertAiQuotaAvailable(user);",
+    "cached idempotency before quota",
+  );
+});
+
 test("App Router AI routes delegate to backend quota-protected handlers", () => {
   const routeExpectations = [
     ["src/app/api/ai/idea/route.ts", "@/backend/ai/idea/generate-route"],

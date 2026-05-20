@@ -1,4 +1,4 @@
-﻿-- Production hardening: durable generation jobs and AI usage counters.
+-- Production hardening: durable generation jobs and AI usage counters.
 
 ALTER TYPE "GenerationJobStatus" ADD VALUE IF NOT EXISTS 'succeeded';
 ALTER TYPE "GenerationJobStatus" ADD VALUE IF NOT EXISTS 'cancelled';

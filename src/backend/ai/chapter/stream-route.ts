@@ -216,12 +216,24 @@ export async function POST(request: Request) {
             ...smartProviders.filter((provider) => provider.id !== selected.provider.id),
           ];
 
-          generationJobId = await createStreamGenerationJob({
+          const generationJob = await createStreamGenerationJob({
             prepared,
             provider: selected.provider,
             chapterIndex: parsedBody.data.index,
             idempotencyKey: parsedBody.data.idempotencyKey ?? null,
           });
+
+          if (generationJob.kind === "completed") {
+            writeEvent({
+              type: "done",
+              work: generationJob.data.work,
+              chapter: generationJob.data.chapter,
+            });
+            controller.close();
+            return;
+          }
+
+          generationJobId = generationJob.jobId;
 
           writeEvent({
             type: "start",

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma } from "@prisma/client";
+import { Prisma, type GenerationJob } from "@prisma/client";
 
 import { AuthApiError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/prisma";
@@ -29,6 +29,16 @@ export type BeginGenerationJobParams = {
   promptTemplateKey?: string | null;
   promptSnapshot?: string | null;
 };
+
+export type BeginGenerationJobResult =
+  | {
+      kind: "started";
+      job: GenerationJob;
+    }
+  | {
+      kind: "completed";
+      job: GenerationJob;
+    };
 
 export async function markStaleGenerationJobs(now = new Date()) {
   const staleBefore = new Date(now.getTime() - GENERATION_JOB_STALE_MS);
@@ -66,7 +76,9 @@ function getActiveGenerationLockKey(params: {
   ].join(":");
 }
 
-export async function beginGenerationJob(params: BeginGenerationJobParams) {
+export async function beginGenerationJob(
+  params: BeginGenerationJobParams,
+): Promise<BeginGenerationJobResult> {
   const now = new Date();
   await markStaleGenerationJobs(now);
   const activeLockKey = CHAPTER_GENERATION_ACTIONS.includes(params.action)
@@ -84,6 +96,13 @@ export async function beginGenerationJob(params: BeginGenerationJobParams) {
       },
     });
     if (existing) {
+      if (
+        existing.status === "succeeded" ||
+        normalizeGenerationJobSuccessStatus(existing.status) === "succeeded"
+      ) {
+        return { kind: "completed", job: existing };
+      }
+
       const message = ACTIVE_GENERATION_STATUSES.includes(
         existing.status as (typeof ACTIVE_GENERATION_STATUSES)[number],
       )
@@ -109,7 +128,7 @@ export async function beginGenerationJob(params: BeginGenerationJobParams) {
   }
 
   try {
-    return await prisma.generationJob.create({
+    const job = await prisma.generationJob.create({
       data: {
         userId: params.userId,
         novelId: params.workId,
@@ -130,6 +149,7 @@ export async function beginGenerationJob(params: BeginGenerationJobParams) {
         heartbeatAt: now,
       },
     });
+    return { kind: "started", job };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       throw new AuthApiError(409, "该章节正在生成中，请等待生成结束后再操作。");

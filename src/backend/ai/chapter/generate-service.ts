@@ -13,7 +13,11 @@ import {
   beginChapterGenerationLock,
   endChapterGenerationLock,
 } from "@/lib/ai/chapter-generation-lock";
-import { beginGenerationJob, failGenerationJob } from "@/lib/ai/generation-jobs";
+import {
+  beginGenerationJob,
+  failGenerationJob,
+  normalizeGenerationJobSuccessStatus,
+} from "@/lib/ai/generation-jobs";
 import {
   assertAiQuotaAvailable,
   runWithAiQuotaReservation,
@@ -31,6 +35,93 @@ import type { SessionUser } from "@/lib/auth/user";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
+import type { WorkTypeValue } from "@/shared/work-type";
+
+type GeneratedChapterResponse = {
+  work: {
+    id: string;
+    workType: WorkTypeValue;
+    title: string;
+    tag: string;
+  };
+  chapter: ReturnType<typeof serializeGeneratedChapter> & { details: unknown };
+};
+
+export async function getCompletedChapterGenerationResult(params: {
+  userId: string;
+  workId: string;
+  index: number;
+  action?: string | string[] | null;
+  idempotencyKey?: string | null;
+}): Promise<GeneratedChapterResponse | null> {
+  const idempotencyKey = params.idempotencyKey?.trim();
+  if (!idempotencyKey) return null;
+  const actions =
+    typeof params.action === "string"
+      ? [params.action]
+      : params.action?.length
+        ? params.action
+        : ["chapter.generate", "regenerate.all"];
+
+  const generationJob = await prisma.generationJob.findFirst({
+    where: {
+      userId: params.userId,
+      action: { in: actions },
+      idempotencyKey,
+    },
+    select: {
+      status: true,
+      novelId: true,
+      chapterId: true,
+      chapterIndex: true,
+    },
+  });
+
+  if (
+    !generationJob ||
+    normalizeGenerationJobSuccessStatus(generationJob.status) !== "succeeded" ||
+    generationJob.novelId !== params.workId ||
+    generationJob.chapterIndex !== params.index
+  ) {
+    return null;
+  }
+
+  const work = await prisma.work.findFirst({
+    where: { id: params.workId, deletedAt: null },
+    select: { id: true, workType: true, title: true, tag: true },
+  });
+  if (!work) return null;
+
+  const chapter = await prisma.chapter.findFirst({
+    where: {
+      workId: params.workId,
+      index: params.index,
+      id: generationJob.chapterId ?? undefined,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      index: true,
+      title: true,
+      content: true,
+      wordCount: true,
+      summary: true,
+      chapterOutline: true,
+      details: true,
+      updatedAt: true,
+      createdAt: true,
+    },
+  });
+  if (!chapter) return null;
+
+  return {
+    work,
+    chapter: {
+      ...serializeGeneratedChapter(chapter),
+      details: chapter.details ?? [],
+    },
+  };
+}
 
 export async function generateChapterForUser(params: {
   input: ChapterGenerateInput;
@@ -70,7 +161,7 @@ export async function generateChapterForUser(params: {
       prepared.generationMode === "regenerate"
         ? "regenerate.all"
         : "chapter.generate";
-    const generationJob = await beginGenerationJob({
+    const generationJobResult = await beginGenerationJob({
       userId: user.id,
       workId: prepared.work.id,
       chapterId: prepared.existingChapter?.id ?? null,
@@ -86,6 +177,19 @@ export async function generateChapterForUser(params: {
           : "chapter.generate",
       promptSnapshot: prepared.promptSnapshot,
     });
+    if (generationJobResult.kind === "completed") {
+      const completed = await getCompletedChapterGenerationResult({
+        userId: user.id,
+        workId: prepared.work.id,
+        index: input.index,
+        action: generationAction,
+        idempotencyKey: input.idempotencyKey ?? null,
+      });
+      if (completed) return completed;
+      throw new AuthApiError(409, "该生成请求已经处理过，请刷新章节查看最新结果。");
+    }
+
+    const generationJob = generationJobResult.job;
     generationJobId = generationJob.id;
 
     const selected = await selectHealthyProviderForChapter({

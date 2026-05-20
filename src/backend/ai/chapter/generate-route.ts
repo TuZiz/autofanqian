@@ -12,7 +12,10 @@ import {
   assertCanCreateChapter,
   assertCanUseAiAction,
 } from "@/lib/membership/guards";
-import { generateChapterForUser } from "./generate-service";
+import {
+  generateChapterForUser,
+  getCompletedChapterGenerationResult,
+} from "./generate-service";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
@@ -44,6 +47,21 @@ export async function POST(request: Request) {
     await assertCanCreateChapter(user, parsedBody.data.workId, {
       index: parsedBody.data.index,
     });
+
+    const cachedGeneration = await getCompletedChapterGenerationResult({
+      userId: user.id,
+      workId: parsedBody.data.workId,
+      index: parsedBody.data.index,
+      idempotencyKey: parsedBody.data.idempotencyKey ?? null,
+    });
+    if (cachedGeneration) {
+      return NextResponse.json({
+        success: true,
+        message: "OK",
+        data: cachedGeneration,
+      });
+    }
+
     await assertAiQuotaAvailable(user);
     await assertCanUseAiAction(user, "chapter_generate");
     const data = await generateChapterForUser({

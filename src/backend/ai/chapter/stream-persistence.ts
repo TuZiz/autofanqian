@@ -25,6 +25,7 @@ import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { extractTitleAndContentFromStream, saveDraftPreview } from "./stream-draft";
 import type { ChapterStreamEvent } from "./stream-events";
+import { getCompletedChapterGenerationResult } from "./generate-service";
 
 export async function createStreamGenerationJob(params: {
   prepared: PreparedChapterGeneration;
@@ -33,16 +34,17 @@ export async function createStreamGenerationJob(params: {
   idempotencyKey?: string | null;
 }) {
   const { prepared, provider } = params;
+  const action =
+    prepared.generationMode === "regenerate"
+      ? "regenerate.all.stream"
+      : "chapter.generate.stream";
 
-  const job = await beginGenerationJob({
+  const jobResult = await beginGenerationJob({
     userId: prepared.user.id,
     workId: prepared.work.id,
     chapterId: prepared.existingChapter?.id ?? null,
     chapterIndex: params.chapterIndex,
-    action:
-      prepared.generationMode === "regenerate"
-        ? "regenerate.all.stream"
-        : "chapter.generate.stream",
+    action,
     idempotencyKey: params.idempotencyKey ?? null,
     routeId: "gpt",
     providerId: provider.id,
@@ -54,7 +56,22 @@ export async function createStreamGenerationJob(params: {
     promptSnapshot: prepared.promptSnapshot,
   });
 
-  return job.id;
+  if (jobResult.kind === "completed") {
+    const completed = await getCompletedChapterGenerationResult({
+      userId: prepared.user.id,
+      workId: prepared.work.id,
+      index: params.chapterIndex,
+      action,
+      idempotencyKey: params.idempotencyKey ?? null,
+    });
+    if (!completed) {
+      throw new Error("completed_stream_generation_result_missing");
+    }
+
+    return { kind: "completed" as const, data: completed };
+  }
+
+  return { kind: "started" as const, jobId: jobResult.job.id };
 }
 
 export async function failStreamGenerationJob(params: {

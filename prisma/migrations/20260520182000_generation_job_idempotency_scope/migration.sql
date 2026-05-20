@@ -1,4 +1,4 @@
-﻿-- Scope GenerationJob idempotency to user + action instead of a global key.
+-- Scope GenerationJob idempotency to user + action instead of a global key.
 
 DROP INDEX IF EXISTS "GenerationJob_idempotencyKey_key";
 

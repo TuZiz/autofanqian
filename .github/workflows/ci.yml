@@ -9,6 +9,16 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+      APP_BASE_URL: http://localhost:3000
+      SESSION_SECRET: ci-session-secret-at-least-32-characters
+      SETTINGS_ENCRYPTION_KEY: ci-settings-encryption-key-at-least-32-characters
+      ROOT_ADMIN_EMAILS: admin@example.com
+      TRUSTED_ORIGINS: http://localhost:3000
+      AI_API_KEY: ci-placeholder
+      AI_BASE_URL: https://example.com
+      AI_MODEL: gpt-5.4
     steps:
       - name: Checkout
         uses: actions/checkout@v4
