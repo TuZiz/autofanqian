@@ -221,11 +221,6 @@ export function DashboardUpgradeModal({
   async function handlePlanPreview(plan: PublicMembershipPlan, planId?: UpgradePaymentOption["planId"]) {
     setPreviewTier(plan.tier);
 
-    if (isAdmin) {
-      setPaymentMessage(`管理员正在预览「${plan.name}」，不会触发支付。`);
-      return;
-    }
-
     if (!planId) {
       setPaymentMessage(plan.tier === "max" ? "无限版暂未开放在线支付，请联系管理员购买。" : "当前套餐无需购买。");
       return;
@@ -286,7 +281,7 @@ export function DashboardUpgradeModal({
 
             {isAdmin ? (
               <div className="rounded-2xl border border-amber-300/60 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-400/40 dark:text-amber-100">
-                管理员账号默认不受会员限制，此页面仅用于预览。
+                管理员账号默认不受会员限制；可在此页面发起测试支付，支付成功不会改变管理员使用限制。
               </div>
             ) : null}
 
@@ -315,9 +310,7 @@ export function DashboardUpgradeModal({
                 className="rounded-2xl border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] px-4 py-3 text-sm font-semibold text-[var(--theme-brand-text)]"
                 aria-live="polite"
               >
-                {isAdmin
-                  ? paymentMessage || `管理员正在预览「${previewPlan.name}」，不会触发升级或支付。`
-                  : paymentMessage || `已选择预览「${previewPlan.name}」。支付功能暂未接入，当前仅为套餐预览。`}
+                {paymentMessage || `已选择预览「${previewPlan.name}」。`}
               </div>
             ) : null}
 
@@ -444,7 +437,7 @@ function PlanCard({
   const accent = accentStyles[plan.accent];
   const isIncluded = tierRank[plan.tier] < currentRank;
   const disabled = !isAdmin && (isCurrent || isIncluded);
-  const buttonLabel = getPlanButtonLabel({ isAdmin, isCurrent, isIncluded, tier: plan.tier });
+  const buttonLabel = getPlanButtonLabel({ isCurrent, isIncluded, tier: plan.tier });
   const paymentOptions = paymentOptionsByTier[plan.tier] ?? [];
 
   return (
@@ -502,7 +495,7 @@ function PlanCard({
         </ul>
 
         <div className="mt-5 space-y-2">
-          {paymentOptions.length > 0 && !isAdmin && !disabled ? (
+          {paymentOptions.length > 0 && !disabled ? (
             paymentOptions.map((option) => (
               <Button
                 key={option.planId}
@@ -533,17 +526,14 @@ function PlanCard({
 }
 
 function getPlanButtonLabel({
-  isAdmin,
   isCurrent,
   isIncluded,
   tier,
 }: {
-  isAdmin: boolean;
   isCurrent: boolean;
   isIncluded: boolean;
   tier: PublicMembershipTier;
 }) {
-  if (isAdmin) return "管理员预览";
   if (isCurrent) return "当前方案";
   if (isIncluded) return "已包含";
   if (tier === "max") return "联系购买";
