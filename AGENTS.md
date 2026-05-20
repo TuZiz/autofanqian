@@ -128,6 +128,7 @@ This version has breaking changes - APIs, conventions, and file structure may al
 - 管理员首页：`src/app/dashboard/admin/page.tsx`
 - 用户管理：`src/app/dashboard/admin/users/page.tsx`
 - AI 模型配置：`src/app/dashboard/admin/ai-model/page.tsx`
+- 支付设置：`src/app/dashboard/admin/payments/page.tsx`
 - 规划配置 API：`src/app/api/admin/planning-config/route.ts`
 - 管理员 UI：`src/components/admin/`
 - 规划配置 UI：`src/components/admin/admin-planning-section.tsx`
@@ -136,6 +137,23 @@ This version has breaking changes - APIs, conventions, and file structure may al
 - 规划配置：`src/lib/config/planning.ts`
 
 管理员页面默认自动保存，但也要有清晰状态栏。大表单改成模块导航、摘要列表、右侧抽屉编辑。
+
+### 支付与会员
+
+- 支付宝后台配置页：`src/app/dashboard/admin/payments/page.tsx`
+- 支付宝后台 API：`src/app/api/admin/payments/alipay/route.ts`
+- 支付宝配置读取：`src/lib/payments/alipay-config.ts`
+- 支付宝客户端封装：`src/lib/payments/alipay-client.ts`
+- 敏感配置加密：`src/lib/security/encryption.ts`
+- 会员升级中心：`src/components/dashboard/dashboard-upgrade-modal.tsx`
+
+支付安全规则：
+
+- 支付宝应用私钥只能加密后存入 `AppConfig`，不能明文保存、不能回显给前端、不能进入前端 bundle、不能写日志。
+- 后台保存私钥必须依赖 `SETTINGS_ENCRYPTION_KEY`，该值需要 32 字节以上随机字符串；未配置时返回明确错误。
+- 支付成功发放会员只能在支付宝异步 notify 中做；`return_url` 只能展示结果，不能发放会员。
+- 未来 notify 接口由支付宝服务器调用，不能做 same-origin 校验。
+- 支付配置读取优先级：后台 `AppConfig` > `.env` fallback > 未配置报错。
 
 ### AI 与提示词
 

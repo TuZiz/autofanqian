@@ -6,6 +6,7 @@ import {
   Bot,
   CheckCircle2,
   Clock3,
+  CreditCard,
   Eye,
   Loader2,
   Users,
@@ -79,6 +80,9 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
             </AdminLink>
             <AdminLink href="/dashboard/admin/ai-model" icon={Bot}>
               AI 模型配置
+            </AdminLink>
+            <AdminLink href="/dashboard/admin/payments" icon={CreditCard}>
+              支付设置
             </AdminLink>
             <AdminLink href="/dashboard/create" icon={Eye}>
               预览创作页

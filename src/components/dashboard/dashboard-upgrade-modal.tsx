@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Check,
@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/client/auth-api";
 import { cn } from "@/lib/utils";
 import {
   getPublicMembershipPlan,
@@ -87,6 +88,11 @@ const simulatedUsage = {
   workCount: 1,
 };
 
+type AlipayStatus = {
+  enabled: boolean;
+  configured: boolean;
+};
+
 const matrixRows = [
   {
     label: "每日生成字数",
@@ -141,6 +147,9 @@ export function DashboardUpgradeModal({
   onClose,
 }: DashboardUpgradeModalProps) {
   const [previewTier, setPreviewTier] = useState<PublicMembershipTier | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<AlipayStatus | null>(null);
+  const [paymentBusyTier, setPaymentBusyTier] = useState<PublicMembershipTier | null>(null);
+  const [paymentMessage, setPaymentMessage] = useState("");
   const currentPlan = getPublicMembershipPlan(currentTier);
   const currentRank = tierRank[currentPlan.tier];
   const previewPlan = previewTier ? getPublicMembershipPlan(previewTier) : null;
@@ -168,6 +177,54 @@ export function DashboardUpgradeModal({
       unit: "本",
     },
   ], [currentPlan]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    async function loadPaymentStatus() {
+      const response = await apiRequest<AlipayStatus>(
+        "/api/payments/alipay/status",
+        undefined,
+        { redirectOnUnauthorized: false },
+      );
+      if (cancelled) return;
+
+      if (response.success && response.data) {
+        setPaymentStatus(response.data);
+      } else {
+        setPaymentStatus({ enabled: false, configured: false });
+      }
+    }
+
+    void loadPaymentStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  async function handlePlanPreview(plan: PublicMembershipPlan) {
+    setPreviewTier(plan.tier);
+
+    if (isAdmin) {
+      setPaymentMessage(`管理员正在预览「${plan.name}」，不会触发支付。`);
+      return;
+    }
+
+    if (!paymentStatus?.enabled || !paymentStatus.configured) {
+      setPaymentMessage("支付功能暂未开启，请联系管理员。");
+      return;
+    }
+
+    setPaymentBusyTier(plan.tier);
+    const response = await apiRequest(
+      "/api/payments/alipay/create-order",
+      { tier: plan.tier },
+      { method: "POST", redirectOnUnauthorized: true },
+    );
+    setPaymentBusyTier(null);
+    setPaymentMessage(response.message || "支付宝订单创建已预留，当前不会发放会员。");
+  }
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -220,8 +277,9 @@ export function DashboardUpgradeModal({
                   currentRank={currentRank}
                   isAdmin={isAdmin}
                   isCurrent={plan.tier === currentPlan.tier}
+                  busy={paymentBusyTier === plan.tier}
                   plan={plan}
-                  onPreview={() => setPreviewTier(plan.tier)}
+                  onPreview={() => void handlePlanPreview(plan)}
                 />
               ))}
             </section>
@@ -232,8 +290,8 @@ export function DashboardUpgradeModal({
                 aria-live="polite"
               >
                 {isAdmin
-                  ? `管理员正在预览「${previewPlan.name}」，不会触发升级或支付。`
-                  : `已选择预览「${previewPlan.name}」。支付功能暂未接入，当前仅为套餐预览。`}
+                  ? paymentMessage || `管理员正在预览「${previewPlan.name}」，不会触发升级或支付。`
+                  : paymentMessage || `已选择预览「${previewPlan.name}」。支付功能暂未接入，当前仅为套餐预览。`}
               </div>
             ) : null}
 
@@ -342,12 +400,14 @@ function QuotaPreviewCard({
 }
 
 function PlanCard({
+  busy,
   currentRank,
   isAdmin,
   isCurrent,
   onPreview,
   plan,
 }: {
+  busy: boolean;
   currentRank: number;
   isAdmin: boolean;
   isCurrent: boolean;
@@ -423,7 +483,7 @@ function PlanCard({
           onClick={onPreview}
           variant={disabled ? "outline" : "default"}
         >
-          {buttonLabel}
+          {busy ? "处理中..." : buttonLabel}
         </Button>
       </div>
     </article>
