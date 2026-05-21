@@ -11,6 +11,12 @@ export type AiRewriteAction =
   | "short_drama"
   | "fanqie_style"
   | "xiaohongshu_style"
+  | "爽文化"
+  | "细腻化"
+  | "去 AI 味"
+  | "增强开头钩子"
+  | "增强结尾追读感"
+  | "对话自然化"
   | "logic_check";
 
 const chapterMetaCopy = {
@@ -192,6 +198,30 @@ export const aiZhCN = {
       xiaohongshu_style: {
         label: "小红书风",
         description: "更口语、更短段落，强化情绪共鸣但不营销化。",
+      },
+      爽文化: {
+        label: "爽文化",
+        description: "强化正反馈、压迫反击和读者爽点。",
+      },
+      细腻化: {
+        label: "细腻化",
+        description: "补足感官、心理和微动作，让情绪更细。",
+      },
+      "去 AI 味": {
+        label: "去 AI 味",
+        description: "减少模板腔、空泛抒情和机械转折。",
+      },
+      增强开头钩子: {
+        label: "开头钩子",
+        description: "重塑开场压迫感、悬念和第一屏吸引力。",
+      },
+      增强结尾追读感: {
+        label: "结尾追读",
+        description: "强化章末悬念、未完成问题和下一章期待。",
+      },
+      对话自然化: {
+        label: "对话自然",
+        description: "让对白更像真人说话，减少说明腔。",
       },
       logic_check: {
         label: "逻辑检查",

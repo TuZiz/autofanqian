@@ -48,6 +48,9 @@ export function useWorkDashboard(workId: string) {
   const [outlineExtensionSize, setOutlineExtensionSize] = useState<PlanningPreset>("smart");
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
+  const [consistencyBusy, setConsistencyBusy] = useState(false);
+  const [consistencyError, setConsistencyError] = useState("");
+  const [consistencyNotice, setConsistencyNotice] = useState("");
 
   const outline = work?.outline;
   const isShortStory = isShortStoryWork(work?.workType);
@@ -259,6 +262,24 @@ export function useWorkDashboard(workId: string) {
     setWorkTitleError("");
   }
 
+  async function handleBookConsistencyCheck() {
+    if (!workId || consistencyBusy) return;
+    setConsistencyBusy(true);
+    setConsistencyError("");
+    setConsistencyNotice("");
+    const result = await apiRequest<{ jobId?: string; status?: string; suggestions?: string[] }>(
+      "/api/ai/chapter/consistency",
+      { workId, scope: "book" },
+      { method: "POST" },
+    );
+    setConsistencyBusy(false);
+    if (!result.success) {
+      setConsistencyError(result.message || "全书一致性检查创建失败。");
+      return;
+    }
+    setConsistencyNotice(result.message || "全书一致性检查已创建。");
+  }
+
   useEffect(() => {
     function handleKeydown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -349,6 +370,9 @@ export function useWorkDashboard(workId: string) {
     commandChapters,
     commandOpen,
     commandQuery,
+    consistencyBusy,
+    consistencyError,
+    consistencyNotice,
     currentProgressChapter,
     error,
     addChapterBusy,
@@ -357,6 +381,7 @@ export function useWorkDashboard(workId: string) {
     goToChapter,
     handleAddChapter,
     handleLogout,
+    handleBookConsistencyCheck,
     handleRefineOutline,
     hasActiveGeneration,
     headerChips,

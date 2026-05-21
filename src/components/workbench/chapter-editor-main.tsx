@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Copy, History, Save, Sparkles, BookOpen } from "lucide-react";
+import { AlertCircle, Check, Copy, Download, FileText, History, Save, Sparkles, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
@@ -55,9 +55,12 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
     { action: "compress", label: "压缩" },
     { action: "add_conflict", label: "加冲突" },
     { action: "add_emotion", label: "加情绪" },
-    { action: "short_drama", label: "短剧化" },
-    { action: "fanqie_style", label: "番茄风" },
-    { action: "xiaohongshu_style", label: "小红书风" },
+    { action: "爽文化", label: "爽文化" },
+    { action: "细腻化", label: "细腻化" },
+    { action: "去 AI 味", label: "去 AI 味" },
+    { action: "增强开头钩子", label: "开头钩子" },
+    { action: "增强结尾追读感", label: "结尾追读" },
+    { action: "对话自然化", label: "对话自然" },
   ] as const;
 
   function syncSelection(target: HTMLTextAreaElement) {
@@ -127,6 +130,26 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
               {copiedTarget === "content" ? "已复制" : "复制正文"}
             </span>
           </button>
+          {work ? (
+            <div className="hidden items-center gap-1 rounded-md bg-zinc-100 p-0.5 dark:bg-zinc-800 sm:flex">
+              <a
+                href={`/api/works/${encodeURIComponent(work.id)}/export?scope=chapter&chapterIndex=${chapterIndex}&format=txt`}
+                className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
+                title="导出当前章节 TXT"
+              >
+                <Download className="h-3.5 w-3.5" />
+                TXT
+              </a>
+              <a
+                href={`/api/works/${encodeURIComponent(work.id)}/export?scope=chapter&chapterIndex=${chapterIndex}&format=md`}
+                className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
+                title="导出当前章节 Markdown"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                MD
+              </a>
+            </div>
+          ) : null}
           <button
             type="button"
             disabled={!work}

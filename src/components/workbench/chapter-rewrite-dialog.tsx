@@ -28,6 +28,12 @@ const actionOrder: ChapterRewriteAction[] = [
   "short_drama",
   "fanqie_style",
   "xiaohongshu_style",
+  "爽文化",
+  "细腻化",
+  "去 AI 味",
+  "增强开头钩子",
+  "增强结尾追读感",
+  "对话自然化",
   "logic_check",
 ];
 

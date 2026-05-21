@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, BarChart3, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BarChart3, BookMarked, Download, LogOut, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -36,6 +36,12 @@ export function WorkDashboardHeader({
   const writtenChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
   const aiObservabilityHref = work
     ? `/dashboard/novel/${encodeURIComponent(work.id)}/ai-observability`
+    : "";
+  const storyBibleHref = work
+    ? `/dashboard/work/${encodeURIComponent(work.id)}/bible`
+    : "";
+  const exportHref = work
+    ? `/api/works/${encodeURIComponent(work.id)}/export?scope=${isShortStory ? "short_story" : "book"}&format=md`
     : "";
   const sectionTabs = [
     { label: "总览", value: `${progressPercent || 0}%`, sectionId: "overview" as const },
@@ -90,6 +96,22 @@ export function WorkDashboardHeader({
           {work ? (
             <>
               <Link
+                href={storyBibleHref}
+                aria-label="故事圣经"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-emerald-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30 md:hidden"
+                title="故事圣经"
+              >
+                <BookMarked className="h-4 w-4" />
+              </Link>
+              <Link
+                href={storyBibleHref}
+                className="hidden h-10 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-emerald-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30 md:inline-flex"
+                title="故事圣经"
+              >
+                <BookMarked className="h-4 w-4" />
+                <span>故事圣经</span>
+              </Link>
+              <Link
                 href={aiObservabilityHref}
                 aria-label="AI 观测台"
                 className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-emerald-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30 md:hidden"
@@ -105,6 +127,14 @@ export function WorkDashboardHeader({
                 <BarChart3 className="h-4 w-4" />
                 <span>AI 观测台</span>
               </Link>
+              <a
+                href={exportHref}
+                className="hidden h-10 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-[var(--theme-border)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-zinc-800 dark:hover:text-white md:inline-flex"
+                title={isShortStory ? "导出短篇 Markdown" : "导出全书 Markdown"}
+              >
+                <Download className="h-4 w-4" />
+                <span>导出</span>
+              </a>
             </>
           ) : null}
 

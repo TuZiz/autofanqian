@@ -20,8 +20,9 @@ import { CreateModeSwitch } from "./create-mode-switch";
 const GENRE_PRESETS = ["悬疑", "恋爱", "反转", "脑洞", "虐文", "爽文", "短剧风", "小红书故事"];
 const SHORT_STEPS = [
   { label: "确定创意", text: "题材、标签和核心钩子" },
+  { label: "短篇结构", text: "按模板生成 3-8 个关键段落" },
   { label: "一键成文", text: "生成标题、简介、大纲和全文" },
-  { label: "进入正文", text: "保存为短篇作品继续润色" },
+  { label: "润色导出", text: "进入正文继续润色并导出" },
 ];
 
 type ShortStoryCreateViewProps = {
@@ -58,7 +59,7 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                   短篇小说
                 </h1>
                 <p className="hidden truncate text-[13px] font-medium text-slate-500 sm:block">
-                  标题、简介、大纲、完整正文一次生成
+                  创意输入 → 短篇结构 → 全文生成 → 润色导出
                 </p>
               </div>
               <div className="hidden md:block">
@@ -191,6 +192,12 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                 </div>
 
                 <SegmentGroup
+                  label="结构模板"
+                  options={create.structureTemplateOptions}
+                  value={create.structureTemplate}
+                  onChange={create.setStructureTemplate}
+                />
+                <SegmentGroup
                   label="叙事风格"
                   options={create.styleOptions}
                   value={create.style}
@@ -253,6 +260,7 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
               <div className="mt-4 space-y-2.5 rounded-2xl border border-slate-200 create-tint p-3 text-xs font-bold text-slate-600">
                 <SummaryRow label="类型" value={create.genre || "未填写"} />
                 <SummaryRow label="字数" value={`${Number.isFinite(create.targetWords) ? create.targetWords.toLocaleString("zh-CN") : "-"} 字`} />
+                <SummaryRow label="结构" value={create.structureTemplate} />
                 <SummaryRow label="风格" value={create.style} />
                 <SummaryRow label="视角" value={create.pov} />
                 <SummaryRow label="结局" value={SHORT_STORY_ENDING_LABELS[create.endingType]} />

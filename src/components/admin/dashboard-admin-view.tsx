@@ -8,6 +8,7 @@ import {
   Clock3,
   CreditCard,
   Eye,
+  FileText,
   Loader2,
   Users,
   type LucideIcon,
@@ -83,6 +84,9 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
             </AdminLink>
             <AdminLink href="/dashboard/admin/ai-model" icon={Bot}>
               AI 模型配置
+            </AdminLink>
+            <AdminLink href="/dashboard/admin/prompts" icon={FileText}>
+              提示词模板
             </AdminLink>
             <AdminLink href="/dashboard/admin/payments" icon={CreditCard}>
               支付设置

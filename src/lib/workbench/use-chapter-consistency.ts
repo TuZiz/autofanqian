@@ -5,6 +5,8 @@ import { useCallback, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/client/auth-api";
 import type { ChapterConsistencyResult } from "@/shared/schemas/chapter-consistency";
 
+export type ChapterConsistencyScope = "current" | "recent5";
+
 export function useChapterConsistency(params: {
   chapterIndex: number;
   content: string;
@@ -32,6 +34,8 @@ export function useChapterConsistency(params: {
   const [consistencyError, setConsistencyError] = useState("");
   const [consistencyResult, setConsistencyResult] =
     useState<ChapterConsistencyResult | null>(null);
+  const [consistencyScope, setConsistencyScope] =
+    useState<ChapterConsistencyScope>("current");
 
   const consistencyBlockedReason = useMemo(() => {
     if (!content.trim()) return "当前章节正文为空，无法进行一致性检查。";
@@ -53,7 +57,7 @@ export function useChapterConsistency(params: {
 
     const response = await apiRequest<ChapterConsistencyResult>(
       "/api/ai/chapter/consistency",
-      { workId, chapterIndex },
+      { workId, chapterIndex, scope: consistencyScope },
       { method: "POST" },
     );
 
@@ -71,6 +75,7 @@ export function useChapterConsistency(params: {
     chapterIndex,
     consistencyBlockedReason,
     consistencyBusy,
+    consistencyScope,
     setError,
     workId,
   ]);
@@ -86,6 +91,8 @@ export function useChapterConsistency(params: {
     consistencyBusy,
     consistencyError,
     consistencyResult,
+    consistencyScope,
     handleRunConsistencyCheck,
+    setConsistencyScope,
   };
 }

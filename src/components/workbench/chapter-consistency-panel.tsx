@@ -65,7 +65,9 @@ export function ChapterConsistencyPanel({
     consistencyBusy,
     consistencyError,
     consistencyResult,
+    consistencyScope,
     handleRunConsistencyCheck,
+    setConsistencyScope,
     work,
   } = editor;
 
@@ -119,6 +121,28 @@ export function ChapterConsistencyPanel({
           </div>
         ) : null}
 
+        <div className="grid grid-cols-2 gap-1.5 rounded-lg bg-[var(--theme-surface-solid)] p-1 ring-1 ring-[var(--theme-border)]">
+          {[
+            { label: "当前章", value: "current" as const },
+            { label: "最近 5 章", value: "recent5" as const },
+          ].map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => setConsistencyScope(item.value)}
+              disabled={consistencyBusy}
+              className={cn(
+                "h-8 rounded-md text-xs font-black transition disabled:opacity-50",
+                consistencyScope === item.value
+                  ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+                  : "text-[var(--theme-text-muted)] hover:text-[var(--theme-text-strong)]",
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
         {consistencyBusy ? (
           <div className="rounded-lg bg-[var(--theme-surface-overlay)] px-3 py-3">
             <div className="mb-2 flex items-center gap-2 text-xs font-bold text-[var(--theme-text-secondary)]">
@@ -151,18 +175,65 @@ export function ChapterConsistencyPanel({
               </div>
             ) : (
               <div className="space-y-2">
+                {consistencyResult.severeProblems?.length ? (
+                  <ProblemBlock title="高危问题" tone="bad" items={consistencyResult.severeProblems} />
+                ) : null}
+                {consistencyResult.mediumProblems?.length ? (
+                  <ProblemBlock title="中危问题" tone="warn" items={consistencyResult.mediumProblems} />
+                ) : null}
                 {consistencyResult.issues.map((issue, index) => (
                   <IssueItem
                     issue={issue}
                     key={`${issue.severity}-${issue.type}-${issue.title}-${index}`}
                   />
                 ))}
+                {consistencyResult.suggestions?.length ? (
+                  <ProblemBlock title="修改建议" tone="info" items={consistencyResult.suggestions} />
+                ) : null}
+                {consistencyResult.autoFixPrompt ? (
+                  <div className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] p-3">
+                    <div className="mb-1 text-xs font-black text-[var(--theme-text-strong)]">
+                      后续改写提示词
+                    </div>
+                    <p className="text-xs leading-5 text-[var(--theme-text-secondary)]">
+                      {consistencyResult.autoFixPrompt}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             )}
           </>
         ) : null}
       </div>
     </CollapsiblePanel>
+  );
+}
+
+function ProblemBlock({
+  items,
+  title,
+  tone,
+}: {
+  items: string[];
+  title: string;
+  tone: "bad" | "warn" | "info";
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border px-3 py-2",
+        tone === "bad" && "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200",
+        tone === "warn" && "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200",
+        tone === "info" && "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200",
+      )}
+    >
+      <div className="mb-1 text-xs font-black">{title}</div>
+      <ul className="space-y-1 text-xs leading-5">
+        {items.slice(0, 6).map((item, index) => (
+          <li key={`${title}-${index}`}>{item}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

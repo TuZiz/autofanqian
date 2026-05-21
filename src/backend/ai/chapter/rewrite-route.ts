@@ -11,6 +11,7 @@ import {
   getAiProvidersFromEnv,
   getReadableAiErrorMessage,
 } from "@/lib/ai/upstream-text";
+import { getActivePromptTemplate } from "@/lib/ai/prompt-templates";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getAiModelConfig } from "@/lib/config/ai-model";
@@ -30,6 +31,12 @@ const rewriteModeSchema = z.enum([
   "short_drama",
   "fanqie_style",
   "xiaohongshu_style",
+  "爽文化",
+  "细腻化",
+  "去 AI 味",
+  "增强开头钩子",
+  "增强结尾追读感",
+  "对话自然化",
   "logic_check",
 ]);
 const legacyRewriteActionSchema = z.enum(["polish", "expand", "compress", "conflict", "logic_check"]);
@@ -76,6 +83,12 @@ const actionLabel: Record<RewriteAction, string> = {
   short_drama: "短剧化改写",
   fanqie_style: "番茄风改写",
   xiaohongshu_style: "小红书风改写",
+  爽文化: "爽文化改写",
+  细腻化: "细腻化改写",
+  "去 AI 味": "去 AI 味",
+  增强开头钩子: "增强开头钩子",
+  增强结尾追读感: "增强结尾追读感",
+  对话自然化: "对话自然化",
   logic_check: "检查逻辑矛盾",
 };
 
@@ -105,6 +118,12 @@ function buildRewritePrompt(params: {
     fanqie_style: "改成番茄小说风格：钩子更强、爽点更明确、句子更顺滑、推进更快。",
     xiaohongshu_style:
       "改成小红书故事风：表达更口语，情绪更明显，段落更短，更有共鸣感；适合短篇故事/情绪故事，但不要写成营销文、种草文或带货口吻。",
+    爽文化: "强化主角主动性、压迫后的反击、清晰正反馈和读者爽点，但不要无脑开挂。",
+    细腻化: "增加感官细节、微表情、心理波动和情绪递进，让人物反应更自然。",
+    "去 AI 味": "去掉模板化转折、空泛抒情、重复排比和过度总结，让语言更像作者手写。",
+    增强开头钩子: "优先改写开头段落，前三百字内抛出悬念、压力或强情绪，不改变后文事实。",
+    增强结尾追读感: "优先改写结尾段落，留下未完成问题、情绪余波或下一章期待，不生硬断章。",
+    对话自然化: "优化对白，使人物说话更符合身份和情绪，减少解释型台词和旁白替代。",
     logic_check: "检查时间顺序、人物状态、动机、场景连续性和伏笔矛盾。",
   };
   const rewriteTarget = params.selectedText?.trim() || params.content;
@@ -182,6 +201,10 @@ export async function POST(request: Request) {
       extraPrompt: body.extraPrompt,
       selectedText: body.selectedText,
     });
+    const systemTemplate = await getActivePromptTemplate(
+      "chapter.rewrite",
+      "你是中文小说编辑，负责在不破坏上下文的前提下改写、润色或检查正文。",
+    );
 
     const generationJob = await prisma.generationJob.create({
       data: {
@@ -197,6 +220,7 @@ export async function POST(request: Request) {
         providerId: primaryProvider.id,
         modelUsed: primaryProvider.model,
         promptTemplateKey: "chapter.rewrite",
+        promptTemplateVersion: systemTemplate.version || null,
         promptSnapshot: prompt.slice(0, 20000),
         startedAt: new Date(),
         heartbeatAt: new Date(),
@@ -210,7 +234,7 @@ export async function POST(request: Request) {
       routeId,
       preferredProviderId: primaryProvider.id,
       messages: [
-        { role: "system", content: "你是中文小说编辑，负责在不破坏上下文的前提下改写、润色或检查正文。" },
+        { role: "system", content: systemTemplate.content },
         { role: "user", content: prompt },
       ],
       temperature: rewriteMode === "logic_check" ? 0.3 : 0.75,

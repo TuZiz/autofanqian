@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Compass, PenLine, Zap } from "lucide-react";
+import { Compass, Loader2, PenLine, SearchCheck, Zap } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DEFAULT_PLANNING_CONFIG, type PlanningPreset } from "@/lib/create/progressive-planning";
@@ -23,6 +23,10 @@ export function WorkDashboardSidebar({
     activeGeneration,
     currentProgressChapter,
     goToChapter,
+    consistencyBusy,
+    consistencyError,
+    consistencyNotice,
+    handleBookConsistencyCheck,
     maxChapterIndex,
     nextChapterIndex,
     openOutlineRefineConfirm,
@@ -116,6 +120,28 @@ export function WorkDashboardSidebar({
           {outlineRefineError ? (
             <div className="rounded-xl border border-red-200/60 bg-red-50/80 p-3 text-xs font-bold leading-5 text-red-600 shadow-inner dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-300">
               {outlineRefineError}
+            </div>
+          ) : null}
+
+          <SidebarActionButton
+            tone="neutral"
+            icon={consistencyBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchCheck className="h-4 w-4" />}
+            label={consistencyBusy ? "检查中..." : "检查剧情一致性"}
+            meta="全书"
+            onClick={() => void handleBookConsistencyCheck()}
+            disabled={!work || consistencyBusy}
+          />
+
+          {consistencyError || consistencyNotice ? (
+            <div
+              className={cn(
+                "rounded-xl border p-3 text-xs font-bold leading-5 shadow-inner",
+                consistencyError
+                  ? "border-red-200/60 bg-red-50/80 text-red-600 dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-300"
+                  : "border-emerald-200/60 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300",
+              )}
+            >
+              {consistencyError || consistencyNotice}
             </div>
           ) : null}
         </div>

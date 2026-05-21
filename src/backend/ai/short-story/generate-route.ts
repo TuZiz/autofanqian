@@ -16,6 +16,7 @@ import {
   getProviderApiKeyEnvName,
   getReadableAiErrorMessage,
 } from "@/lib/ai/upstream-text";
+import { getActivePromptTemplate } from "@/lib/ai/prompt-templates";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
@@ -119,7 +120,7 @@ function buildShortStoryOutlineJson(input: ShortStoryGenerateInput, output: {
     title: output.title,
     synopsis: output.synopsis,
     targetWords: input.targetWords,
-    theme: `${input.genre} / ${input.style} / ${input.pov} / ${SHORT_STORY_ENDING_LABELS[input.endingType]}`,
+    theme: `${input.genre} / ${input.structureTemplate} / ${input.style} / ${input.pov} / ${SHORT_STORY_ENDING_LABELS[input.endingType]}`,
     hook: clampText(input.idea, 300),
     endingType: input.endingType,
     characters: [
@@ -253,6 +254,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const systemTemplate = await getActivePromptTemplate(
+      "short-story.generate",
+      buildShortStoryGenerateSystemPrompt(),
+    );
     const prompt = buildShortStoryGenerateUserPrompt(input);
     const result = await runWithAiQuotaReservation(
       user,
@@ -263,7 +268,7 @@ export async function POST(request: Request) {
           preferredProviderId: target.providerId,
           routeId: target.providerId,
           messages: [
-            { role: "system", content: buildShortStoryGenerateSystemPrompt() },
+            { role: "system", content: systemTemplate.content },
             { role: "user", content: prompt },
           ],
           temperature: 0.76,
@@ -334,6 +339,7 @@ export async function POST(request: Request) {
             details: [
               `短篇类型：${input.genre}`,
               `风格：${input.style}`,
+              `结构模板：${input.structureTemplate}`,
               `视角：${input.pov}`,
               `结局：${SHORT_STORY_ENDING_LABELS[input.endingType]}`,
               `标签：${formatTags(input.tags)}`,
@@ -351,6 +357,7 @@ export async function POST(request: Request) {
             providerId: result.providerId ?? null,
             modelUsed: result.modelUsed ?? null,
             promptTemplateKey: "short-story.generate",
+            promptTemplateVersion: systemTemplate.version || null,
             promptSnapshot: prompt.slice(0, 20000),
             resultSummary: `${output.title}，正文 ${contentWordCount} 字。`,
             inputTokens: result.usage?.inputTokens ?? null,

@@ -1,6 +1,15 @@
 import { z } from "zod";
 
-export const SHORT_STORY_WORD_OPTIONS = [800, 1500, 3000, 5000, 10000] as const;
+export const SHORT_STORY_WORD_OPTIONS = [3000, 5000, 8000, 12000, 20000] as const;
+
+export const SHORT_STORY_STRUCTURE_TEMPLATES = [
+  "三幕式",
+  "反转式",
+  "悬疑式",
+  "爽文式",
+  "虐恋式",
+  "治愈式",
+] as const;
 
 export const SHORT_STORY_STYLE_OPTIONS = [
   "番茄",
@@ -46,6 +55,9 @@ export const shortStoryInputSchema = z.object({
   style: z.enum(SHORT_STORY_STYLE_OPTIONS, {
     message: "请选择叙事风格。",
   }),
+  structureTemplate: z.enum(SHORT_STORY_STRUCTURE_TEMPLATES, {
+    message: "请选择短篇结构模板。",
+  }).default("三幕式"),
   pov: z.enum(SHORT_STORY_POV_OPTIONS, {
     message: "请选择叙事视角。",
   }),

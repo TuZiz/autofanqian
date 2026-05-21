@@ -82,9 +82,12 @@
 路由：`/dashboard/create/short`
 
 - 支持短篇类型、标签、目标字数、风格、叙事视角、结局倾向和创意输入。
+- 支持目标字数 3000、5000、8000、12000、20000。
+- 支持结构模板：三幕式、反转式、悬疑式、爽文式、虐恋式、治愈式。
 - 调用 `POST /api/ai/short-story` 一次生成标题、简介、结构化短篇大纲和完整正文。
 - 生成结果保存为 `Work.workType = short_story`，并自动创建第 1 章。
 - 短篇大纲会以结构化 JSON 保存到 `Work.outline` 和 `Work.rawOutline`，包括主题、钩子、结局倾向、角色、3-8 个 beats 和 `fullOutline`。
+- 短篇不套用长篇分卷分章流程，后续可按短篇场景继续编辑、润色和导出。
 
 ### 作品导入
 
@@ -113,6 +116,22 @@
 - 章节导航入口。
 - 大纲延伸能力，可选择延伸 20、40、60 章。
 - AI 生成中状态常驻展示。
+- 故事圣经入口：集中维护角色、设定、时间线、伏笔、关系和写作记忆。
+- 全书一致性检查入口：全书检查会创建 `GenerationJob` 异步任务。
+- 全书 / 短篇 Markdown 导出入口。
+
+### 故事圣经
+
+路由：`/dashboard/work/[id]/bible`
+
+- 角色卡：维护身份、定位、描述、当前状态和章节范围。
+- 世界观设定：维护规则、地点、名词和章节范围。
+- 时间线：维护事件顺序、章节、故事时间和说明。
+- 伏笔墙：维护埋设章节、回收章节、状态、重要度和回收方式。
+- 人物关系：维护角色间关系状态、冲突和最近变化章节。
+- 写作记忆：维护事实、风格、约束、角色状态、剧情线和细节记忆。
+- 支持新增、编辑、删除、搜索和按章节范围过滤。
+- 支持从指定章节调用 AI 提取上下文并写入故事圣经。
 
 ### 章节写作页
 
@@ -159,6 +178,7 @@ AI 章节能力分为四类：
 
 - AI 改写正文：可整章改写，也可选中文本后局部改写。
 - AI 逻辑检查：只输出矛盾、动机和衔接风险，不直接覆盖正文。
+- 改写模式：扩写、压缩、爽文化、细腻化、去 AI 味、增强开头钩子、增强结尾追读感、对话自然化、小红书风、番茄风、短剧化等。
 - 预览后应用：先生成预览，确认后再写入正文。
 - 应用前自动保存历史版本：应用改写前会生成章节历史快照，便于回退。
 
@@ -170,7 +190,19 @@ AI 一致性检查支持：
 - 剧情断裂检查。
 - 风格偏移检查。
 - 强约束遗漏检查。
+- 支持检查当前章、最近 5 章。
+- 全书检查通过 `GenerationJob` 异步记录。
+- 输出高危问题、中危问题、建议和后续 AI 改写提示词。
 - 只展示评分和修改建议，不自动改写正文。
+
+### 导出
+
+- 当前章节导出 TXT / Markdown。
+- 全书导出 TXT / Markdown。
+- 短篇导出 TXT / Markdown。
+- 导出按章节顺序排列，并过滤 `deletedAt` 不为空的章节。
+- 导出文件名包含作品名、范围和日期。
+- DOCX / EPUB 接口已预留。
 
 正文生成会参考：
 
@@ -218,6 +250,16 @@ AI 一致性检查支持：
 - 细节设定提取。
 - 模板学习。
 - 全量重生成。
+
+### 提示词模板中心
+
+路由：`/dashboard/admin/prompts`
+
+- 使用 `PromptTemplate` 模型管理 AI 提示词。
+- 支持按 category 查看提示词。
+- 支持新增提示词、编辑提示词、创建新版本。
+- 支持启用 / 停用版本，并查看当前激活版本。
+- AI 调用优先读取数据库激活提示词，找不到时回退到代码默认提示词。
 
 目前内置两个服务商槽位：
 
@@ -287,10 +329,12 @@ AI 一致性检查支持：
 | `/dashboard/create/outline` | AI 生成大纲和创建作品 |
 | `/dashboard/import` | 导入作品，支持粘贴全文、TXT / Markdown、自动切章和导入预览 |
 | `/dashboard/work/[id]` | 作品详情页 |
+| `/dashboard/work/[id]/bible` | 故事圣经页面 |
 | `/dashboard/work/[id]/chapter/[index]` | 章节写作页 |
 | `/dashboard/admin` | 管理员控制台 |
 | `/dashboard/admin/users` | 用户管理 |
 | `/dashboard/admin/ai-model` | AI 模型配置 |
+| `/dashboard/admin/prompts` | 提示词模板中心 |
 
 ## API 路由
 
@@ -317,6 +361,10 @@ AI 一致性检查支持：
 - `PUT /api/admin/templates/[id]`
 - `DELETE /api/admin/templates/[id]`
 - `POST /api/admin/templates/learn`
+- `GET /api/admin/prompts`
+- `POST /api/admin/prompts`
+- `PUT /api/admin/prompts/[id]`
+- `DELETE /api/admin/prompts/[id]`
 
 ### AI
 
@@ -343,12 +391,22 @@ AI 一致性检查支持：
 - `GET /api/works/[id]/chapters`
 - `GET /api/works/[id]/chapters/[index]`
 - `PUT /api/works/[id]/chapters/[index]`
+- `GET /api/works/[id]/export`
+- `GET /api/works/[id]/bible`
+- `POST /api/works/[id]/bible`
+- `PATCH /api/works/[id]/bible/[section]/[itemId]`
+- `DELETE /api/works/[id]/bible/[section]/[itemId]`
+- `POST /api/works/[id]/bible/extract`
 
 ### 管理员
 
 - `GET /api/admin/ai-stats`
 - `GET /api/admin/ai-model-config`
 - `PUT /api/admin/ai-model-config`
+- `GET /api/admin/prompts`
+- `POST /api/admin/prompts`
+- `PUT /api/admin/prompts/[id]`
+- `DELETE /api/admin/prompts/[id]`
 - `GET /api/admin/users`
 - `POST /api/admin/users`
 - `PUT /api/admin/users/[id]`

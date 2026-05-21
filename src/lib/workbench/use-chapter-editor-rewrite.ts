@@ -14,6 +14,12 @@ export type ChapterRewriteAction =
   | "short_drama"
   | "fanqie_style"
   | "xiaohongshu_style"
+  | "爽文化"
+  | "细腻化"
+  | "去 AI 味"
+  | "增强开头钩子"
+  | "增强结尾追读感"
+  | "对话自然化"
   | "logic_check";
 
 type RewritePreviewResponse = {
@@ -34,6 +40,12 @@ export const rewriteActionLabels: Record<ChapterRewriteAction, string> = {
   short_drama: aiZhCN.chapterRewrite.actions.short_drama.label,
   fanqie_style: aiZhCN.chapterRewrite.actions.fanqie_style.label,
   xiaohongshu_style: aiZhCN.chapterRewrite.actions.xiaohongshu_style.label,
+  爽文化: aiZhCN.chapterRewrite.actions["爽文化"].label,
+  细腻化: aiZhCN.chapterRewrite.actions["细腻化"].label,
+  "去 AI 味": aiZhCN.chapterRewrite.actions["去 AI 味"].label,
+  增强开头钩子: aiZhCN.chapterRewrite.actions["增强开头钩子"].label,
+  增强结尾追读感: aiZhCN.chapterRewrite.actions["增强结尾追读感"].label,
+  对话自然化: aiZhCN.chapterRewrite.actions["对话自然化"].label,
   logic_check: aiZhCN.chapterRewrite.actions.logic_check.label,
 };
 
@@ -46,6 +58,12 @@ export const rewriteActionDescriptions: Record<ChapterRewriteAction, string> = {
   short_drama: aiZhCN.chapterRewrite.actions.short_drama.description,
   fanqie_style: aiZhCN.chapterRewrite.actions.fanqie_style.description,
   xiaohongshu_style: aiZhCN.chapterRewrite.actions.xiaohongshu_style.description,
+  爽文化: aiZhCN.chapterRewrite.actions["爽文化"].description,
+  细腻化: aiZhCN.chapterRewrite.actions["细腻化"].description,
+  "去 AI 味": aiZhCN.chapterRewrite.actions["去 AI 味"].description,
+  增强开头钩子: aiZhCN.chapterRewrite.actions["增强开头钩子"].description,
+  增强结尾追读感: aiZhCN.chapterRewrite.actions["增强结尾追读感"].description,
+  对话自然化: aiZhCN.chapterRewrite.actions["对话自然化"].description,
   logic_check: aiZhCN.chapterRewrite.actions.logic_check.description,
 };
 

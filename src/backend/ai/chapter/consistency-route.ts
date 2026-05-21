@@ -11,6 +11,7 @@ import {
   getAiProvidersFromEnv,
   getReadableAiErrorMessage,
 } from "@/lib/ai/upstream-text";
+import { getActivePromptTemplate } from "@/lib/ai/prompt-templates";
 import { errorResponse, parseJsonBody } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getAiModelConfig } from "@/lib/config/ai-model";
@@ -21,6 +22,7 @@ import { requireWorkAccess } from "@/lib/works/access";
 import {
   chapterConsistencyRequestSchema,
   chapterConsistencyResultSchema,
+  type ChapterConsistencyIssue,
   type ChapterConsistencyResult,
 } from "@/shared/schemas/chapter-consistency";
 
@@ -53,6 +55,7 @@ function formatJson(value: unknown, limit = 6000) {
 }
 
 function buildConsistencyPrompt(params: {
+  scope: "current" | "recent5" | "book";
   work: {
     title: string;
     workType: string;
@@ -61,12 +64,19 @@ function buildConsistencyPrompt(params: {
     canonState: unknown;
   };
   chapter: {
+    index?: number;
     title: string | null;
     content: string;
     summary: string | null;
     chapterOutline: string | null;
     details: unknown;
   };
+  checkChapters: Array<{
+    index: number;
+    title: string | null;
+    content: string;
+    summary: string | null;
+  }>;
   previousSummaries: Array<{ index: number; title: string | null; summary: string | null }>;
   characters: Array<{ name: string; role: string; desc: string; currentState: string | null }>;
   memories: Array<{ kind: string; priority: number; content: string }>;
@@ -95,13 +105,27 @@ function buildConsistencyPrompt(params: {
         .map((item) => `- 第${item.index}章 ${item.title ?? ""}：${item.summary ?? "无摘要"}`)
         .join("\n")
     : "无";
+  const chapterBlock = params.checkChapters.length
+    ? params.checkChapters
+        .map(
+          (item) =>
+            [
+              `【第${item.index}章 ${item.title ?? ""}】`,
+              item.summary ? `摘要：${item.summary}` : "",
+              item.content.slice(0, params.scope === "recent5" ? 6500 : 16000),
+            ].filter(Boolean).join("\n"),
+        )
+        .join("\n\n")
+    : params.chapter.content.slice(0, 22000);
 
   return [
-    "请对当前章节做系统性一致性检查，只输出严格 JSON，不要 Markdown，不要解释。",
-    "检查维度：角色矛盾、时间线矛盾、设定冲突、剧情断裂、风格偏移、强约束遗漏。",
-    '输出格式：{"score":0-100,"issues":[{"severity":"low|medium|high","type":"character|timeline|setting|plot|style|other","title":"问题标题","description":"具体问题","suggestion":"修改建议"}]}',
-    "如果没有明显问题，issues 输出空数组，score 给 85-100。",
+    "请对小说正文做系统性剧情一致性检查，只输出严格 JSON，不要 Markdown，不要解释。",
+    "检查维度：人名错误、设定冲突、人物性格崩坏、时间线冲突、地点冲突、伏笔未回收、上下章衔接问题、重复剧情、注水废话。",
+    '输出格式：{"score":0-100,"issues":[{"severity":"low|medium|high","type":"character|timeline|setting|plot|style|other","title":"问题标题","description":"具体问题","suggestion":"修改建议"}],"severeProblems":["高危问题"],"mediumProblems":["中危问题"],"suggestions":["可执行修改建议"],"autoFixPrompt":"给后续 AI 改写使用的修复提示词"}',
+    "severeProblems 只收高危问题，mediumProblems 收中危问题；suggestions 要给可操作修法；autoFixPrompt 不要直接改正文，只写修复指令。",
+    "如果没有明显问题，issues、severeProblems、mediumProblems 输出空数组，score 给 85-100。",
     "",
+    `检查范围：${params.scope === "recent5" ? "最近 5 章" : params.scope === "book" ? "全书" : "当前章"}`,
     `作品：${params.work.title}`,
     `类型：${params.work.workType}`,
     `题材：${params.work.tag}`,
@@ -125,8 +149,8 @@ function buildConsistencyPrompt(params: {
     `当前章节大纲：${params.chapter.chapterOutline || "无"}`,
     `当前章节细节：${formatJson(params.chapter.details, 2000)}`,
     "",
-    "当前章节正文：",
-    params.chapter.content.slice(0, 22000),
+    "待检查正文：",
+    chapterBlock,
   ].join("\n");
 }
 
@@ -135,9 +159,75 @@ function parseConsistencyResult(text: string): ChapterConsistencyResult | null {
   if (!raw) return null;
   const parsed = chapterConsistencyResultSchema.safeParse(raw);
   if (!parsed.success) return null;
+  const issues = parsed.data.issues;
+  const severeProblems =
+    parsed.data.severeProblems.length > 0
+      ? parsed.data.severeProblems
+      : issues
+          .filter((issue) => issue.severity === "high")
+          .map((issue) => `${issue.title}：${issue.description}`);
+  const mediumProblems =
+    parsed.data.mediumProblems.length > 0
+      ? parsed.data.mediumProblems
+      : issues
+          .filter((issue) => issue.severity === "medium")
+          .map((issue) => `${issue.title}：${issue.description}`);
+  const suggestions =
+    parsed.data.suggestions.length > 0
+      ? parsed.data.suggestions
+      : issues.map((issue) => issue.suggestion).filter(Boolean);
   return {
     score: Math.round(parsed.data.score),
-    issues: parsed.data.issues,
+    issues,
+    severeProblems,
+    mediumProblems,
+    suggestions,
+    autoFixPrompt: parsed.data.autoFixPrompt,
+    scope: parsed.data.scope,
+  };
+}
+
+function issueFromText(
+  severity: ChapterConsistencyIssue["severity"],
+  description: string,
+): ChapterConsistencyIssue {
+  const title = description.split(/[。！？\n]/)[0]?.slice(0, 80) || "一致性问题";
+  return {
+    severity,
+    type: "other",
+    title,
+    description,
+    suggestion: "按问题描述回到对应章节人工修订，必要时再使用 AI 改写生成预览。",
+  };
+}
+
+function normalizeConsistencyResult(
+  result: ChapterConsistencyResult,
+  scope: "current" | "recent5" | "book",
+): ChapterConsistencyResult {
+  const severeProblems = result.severeProblems ?? [];
+  const mediumProblems = result.mediumProblems ?? [];
+  const suggestions = result.suggestions ?? [];
+  const issues = result.issues.length
+    ? result.issues
+    : [
+        ...severeProblems.map((item) => issueFromText("high", item)),
+        ...mediumProblems.map((item) => issueFromText("medium", item)),
+        ...suggestions.slice(0, 8).map((item) => issueFromText("low", item)),
+      ];
+
+  return {
+    score: Math.round(result.score),
+    issues,
+    severeProblems: severeProblems.length
+      ? severeProblems
+      : issues.filter((issue) => issue.severity === "high").map((issue) => `${issue.title}：${issue.description}`),
+    mediumProblems: mediumProblems.length
+      ? mediumProblems
+      : issues.filter((issue) => issue.severity === "medium").map((issue) => `${issue.title}：${issue.description}`),
+    suggestions: suggestions.length ? suggestions : issues.map((issue) => issue.suggestion),
+    autoFixPrompt: result.autoFixPrompt || "请根据一致性检查结果修复人名、设定、时间线、伏笔回收和上下章衔接问题；保持原剧情主线，不自动新增设定。",
+    scope,
   };
 }
 
@@ -147,7 +237,53 @@ export async function POST(request: Request) {
 
     const body = await parseJsonBody(request, chapterConsistencyRequestSchema);
     const { user, work } = await requireWorkAccess(body.workId);
-    const chapterIndex = body.chapterIndex;
+    const scope = body.scope;
+    const chapterIndex = body.chapterIndex ?? 1;
+
+    if (scope === "book") {
+      const { user, work } = await requireWorkAccess(body.workId);
+      const chapterCount = await prisma.chapter.count({
+        where: { workId: work.id, deletedAt: null, content: { not: "" } },
+      });
+      if (chapterCount === 0) {
+        throw new AuthApiError(422, "作品正文为空，无法进行全书一致性检查。");
+      }
+
+      await assertAiQuotaAvailable(user);
+      await assertCanUseAiAction(user, "chapter_consistency_check");
+
+      const job = await prisma.generationJob.create({
+        data: {
+          novelId: work.id,
+          userId: user.id,
+          workId: work.id,
+          action: "chapter.consistency_check.book",
+          jobType: "chapter.consistency.book",
+          status: "queued",
+          promptTemplateKey: "chapter.consistency",
+          resultSummary: "全书一致性检查已加入任务队列。",
+          heartbeatAt: new Date(),
+        },
+        select: { id: true, status: true },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "全书一致性检查已创建异步任务，可稍后在 AI 观测台查看。",
+        data: {
+          score: 0,
+          issues: [],
+          severeProblems: [],
+          mediumProblems: [],
+          suggestions: ["全书检查耗时较长，已通过 GenerationJob 异步记录。"],
+          autoFixPrompt: "",
+          scope,
+          jobId: job.id,
+          status: job.status,
+        },
+      });
+    }
+
     const chapter = await prisma.chapter.findUnique({
       where: { workId_index: { workId: work.id, index: chapterIndex } },
       select: {
@@ -168,7 +304,12 @@ export async function POST(request: Request) {
       throw new AuthApiError(422, "当前章节正文为空，无法进行一致性检查。");
     }
 
-    const [fullWork, previousSummaries, characters, memories, timelineEvents] =
+    const chapterRangeWhere =
+      scope === "recent5"
+        ? { gte: Math.max(1, chapterIndex - 4), lte: chapterIndex }
+        : { equals: chapterIndex };
+
+    const [fullWork, previousSummaries, checkChapters, characters, memories, timelineEvents] =
       await Promise.all([
         prisma.work.findUnique({
           where: { id: work.id },
@@ -190,6 +331,15 @@ export async function POST(request: Request) {
           orderBy: { index: "desc" },
           take: 3,
           select: { index: true, title: true, summary: true },
+        }),
+        prisma.chapter.findMany({
+          where: {
+            workId: work.id,
+            deletedAt: null,
+            index: chapterRangeWhere,
+          },
+          orderBy: { index: "asc" },
+          select: { index: true, title: true, content: true, summary: true },
         }),
         prisma.character.findMany({
           where: { novelId: work.id, deletedAt: null },
@@ -239,9 +389,15 @@ export async function POST(request: Request) {
     }
 
     const primaryProvider = providers[0];
+    const systemTemplate = await getActivePromptTemplate(
+      "chapter.consistency",
+      "你是中文小说连续性审校编辑，只返回可解析的一致性检查 JSON。",
+    );
     const prompt = buildConsistencyPrompt({
+      scope,
       work: fullWork,
-      chapter,
+      chapter: { ...chapter, index: chapterIndex },
+      checkChapters,
       previousSummaries: previousSummaries.slice().reverse(),
       characters,
       memories,
@@ -262,6 +418,7 @@ export async function POST(request: Request) {
         providerId: primaryProvider.id,
         modelUsed: primaryProvider.model,
         promptTemplateKey: "chapter.consistency",
+        promptTemplateVersion: systemTemplate.version || null,
         promptSnapshot: prompt.slice(0, 20000),
         startedAt: new Date(),
         heartbeatAt: new Date(),
@@ -279,7 +436,7 @@ export async function POST(request: Request) {
           messages: [
             {
               role: "system",
-              content: "你是中文小说连续性审校编辑，只返回可解析的一致性检查 JSON。",
+              content: systemTemplate.content,
             },
             { role: "user", content: prompt },
           ],
@@ -294,7 +451,8 @@ export async function POST(request: Request) {
       },
     );
 
-    const parsed = result.ok && result.text ? parseConsistencyResult(result.text) : null;
+    const parsedRaw = result.ok && result.text ? parseConsistencyResult(result.text) : null;
+    const parsed = parsedRaw ? normalizeConsistencyResult(parsedRaw, scope) : null;
     if (!parsed) {
       await prisma.generationJob.update({
         where: { id: generationJob.id },

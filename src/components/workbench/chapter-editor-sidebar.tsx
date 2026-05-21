@@ -33,8 +33,12 @@ const rewriteQuickActions = [
   { action: "add_conflict", label: "冲突" },
   { action: "add_emotion", label: "情绪" },
   { action: "short_drama", label: "短剧" },
-  { action: "fanqie_style", label: "番茄" },
-  { action: "xiaohongshu_style", label: "小红书" },
+  { action: "爽文化", label: "爽文" },
+  { action: "细腻化", label: "细腻" },
+  { action: "去 AI 味", label: "去AI" },
+  { action: "增强开头钩子", label: "开头" },
+  { action: "增强结尾追读感", label: "追读" },
+  { action: "对话自然化", label: "对白" },
 ] as const;
 
 export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorController }) {

@@ -8,6 +8,7 @@ import { apiRequest, firstFieldErrors } from "@/lib/client/auth-api";
 import {
   SHORT_STORY_ENDING_TYPES,
   SHORT_STORY_POV_OPTIONS,
+  SHORT_STORY_STRUCTURE_TEMPLATES,
   SHORT_STORY_STYLE_OPTIONS,
   SHORT_STORY_WORD_OPTIONS,
   shortStoryInputSchema,
@@ -49,6 +50,8 @@ export function useShortStoryCreate() {
   const [targetPreset, setTargetPreset] = useState(String(DEFAULT_WORDS));
   const [customWords, setCustomWords] = useState(String(DEFAULT_WORDS));
   const [style, setStyle] = useState<(typeof SHORT_STORY_STYLE_OPTIONS)[number]>("番茄");
+  const [structureTemplate, setStructureTemplate] =
+    useState<(typeof SHORT_STORY_STRUCTURE_TEMPLATES)[number]>("三幕式");
   const [pov, setPov] = useState<(typeof SHORT_STORY_POV_OPTIONS)[number]>("第三人称");
   const [endingType, setEndingType] = useState<ShortStoryEndingType>("twist");
   const [idea, setIdea] = useState("");
@@ -67,11 +70,12 @@ export function useShortStoryCreate() {
       tags,
       targetWords,
       style,
+      structureTemplate,
       pov,
       endingType,
       idea,
     }),
-    [endingType, genre, idea, pov, style, tags, targetWords],
+    [endingType, genre, idea, pov, structureTemplate, style, tags, targetWords],
   );
 
   const validation = useMemo(() => zodFieldErrors(input), [input]);
@@ -123,16 +127,19 @@ export function useShortStoryCreate() {
     setGenre,
     setIdea,
     setPov,
+    setStructureTemplate,
     setStyle,
     setTagsText,
     setTargetPreset,
     stage,
     style,
+    structureTemplate,
     tags,
     tagsText,
     targetPreset,
     targetWords,
     wordOptions: SHORT_STORY_WORD_OPTIONS,
+    structureTemplateOptions: SHORT_STORY_STRUCTURE_TEMPLATES,
     styleOptions: SHORT_STORY_STYLE_OPTIONS,
     povOptions: SHORT_STORY_POV_OPTIONS,
     endingOptions: SHORT_STORY_ENDING_TYPES,
