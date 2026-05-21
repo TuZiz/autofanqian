@@ -23,7 +23,10 @@ const actionOrder: ChapterRewriteAction[] = [
   "polish",
   "expand",
   "compress",
-  "conflict",
+  "add_conflict",
+  "add_emotion",
+  "short_drama",
+  "fanqie_style",
   "logic_check",
 ];
 

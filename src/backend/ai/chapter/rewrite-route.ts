@@ -23,24 +23,53 @@ import { assertCanUseAiAction } from "@/lib/membership/guards";
 
 export const runtime = "nodejs";
 
-const rewriteActionSchema = z.enum(["polish", "expand", "compress", "conflict", "logic_check"]);
+const rewriteModeSchema = z.enum([
+  "polish",
+  "expand",
+  "compress",
+  "add_conflict",
+  "add_emotion",
+  "short_drama",
+  "fanqie_style",
+  "logic_check",
+]);
+const legacyRewriteActionSchema = z.enum(["polish", "expand", "compress", "conflict", "logic_check"]);
 
 const bodySchema = z.object({
   workId: z.string().min(1).max(64),
   index: z.coerce.number().int().min(1).max(9999),
-  action: rewriteActionSchema,
+  rewriteMode: rewriteModeSchema.optional(),
+  action: legacyRewriteActionSchema.optional(),
   extraPrompt: z.string().trim().max(2000).optional().nullable(),
+  selectedText: z.string().max(80_000).optional().nullable(),
   apply: z.boolean().optional(),
   draftContent: z.string().max(200_000).optional().nullable(),
+}).superRefine((body, ctx) => {
+  if (!body.rewriteMode && !body.action) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["rewriteMode"],
+      message: "请选择改写模式。",
+    });
+  }
 });
 
-type RewriteAction = z.infer<typeof rewriteActionSchema>;
+type RewriteAction = z.infer<typeof rewriteModeSchema>;
+
+function normalizeRewriteMode(body: z.infer<typeof bodySchema>): RewriteAction {
+  if (body.rewriteMode) return body.rewriteMode;
+  if (body.action === "conflict") return "add_conflict";
+  return (body.action ?? "polish") as RewriteAction;
+}
 
 const actionLabel: Record<RewriteAction, string> = {
   polish: "润色本章",
   expand: "扩写本章",
   compress: "压缩本章",
-  conflict: "增强冲突",
+  add_conflict: "增强冲突",
+  add_emotion: "增强情绪",
+  short_drama: "短剧化改写",
+  fanqie_style: "番茄风改写",
   logic_check: "检查逻辑矛盾",
 };
 
@@ -72,6 +101,7 @@ function buildRewritePrompt(params: {
   title: string | null;
   content: string;
   extraPrompt?: string | null;
+  selectedText?: string | null;
 }) {
   const instruction =
     params.action === "logic_check"
@@ -82,20 +112,28 @@ function buildRewritePrompt(params: {
     polish: "提升语句流畅度、画面感和节奏，但保持剧情事件不变。",
     expand: "增加场景动作、心理变化和冲突推进，保持主线不偏移。",
     compress: "压缩重复表达和拖慢节奏的段落，保留关键剧情。",
-    conflict: "增强人物冲突、外部压力和章末钩子，避免生硬反转。",
+    add_conflict: "增强人物冲突、外部压力和章末钩子，避免生硬反转。",
+    add_emotion: "强化人物情绪、心理变化和情绪落点，让读者更容易共情。",
+    short_drama: "改成短剧风表达：对白更密、节奏更快、冲突更直给、反转更清晰。",
+    fanqie_style: "改成番茄小说风格：钩子更强、爽点更明确、句子更顺滑、推进更快。",
     logic_check: "检查时间顺序、人物状态、动机、场景连续性和伏笔矛盾。",
   };
+  const rewriteTarget = params.selectedText?.trim() || params.content;
 
   return [
     `动作：${actionLabel[params.action]}`,
     `要求：${actionRule[params.action]}`,
+    params.selectedText?.trim()
+      ? "改写范围：只改写用户选中的文本，不要扩展到未选中的上下文。"
+      : "改写范围：整章正文。",
     instruction,
     params.extraPrompt ? `补充要求：${params.extraPrompt}` : "",
     "",
     `章节标题：${params.title || "未命名章节"}`,
     "",
-    "原文：",
-    params.content,
+    params.selectedText?.trim() ? "选中文本：" : "原文：",
+    rewriteTarget,
+    params.selectedText?.trim() ? ["", "整章上下文（仅供理解，不要整体改写）：", params.content].join("\n") : "",
   ].filter(Boolean).join("\n");
 }
 
@@ -109,6 +147,7 @@ export async function POST(request: Request) {
     }
 
     const body = parsed.data;
+    const rewriteMode = normalizeRewriteMode(body);
     const { user, work } = await requireWorkAccess(body.workId);
     const chapter = await prisma.chapter.findUnique({
       where: { workId_index: { workId: work.id, index: body.index } },
@@ -126,7 +165,7 @@ export async function POST(request: Request) {
     }
 
     if (body.apply) {
-      if (body.action === "logic_check") {
+      if (rewriteMode === "logic_check") {
         throw new AuthApiError(400, "逻辑检查没有可应用的正文内容。");
       }
 
@@ -139,7 +178,7 @@ export async function POST(request: Request) {
         workId: work.id,
         index: body.index,
         source: "ai_rewrite",
-        reason: body.action,
+        reason: rewriteMode,
       });
 
       const updatedChapter = await prisma.chapter.update({
@@ -184,7 +223,7 @@ export async function POST(request: Request) {
     }
 
     await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, `chapter_rewrite_${body.action}`);
+    await assertCanUseAiAction(user, `chapter_rewrite_${rewriteMode}`);
 
     const providersFromEnv = getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();
@@ -201,10 +240,11 @@ export async function POST(request: Request) {
     }
     const primaryProvider = providers[0];
     const prompt = buildRewritePrompt({
-      action: body.action,
+      action: rewriteMode,
       title: chapter.title,
       content: chapter.content,
       extraPrompt: body.extraPrompt,
+      selectedText: body.selectedText,
     });
 
     const generationJob = await prisma.generationJob.create({
@@ -214,7 +254,7 @@ export async function POST(request: Request) {
         workId: work.id,
         chapterId: chapter.id,
         chapterIndex: body.index,
-        action: `chapter.rewrite.${body.action}`,
+        action: `chapter.rewrite.${rewriteMode}`,
         jobType: "chapter.rewrite",
         status: "running",
         routeId,
@@ -227,18 +267,18 @@ export async function POST(request: Request) {
       },
     });
 
-    const usageAction = `chapter_rewrite_${body.action}`;
+    const usageAction = `chapter_rewrite_${rewriteMode}`;
     const result = await runWithAiQuotaReservation(user, usageAction, () =>
       callAiText({
       providers,
       routeId,
       preferredProviderId: primaryProvider.id,
       messages: [
-        { role: "system", content: "你是中文长篇小说编辑，负责在不破坏上下文的前提下改写或检查章节。" },
+        { role: "system", content: "你是中文小说编辑，负责在不破坏上下文的前提下改写、润色或检查正文。" },
         { role: "user", content: prompt },
       ],
-      temperature: body.action === "logic_check" ? 0.3 : 0.75,
-        maxTokens: body.action === "logic_check" ? 1800 : 5200,
+      temperature: rewriteMode === "logic_check" ? 0.3 : 0.75,
+        maxTokens: rewriteMode === "logic_check" ? 1800 : 5200,
       }),
     );
 
@@ -266,9 +306,9 @@ export async function POST(request: Request) {
 
     const nextText = result.text.trim().slice(0, 200_000);
     const resultSummary =
-      body.action === "logic_check"
+      rewriteMode === "logic_check"
         ? result.text.slice(0, 2000)
-        : `${actionLabel[body.action]}预览完成，${countWords(nextText)}字。`;
+        : `${actionLabel[rewriteMode]}预览完成，${countWords(nextText)}字。`;
 
     await prisma.generationJob.update({
       where: { id: generationJob.id },
@@ -288,7 +328,7 @@ export async function POST(request: Request) {
       },
     });
 
-    if (body.action === "logic_check") {
+    if (rewriteMode === "logic_check") {
       return NextResponse.json({
         success: true,
         message: aiZhCN.chapterRewrite.logicDone,
@@ -297,11 +337,13 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      success: true,
-      message: aiZhCN.chapterRewrite.previewDone,
-      data: {
-        action: body.action,
+        success: true,
+        message: aiZhCN.chapterRewrite.previewDone,
+        data: {
+        action: rewriteMode,
+        rewriteMode,
         preview: nextText,
+        rewrittenText: nextText,
         originalWordCount: chapter.wordCount,
         previewWordCount: countWords(nextText),
       },

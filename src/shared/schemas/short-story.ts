@@ -1,15 +1,14 @@
 import { z } from "zod";
 
-export const SHORT_STORY_WORD_OPTIONS = [3000, 5000, 8000, 10000, 20000] as const;
+export const SHORT_STORY_WORD_OPTIONS = [800, 1500, 3000, 5000, 10000] as const;
 
 export const SHORT_STORY_STYLE_OPTIONS = [
-  "反转",
-  "治愈",
-  "黑暗",
-  "轻松",
-  "文艺",
-  "爽感",
-  "短剧化",
+  "番茄",
+  "晋江",
+  "小红书",
+  "短剧",
+  "知乎故事",
+  "轻小说",
 ] as const;
 
 export const SHORT_STORY_POV_OPTIONS = ["第一人称", "第三人称", "多视角"] as const;
@@ -42,7 +41,7 @@ export const shortStoryInputSchema = z.object({
   targetWords: z.coerce
     .number()
     .int("目标字数必须是整数。")
-    .min(1000, "目标字数不能少于 1000。")
+    .min(800, "目标字数不能少于 800。")
     .max(50000, "目标字数不能超过 50000。"),
   style: z.enum(SHORT_STORY_STYLE_OPTIONS, {
     message: "请选择叙事风格。",

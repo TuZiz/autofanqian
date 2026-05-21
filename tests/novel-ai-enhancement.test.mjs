@@ -1255,3 +1255,66 @@ test("generation cost and chapter observability include main generation actions"
   assert.match(chapterSource, /repairSucceeded/);
   assert.match(chapterSource, /lengthRepairSucceeded/);
 });
+
+test("short story one-shot generation and selected text rewrite are wired", () => {
+  const shortRouteSource = read("src/app/api/ai/short-story/route.ts");
+  const shortGenerateSource = read("src/backend/ai/short-story/generate-route.ts");
+  const shortBaseSchemaSource = read("src/shared/schemas/short-story.ts");
+  const shortSchemaSource = read("src/shared/schemas/short-story-generate.ts");
+  const shortCreateViewSource = read("src/frontend/features/create/short-story-create-view.tsx");
+  const shortCreateHookSource = read("src/lib/create/use-short-story-create.ts");
+  const rewriteRouteSource = read("src/backend/ai/chapter/rewrite-route.ts");
+  const rewriteHookSource = read("src/lib/workbench/use-chapter-editor-rewrite.ts");
+  const editorMainSource = read("src/components/workbench/chapter-editor-main.tsx");
+
+  assert.match(shortRouteSource, /@\/backend\/ai\/short-story\/generate-route/);
+  assert.match(shortSchemaSource, /SHORT_STORY_GENRES/);
+  for (const keyword of [
+    "悬疑",
+    "恋爱",
+    "反转",
+    "脑洞",
+    "虐文",
+    "爽文",
+    "短剧风",
+    "小红书故事",
+    "800",
+    "1500",
+    "3000",
+    "5000",
+    "10000",
+    "番茄",
+    "晋江",
+    "小红书",
+    "短剧",
+    "知乎故事",
+    "轻小说",
+  ]) {
+    assert.match(shortBaseSchemaSource + shortSchemaSource + shortCreateViewSource, new RegExp(keyword));
+  }
+  assert.match(shortCreateHookSource, /\/api\/ai\/short-story/);
+  assert.match(shortGenerateSource, /workType:\s*"short_story"/);
+  assert.match(shortGenerateSource, /chapters:\s*\{\s*create:\s*\{/s);
+  assert.match(shortGenerateSource, /index:\s*1/);
+  assert.match(shortGenerateSource, /content:\s*output\.content/);
+  assert.match(shortGenerateSource, /runWithAiQuotaReservation\(\s*user,\s*"short_story_outline_generate"/s);
+  assert.match(shortGenerateSource, /successResponse/);
+
+  for (const keyword of [
+    "rewriteMode",
+    "selectedText",
+    "rewrittenText",
+    "add_conflict",
+    "add_emotion",
+    "short_drama",
+    "fanqie_style",
+    "draftContent",
+    "setRewriteSelection",
+    "已选中",
+    "加冲突",
+    "加情绪",
+    "短剧化",
+  ]) {
+    assert.match(rewriteRouteSource + rewriteHookSource + editorMainSource, new RegExp(keyword));
+  }
+});

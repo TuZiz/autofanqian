@@ -29,8 +29,10 @@ const rewriteQuickActions = [
   { action: "polish", label: aiZhCN.chapterRewrite.actions.polish.label },
   { action: "expand", label: aiZhCN.chapterRewrite.actions.expand.label },
   { action: "compress", label: aiZhCN.chapterRewrite.actions.compress.label },
-  { action: "conflict", label: "冲突" },
-  { action: "logic_check", label: "检查" },
+  { action: "add_conflict", label: "冲突" },
+  { action: "add_emotion", label: "情绪" },
+  { action: "short_drama", label: "短剧" },
+  { action: "fanqie_style", label: "番茄" },
 ] as const;
 
 export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorController }) {

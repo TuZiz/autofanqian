@@ -20,7 +20,12 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
     handleManualSave,
     metaSaving,
     outlinePreviewLines,
+    openRewriteDialog,
+    rewriteApplying,
+    rewriteBusy,
+    rewriteSelection,
     saving,
+    setRewriteSelection,
     setRevisionDialogOpen,
     summaryPreview,
     title,
@@ -41,6 +46,25 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
   const contextChips = outlinePreviewLines.length
     ? outlinePreviewLines.slice(0, 3)
     : [work?.tag || "写作", currentChapterLabel].filter(Boolean);
+  const selectedLength = rewriteSelection.text.trim().length;
+  const rewriteToolbarActions = [
+    { action: "polish", label: "润色" },
+    { action: "expand", label: "扩写" },
+    { action: "compress", label: "压缩" },
+    { action: "add_conflict", label: "加冲突" },
+    { action: "add_emotion", label: "加情绪" },
+    { action: "short_drama", label: "短剧化" },
+  ] as const;
+
+  function syncSelection(target: HTMLTextAreaElement) {
+    const start = target.selectionStart;
+    const end = target.selectionEnd;
+    setRewriteSelection({
+      start,
+      end,
+      text: start === end ? "" : target.value.slice(start, end),
+    });
+  }
 
   return (
     <div className="relative flex min-w-0 w-full flex-col items-center pb-8 lg:h-full lg:min-h-0 lg:self-stretch lg:pb-0">
@@ -226,6 +250,26 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
         </div>
 
         {/* 正文输入区 */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3 py-2 shadow-sm">
+          <div className="min-w-0 text-xs font-semibold text-[var(--theme-text-muted)]">
+            {selectedLength
+              ? `已选中 ${selectedLength.toLocaleString("zh-CN")} 字，可只改写选中文本`
+              : "选中正文后，可用 AI 只改写选中文本"}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {rewriteToolbarActions.map((item) => (
+              <button
+                key={item.action}
+                type="button"
+                disabled={!work || !selectedLength || rewriteBusy || rewriteApplying}
+                onClick={() => openRewriteDialog(item.action)}
+                className="inline-flex h-7 items-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-2.5 text-xs font-bold text-[var(--theme-text-secondary)] transition hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-45 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-200"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="group relative flex min-h-0 flex-1">
           <div className="absolute -left-12 top-2 opacity-0 transition-opacity group-hover:opacity-100 hidden sm:block">
              <CopyButton
@@ -237,6 +281,9 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
           <textarea
             value={content}
             onChange={(event) => updateContent(event.target.value)}
+            onSelect={(event) => syncSelection(event.currentTarget)}
+            onKeyUp={(event) => syncSelection(event.currentTarget)}
+            onMouseUp={(event) => syncSelection(event.currentTarget)}
             disabled={!work || effectiveAiBusy}
             placeholder={`开始您的创作...`}
             className="h-full min-h-[52vh] w-full resize-y rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-4 py-3 text-base font-medium leading-8 text-[var(--theme-text-primary)] shadow-sm placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/15 disabled:opacity-50 dark:placeholder:text-zinc-700 sm:text-[18px] lg:min-h-0"

@@ -6,7 +6,10 @@ export type AiRewriteAction =
   | "polish"
   | "expand"
   | "compress"
-  | "conflict"
+  | "add_conflict"
+  | "add_emotion"
+  | "short_drama"
+  | "fanqie_style"
   | "logic_check";
 
 const chapterMetaCopy = {
@@ -169,9 +172,21 @@ export const aiZhCN = {
         label: "压缩",
         description: "删减重复表达，让节奏更紧。",
       },
-      conflict: {
-        label: "增强冲突",
+      add_conflict: {
+        label: "加冲突",
         description: "强化压力、冲突和章末钩子。",
+      },
+      add_emotion: {
+        label: "加情绪",
+        description: "补足心理、情绪递进和感染力。",
+      },
+      short_drama: {
+        label: "短剧化",
+        description: "改成更强对话、更快反转的短剧节奏。",
+      },
+      fanqie_style: {
+        label: "番茄风",
+        description: "强化爽点、钩子和阅读推进感。",
       },
       logic_check: {
         label: "逻辑检查",

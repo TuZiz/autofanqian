@@ -7,12 +7,21 @@ import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 
 import type { ChapterDetail } from "./chapter-editor-types";
 
-export type ChapterRewriteAction = "polish" | "expand" | "compress" | "conflict" | "logic_check";
+export type ChapterRewriteAction =
+  | "polish"
+  | "expand"
+  | "compress"
+  | "add_conflict"
+  | "add_emotion"
+  | "short_drama"
+  | "fanqie_style"
+  | "logic_check";
 
 type RewritePreviewResponse = {
   action: ChapterRewriteAction;
   preview?: string;
   report?: string;
+  rewrittenText?: string;
   originalWordCount?: number;
   previewWordCount?: number;
 };
@@ -25,7 +34,10 @@ export const rewriteActionLabels: Record<ChapterRewriteAction, string> = {
   polish: aiZhCN.chapterRewrite.actions.polish.label,
   expand: aiZhCN.chapterRewrite.actions.expand.label,
   compress: aiZhCN.chapterRewrite.actions.compress.label,
-  conflict: aiZhCN.chapterRewrite.actions.conflict.label,
+  add_conflict: aiZhCN.chapterRewrite.actions.add_conflict.label,
+  add_emotion: aiZhCN.chapterRewrite.actions.add_emotion.label,
+  short_drama: aiZhCN.chapterRewrite.actions.short_drama.label,
+  fanqie_style: aiZhCN.chapterRewrite.actions.fanqie_style.label,
   logic_check: aiZhCN.chapterRewrite.actions.logic_check.label,
 };
 
@@ -33,7 +45,10 @@ export const rewriteActionDescriptions: Record<ChapterRewriteAction, string> = {
   polish: aiZhCN.chapterRewrite.actions.polish.description,
   expand: aiZhCN.chapterRewrite.actions.expand.description,
   compress: aiZhCN.chapterRewrite.actions.compress.description,
-  conflict: aiZhCN.chapterRewrite.actions.conflict.description,
+  add_conflict: aiZhCN.chapterRewrite.actions.add_conflict.description,
+  add_emotion: aiZhCN.chapterRewrite.actions.add_emotion.description,
+  short_drama: aiZhCN.chapterRewrite.actions.short_drama.description,
+  fanqie_style: aiZhCN.chapterRewrite.actions.fanqie_style.description,
   logic_check: aiZhCN.chapterRewrite.actions.logic_check.description,
 };
 
@@ -67,6 +82,7 @@ export function useChapterEditorRewrite(params: {
   const [rewritePrompt, setRewritePrompt] = useState("");
   const [rewritePreview, setRewritePreview] = useState("");
   const [rewriteReport, setRewriteReport] = useState("");
+  const [rewriteSelection, setRewriteSelection] = useState({ start: 0, end: 0, text: "" });
   const [rewriteBusy, setRewriteBusy] = useState(false);
   const [rewriteApplying, setRewriteApplying] = useState(false);
   const [rewriteError, setRewriteError] = useState("");
@@ -114,7 +130,8 @@ export function useChapterEditorRewrite(params: {
       {
         workId,
         index: chapterIndex,
-        action: rewriteAction,
+        rewriteMode: rewriteAction,
+        selectedText: rewriteSelection.text || undefined,
         extraPrompt: rewritePrompt,
       },
       { method: "POST" },
@@ -134,7 +151,7 @@ export function useChapterEditorRewrite(params: {
       return;
     }
 
-    setRewritePreview(res.data.preview ?? "");
+    setRewritePreview(res.data.rewrittenText ?? res.data.preview ?? "");
   }, [
     chapterIndex,
     rewriteAction,
@@ -142,6 +159,7 @@ export function useChapterEditorRewrite(params: {
     rewriteBlockedReason,
     rewriteBusy,
     rewritePrompt,
+    rewriteSelection.text,
     setError,
     workId,
   ]);
@@ -157,14 +175,19 @@ export function useChapterEditorRewrite(params: {
     setRewriteApplying(true);
     setRewriteError("");
 
+    const draftContent =
+      rewriteSelection.text && rewriteSelection.end > rewriteSelection.start
+        ? `${content.slice(0, rewriteSelection.start)}${rewritePreview}${content.slice(rewriteSelection.end)}`
+        : rewritePreview;
+
     const res = await apiRequest<RewriteApplyResponse>(
       "/api/ai/chapter/rewrite",
       {
         workId,
         index: chapterIndex,
-        action: rewriteAction,
+        rewriteMode: rewriteAction,
         apply: true,
-        draftContent: rewritePreview,
+        draftContent,
       },
       { method: "POST" },
     );
@@ -184,12 +207,14 @@ export function useChapterEditorRewrite(params: {
     setRewritePrompt("");
   }, [
     chapterIndex,
+    content,
     handleRevisionRestored,
     resetRewriteResult,
     rewriteAction,
     rewriteApplying,
     rewriteBusy,
     rewritePreview,
+    rewriteSelection,
     setError,
     workId,
   ]);
@@ -217,6 +242,8 @@ export function useChapterEditorRewrite(params: {
     rewritePreview,
     rewritePrompt,
     rewriteReport,
+    rewriteSelection,
+    setRewriteSelection,
     setRewriteAction,
     setRewriteDialogOpen,
     setRewritePreview,

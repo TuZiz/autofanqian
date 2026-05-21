@@ -5,7 +5,6 @@ import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 
 import { apiRequest, firstFieldErrors } from "@/lib/client/auth-api";
-import type { ShortStoryOutline } from "@/lib/create/short-story-outline-schema";
 import {
   SHORT_STORY_ENDING_TYPES,
   SHORT_STORY_POV_OPTIONS,
@@ -45,11 +44,11 @@ function zodFieldErrors(input: unknown) {
 
 export function useShortStoryCreate() {
   const router = useRouter();
-  const [genre, setGenre] = useState("都市情感");
+  const [genre, setGenre] = useState("悬疑");
   const [tagsText, setTagsText] = useState("");
   const [targetPreset, setTargetPreset] = useState(String(DEFAULT_WORDS));
   const [customWords, setCustomWords] = useState(String(DEFAULT_WORDS));
-  const [style, setStyle] = useState<(typeof SHORT_STORY_STYLE_OPTIONS)[number]>("反转");
+  const [style, setStyle] = useState<(typeof SHORT_STORY_STYLE_OPTIONS)[number]>("番茄");
   const [pov, setPov] = useState<(typeof SHORT_STORY_POV_OPTIONS)[number]>("第三人称");
   const [endingType, setEndingType] = useState<ShortStoryEndingType>("twist");
   const [idea, setIdea] = useState("");
@@ -92,28 +91,13 @@ export function useShortStoryCreate() {
     setFormError("");
     setStage("outline");
 
-    const outlineRes = await apiRequest<{ outline: ShortStoryOutline }>(
-      "/api/ai/short-story/outline",
-      localValidation.input,
-    );
-
-    if (!outlineRes.success || !outlineRes.data?.outline) {
-      setStage("idle");
-      setFieldErrors(firstFieldErrors(outlineRes.fieldErrors) as FieldErrors);
-      setFormError(outlineRes.message || "短篇结构生成失败，请稍后重试。");
-      return;
-    }
-
     setStage("work");
-    const workRes = await apiRequest<{ workId: string }>("/api/works/short-story", {
-      input: localValidation.input,
-      outline: outlineRes.data.outline,
-    });
+    const workRes = await apiRequest<{ workId: string }>("/api/ai/short-story", localValidation.input);
 
     if (!workRes.success || !workRes.data?.workId) {
       setStage("idle");
       setFieldErrors(firstFieldErrors(workRes.fieldErrors) as FieldErrors);
-      setFormError(workRes.message || "短篇作品创建失败，请稍后重试。");
+      setFormError(workRes.message || "短篇作品生成失败，请稍后重试。");
       return;
     }
 

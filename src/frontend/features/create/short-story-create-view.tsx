@@ -17,11 +17,11 @@ import { cn } from "@/lib/utils";
 
 import { CreateModeSwitch } from "./create-mode-switch";
 
-const GENRE_PRESETS = ["都市情感", "悬疑反转", "科幻寓言", "奇幻冒险", "现实故事", "青春成长"];
+const GENRE_PRESETS = ["悬疑", "恋爱", "反转", "脑洞", "虐文", "爽文", "短剧风", "小红书故事"];
 const SHORT_STEPS = [
   { label: "确定创意", text: "题材、标签和核心钩子" },
-  { label: "拆成场景", text: "生成 3-12 个写作段落" },
-  { label: "进入正文", text: "复用作品页继续润色" },
+  { label: "一键成文", text: "生成标题、简介、大纲和全文" },
+  { label: "进入正文", text: "保存为短篇作品继续润色" },
 ];
 
 type ShortStoryCreateViewProps = {
@@ -33,10 +33,10 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
     create.stage === "outline"
       ? "AI 正在整理短篇结构..."
       : create.stage === "work"
-        ? "正在创建短篇作品和场景..."
+        ? "正在保存短篇作品和正文..."
         : create.stage === "done"
           ? "创建完成，即将进入作品页。"
-          : "填写创意后，一次生成短篇结构和写作场景。";
+          : "填写创意后，一次生成完整短篇作品。";
 
   return (
     <main className="create-modern-shell min-h-dvh w-full overflow-x-clip bg-[#f7f8fa] text-slate-900">
@@ -58,7 +58,7 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                   短篇小说
                 </h1>
                 <p className="hidden truncate text-[13px] font-medium text-slate-500 sm:block">
-                  单篇结构、场景拆分、快速进入正文写作
+                  标题、简介、大纲、完整正文一次生成
                 </p>
               </div>
               <div className="hidden md:block">
@@ -123,7 +123,7 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                     01 / 创意设定
                   </div>
                   <h2 className="mt-1 text-[24px] font-extrabold tracking-tight text-slate-950">
-                    生成一篇完整短篇
+                    一键生成完整短篇
                   </h2>
                 </div>
                 <div className="inline-flex items-center rounded-full border border-slate-200 create-tint px-3 py-2 text-xs font-bold text-slate-500">
@@ -163,40 +163,30 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <FieldLabel label="标签" />
+                    <FieldLabel label="关键词" />
                     <input
                       value={create.tagsText}
                       onChange={(event) => create.setTagsText(event.target.value)}
                       className="h-11 w-full rounded-xl border border-slate-200 create-tint px-3 text-sm font-bold text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)]"
-                      placeholder="例如：反转 治愈 雨夜"
+                      placeholder="例如：雨夜 反杀 暗恋"
                     />
                     <FieldError message={create.fieldErrors.tags} />
                   </div>
 
                   <div>
                     <FieldLabel label="目标字数" />
-                    <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
-                      <select
-                        value={create.targetPreset}
-                        onChange={(event) => create.setTargetPreset(event.target.value)}
-                        className="h-11 rounded-xl border border-slate-200 create-tint px-3 text-sm font-bold text-slate-900 outline-none transition-all duration-200 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)]"
-                      >
-                        {create.wordOptions.map((words) => (
-                          <option key={words} value={words}>
-                            {words.toLocaleString("zh-CN")} 字
-                          </option>
-                        ))}
-                        <option value="custom">自定义</option>
-                      </select>
-                      <input
-                        value={create.customWords}
-                        onChange={(event) => create.setCustomWords(event.target.value.replace(/[^\d]/g, "").slice(0, 5))}
-                        disabled={create.targetPreset !== "custom"}
-                        className="h-11 rounded-xl border border-slate-200 create-tint px-3 text-sm font-bold tabular-nums text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)] disabled:opacity-45"
-                        placeholder="1000-50000"
-                      />
-                    </div>
-                    <FieldError message={create.fieldErrors.targetWords || create.fieldErrors.customWords} />
+                    <select
+                      value={create.targetPreset}
+                      onChange={(event) => create.setTargetPreset(event.target.value)}
+                      className="h-11 w-full rounded-xl border border-slate-200 create-tint px-3 text-sm font-bold text-slate-900 outline-none transition-all duration-200 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)]"
+                    >
+                      {create.wordOptions.map((words) => (
+                        <option key={words} value={words}>
+                          {words.toLocaleString("zh-CN")} 字
+                        </option>
+                      ))}
+                    </select>
+                    <FieldError message={create.fieldErrors.targetWords} />
                   </div>
                 </div>
 
@@ -280,7 +270,7 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                 className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full create-accent px-4 text-sm font-extrabold text-white shadow-[0_16px_28px_-20px_rgba(20,32,29,0.86)] transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait disabled:opacity-65"
               >
                 {create.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenLine className="h-4 w-4" />}
-                {create.busy ? "生成中..." : "生成短篇作品"}
+                {create.busy ? "生成中..." : "一键生成短篇"}
               </button>
 
               <p className="mt-3 text-center text-xs font-semibold leading-5 text-slate-500">

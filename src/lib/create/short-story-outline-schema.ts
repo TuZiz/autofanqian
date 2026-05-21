@@ -30,7 +30,7 @@ export const shortStoryOutlineSchema = z
     tag: boundedText(1, 12),
     title: boundedText(1, 80),
     synopsis: boundedText(30, 2000),
-    targetWords: z.coerce.number().int().min(1000).max(50000),
+    targetWords: z.coerce.number().int().min(800).max(50000),
     theme: boundedText(2, 200),
     hook: boundedText(10, 500),
     endingType: z.enum(SHORT_STORY_ENDING_TYPES),
