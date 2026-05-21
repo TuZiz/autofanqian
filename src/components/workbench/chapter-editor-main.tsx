@@ -1,6 +1,7 @@
 import { AlertCircle, Check, Copy, Download, FileText, History, Save, Sparkles, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { ExportDownloadButton } from "@/components/workbench/export-download-button";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
 import { cn } from "@/lib/utils";
@@ -132,30 +133,39 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
           </button>
           {work ? (
             <div className="hidden items-center gap-1 rounded-md bg-zinc-100 p-0.5 dark:bg-zinc-800 sm:flex">
-              <a
-                href={`/api/works/${encodeURIComponent(work.id)}/export?scope=chapter&chapterIndex=${chapterIndex}&format=txt`}
+              <ExportDownloadButton
+                workId={work.id}
+                scope="chapter"
+                chapterIndex={chapterIndex}
+                format="txt"
                 className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
                 title="导出当前章节 TXT"
               >
                 <Download className="h-3.5 w-3.5" />
                 TXT
-              </a>
-              <a
-                href={`/api/works/${encodeURIComponent(work.id)}/export?scope=chapter&chapterIndex=${chapterIndex}&format=md`}
+              </ExportDownloadButton>
+              <ExportDownloadButton
+                workId={work.id}
+                scope="chapter"
+                chapterIndex={chapterIndex}
+                format="md"
                 className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
                 title="导出当前章节 Markdown"
               >
                 <FileText className="h-3.5 w-3.5" />
                 MD
-              </a>
-              <a
-                href={`/api/works/${encodeURIComponent(work.id)}/export?scope=chapter&chapterIndex=${chapterIndex}&format=docx`}
+              </ExportDownloadButton>
+              <ExportDownloadButton
+                workId={work.id}
+                scope="chapter"
+                chapterIndex={chapterIndex}
+                format="docx"
                 className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
                 title="导出当前章节 DOCX"
               >
                 <FileText className="h-3.5 w-3.5" />
                 DOCX
-              </a>
+              </ExportDownloadButton>
             </div>
           ) : null}
           <button

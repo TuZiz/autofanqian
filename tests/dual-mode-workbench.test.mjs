@@ -73,17 +73,20 @@ test("consistency check supports current, recent5 and book job output", () => {
 
 test("export API supports chapter, book and short story markdown/txt/docx", () => {
   const route = read("src/app/api/works/[id]/export/route.ts");
+  const schema = read("src/shared/schemas/work-export.ts");
+  const previewRoute = read("src/app/api/works/[id]/export/preview/route.ts");
   const main = read("src/components/workbench/chapter-editor-main.tsx");
   const header = read("src/components/workbench/work-dashboard-header.tsx");
 
-  assert.match(route, /scope:\s*z\.enum\(\["book", "chapter", "short_story"\]\)/);
+  assert.match(schema, /workExportScopeSchema = z\.enum\(\["book", "chapter", "short_story"\]\)/);
   assert.match(route, /chapterIndex/);
   assert.match(route, /deletedAt:\s*null/);
-  assert.match(route, /formatDateForFilename/);
+  assert.match(route, /formatExportDate/);
   assert.match(route, /docx/);
   assert.match(route, /buildDocxBuffer/);
-  assert.match(main, /scope=chapter/);
-  assert.match(header, /scope=\$\{isShortStory \? "short_story" : "book"\}/);
+  assert.match(previewRoute, /workExportPreviewQuerySchema/);
+  assert.match(main, /scope="chapter"/);
+  assert.match(header, /<ExportDownloadButton[\s\S]*scope=\{exportScope\}/);
 });
 
 test("prompt template center routes and AI fallback are wired", () => {

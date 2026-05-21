@@ -1,11 +1,14 @@
 ﻿"use client";
 
 import {
+  AlertCircle,
   ArrowLeft,
   CheckCircle2,
+  Clock3,
   Feather,
   Loader2,
   PenLine,
+  RefreshCw,
   Wand2,
 } from "lucide-react";
 import Link from "next/link";
@@ -35,9 +38,13 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
       ? "AI 正在整理短篇结构..."
       : create.stage === "work"
         ? "正在保存短篇作品和正文..."
-        : create.stage === "done"
-          ? "创建完成，即将进入作品页。"
-          : "填写创意后，一次生成完整短篇作品。";
+        : create.stage === "queued"
+          ? "长文本短篇已进入后台分段生成。"
+          : create.stage === "failed"
+            ? "后台生成失败，可直接重试。"
+            : create.stage === "done"
+              ? "创建完成，即将进入作品页。"
+              : "填写创意后，一次生成完整短篇作品。";
 
   return (
     <main className="create-modern-shell min-h-dvh w-full overflow-x-clip bg-[#f7f8fa] text-slate-900">
@@ -272,6 +279,10 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                 </div>
               ) : null}
 
+              {create.asyncJobId ? (
+                <AsyncJobPanel create={create} />
+              ) : null}
+
               <button
                 type="submit"
                 disabled={create.busy}
@@ -290,6 +301,93 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
       </div>
     </main>
   );
+}
+
+function AsyncJobPanel({ create }: { create: ShortStoryCreateController }) {
+  const status = create.asyncJob?.status ?? "queued";
+  const failed = status === "failed";
+  const running = status === "running" || status === "queued" || status === "stale";
+  const progressLabel = create.asyncProgress?.label;
+
+  return (
+    <div
+      className={cn(
+        "mt-3 rounded-2xl border px-3.5 py-3 text-sm shadow-sm",
+        failed
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-emerald-200 bg-emerald-50/80 text-emerald-800",
+      )}
+    >
+      <div className="flex items-start gap-2.5">
+        <div
+          className={cn(
+            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white ring-1",
+            failed ? "text-red-600 ring-red-200" : "text-emerald-700 ring-emerald-200",
+          )}
+        >
+          {failed ? <AlertCircle className="h-4 w-4" /> : <Clock3 className="h-4 w-4" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-extrabold">
+            {failed ? "后台生成失败" : "后台生成任务已排队"}
+          </div>
+          <div className="mt-1 space-y-1 text-xs font-semibold leading-5 opacity-90">
+            <p>已创建作品：{create.asyncWorkId ? "是" : "等待确认"}</p>
+            <p>当前任务状态：{formatJobStatus(status)}</p>
+            {create.asyncJob?.resultSummary ? <p>{create.asyncJob.resultSummary}</p> : null}
+            {progressLabel ? <p>已生成段落：{progressLabel}</p> : null}
+            {failed && create.asyncJob?.errorMessage ? <p>失败原因：{create.asyncJob.errorMessage}</p> : null}
+          </div>
+        </div>
+      </div>
+
+      {failed ? (
+        <button
+          type="button"
+          onClick={() => void create.retryAsyncJob()}
+          disabled={create.retrying}
+          className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-red-600 px-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-wait disabled:opacity-65"
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", create.retrying ? "animate-spin" : "")} />
+          {create.retrying ? "正在重试..." : "重试后台生成"}
+        </button>
+      ) : null}
+
+      {running ? (
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/75">
+          <div
+            className="h-full rounded-full bg-emerald-600 transition-[width] duration-500"
+            style={{
+              width: create.asyncProgress?.totalSegments
+                ? `${Math.max(
+                    8,
+                    Math.min(
+                      98,
+                      Math.round(
+                        (create.asyncProgress.generatedSegments / create.asyncProgress.totalSegments) * 100,
+                      ),
+                    ),
+                  )}%`
+                : "18%",
+            }}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function formatJobStatus(status: string) {
+  const labels: Record<string, string> = {
+    queued: "排队中",
+    running: "生成中",
+    stale: "等待恢复",
+    succeeded: "已完成",
+    success: "已完成",
+    failed: "失败",
+    cancelled: "已取消",
+  };
+  return labels[status] ?? status;
 }
 
 function FieldLabel({ label }: { label: string }) {

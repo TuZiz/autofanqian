@@ -47,6 +47,8 @@ const SUPPORTED_JOB_TYPES = [
   "chapter.batch_generate",
   "bible.extract",
 ] as const;
+const SHORT_STORY_CONTEXT_SOURCE = "short_story_generate";
+const SHORT_STORY_TIMELINE_MARKER = "[short_story_generate]";
 
 const runJobOptionsSchema = z.object({
   limit: z.coerce.number().int().min(1).max(20).optional().default(5),
@@ -265,72 +267,82 @@ async function persistShortStoryContext(params: {
   workId: string;
 }) {
   const { input, outline, workId } = params;
-  await prisma.character
-    .createMany({
-      data: outline.characters.map((character) => ({
-        novelId: workId,
-        name: character.name,
-        role: character.role,
-        desc: character.description,
-      })),
-      skipDuplicates: true,
-    })
-    .catch((error) => console.warn("persist short story characters failed", error));
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.character.createMany({
+        data: outline.characters.map((character) => ({
+          novelId: workId,
+          name: character.name,
+          role: character.role,
+          desc: character.description,
+        })),
+        skipDuplicates: true,
+      });
 
-  await prisma.writingMemory
-    .createMany({
-      data: [
-        {
-          novelId: workId,
-          kind: "style",
-          priority: 80,
-          source: "short_story_generate",
-          content: `短篇主题：${outline.theme}`,
-        },
-        {
-          novelId: workId,
-          kind: "plot_thread",
-          priority: 85,
-          source: "short_story_generate",
-          content: `开篇钩子：${outline.hook}`,
-        },
-        {
-          novelId: workId,
-          kind: "constraint",
-          priority: 75,
-          source: "short_story_generate",
-          content: `结局倾向：${SHORT_STORY_ENDING_LABELS[outline.endingType]}（${outline.endingType}）`,
-        },
-        {
-          novelId: workId,
-          kind: "style",
-          priority: 72,
-          source: "short_story_generate",
-          content: `短篇标签：${formatTags(input.tags)}`,
-        },
-        {
-          novelId: workId,
-          kind: "style",
-          priority: 72,
-          source: "short_story_generate",
-          content: `叙事视角：${input.pov}`,
-        },
-      ],
-    })
-    .catch((error) => console.warn("persist short story memories failed", error));
+      await tx.writingMemory.deleteMany({
+        where: { novelId: workId, source: SHORT_STORY_CONTEXT_SOURCE },
+      });
+      await tx.writingMemory.createMany({
+        data: [
+          {
+            novelId: workId,
+            kind: "style",
+            priority: 80,
+            source: SHORT_STORY_CONTEXT_SOURCE,
+            content: `短篇主题：${outline.theme}`,
+          },
+          {
+            novelId: workId,
+            kind: "plot_thread",
+            priority: 85,
+            source: SHORT_STORY_CONTEXT_SOURCE,
+            content: `开篇钩子：${outline.hook}`,
+          },
+          {
+            novelId: workId,
+            kind: "constraint",
+            priority: 75,
+            source: SHORT_STORY_CONTEXT_SOURCE,
+            content: `结局倾向：${SHORT_STORY_ENDING_LABELS[outline.endingType]}（${outline.endingType}）`,
+          },
+          {
+            novelId: workId,
+            kind: "style",
+            priority: 72,
+            source: SHORT_STORY_CONTEXT_SOURCE,
+            content: `短篇标签：${formatTags(input.tags)}`,
+          },
+          {
+            novelId: workId,
+            kind: "style",
+            priority: 72,
+            source: SHORT_STORY_CONTEXT_SOURCE,
+            content: `叙事视角：${input.pov}`,
+          },
+        ],
+      });
 
-  await prisma.timelineEvent
-    .createMany({
-      data: outline.beats.map((beat) => ({
-        novelId: workId,
-        chapterIndex: 1,
-        order: beat.index,
-        title: beat.title,
-        summary: beat.purpose,
-        description: beat.writingPrompt,
-      })),
-    })
-    .catch((error) => console.warn("persist short story timeline failed", error));
+      await tx.timelineEvent.deleteMany({
+        where: {
+          novelId: workId,
+          chapterIndex: 1,
+          description: { startsWith: SHORT_STORY_TIMELINE_MARKER },
+        },
+      });
+      await tx.timelineEvent.createMany({
+        data: outline.beats.map((beat) => ({
+          novelId: workId,
+          chapterIndex: 1,
+          order: beat.index,
+          title: beat.title,
+          summary: beat.purpose,
+          description: `${SHORT_STORY_TIMELINE_MARKER}\n${beat.writingPrompt}`,
+        })),
+      });
+    });
+  } catch (error) {
+    console.warn("persist short story context failed", error);
+  }
 }
 
 async function runLongShortStoryJob(job: GenerationJob) {
@@ -352,6 +364,19 @@ async function runLongShortStoryJob(job: GenerationJob) {
       : null;
 
   if (!rawInput) throw new Error("长文本短篇任务缺少生成输入。");
+  if (rawState.success && rawState.data.finalWorkId) {
+    const existingChapter = await prisma.chapter.findUnique({
+      where: { workId_index: { workId: rawState.data.finalWorkId, index: 1 } },
+      select: { status: true, content: true, wordCount: true },
+    });
+    if (existingChapter?.status === "written" && existingChapter.content.trim()) {
+      return {
+        resultJson: (job.resultJson ?? {}) as Prisma.InputJsonValue,
+        resultSummary: `长文本短篇已完成，正文 ${existingChapter.wordCount} 字。`,
+        usage: usageFromJob(job),
+      };
+    }
+  }
 
   let usage = usageFromJob(job);
   let outline = rawState.success && rawState.data.outline

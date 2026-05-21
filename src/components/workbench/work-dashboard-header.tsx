@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, BarChart3, BookMarked, Download, LogOut, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
+import { ExportDownloadButton } from "@/components/workbench/export-download-button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LogoutConfirmDialog } from "@/components/ui/logout-confirm-dialog";
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
@@ -40,12 +41,7 @@ export function WorkDashboardHeader({
   const storyBibleHref = work
     ? `/dashboard/work/${encodeURIComponent(work.id)}/bible`
     : "";
-  const exportHref = work
-    ? `/api/works/${encodeURIComponent(work.id)}/export?scope=${isShortStory ? "short_story" : "book"}&format=md`
-    : "";
-  const exportDocxHref = work
-    ? `/api/works/${encodeURIComponent(work.id)}/export?scope=${isShortStory ? "short_story" : "book"}&format=docx`
-    : "";
+  const exportScope = isShortStory ? ("short_story" as const) : ("book" as const);
   const sectionTabs = [
     { label: "总览", value: `${progressPercent || 0}%`, sectionId: "overview" as const },
     { label: isShortStory ? "场景" : "章节", value: `${writtenChapterCount} ${isShortStory ? "段" : "章"}`, sectionId: "chapters" as const },
@@ -130,22 +126,26 @@ export function WorkDashboardHeader({
                 <BarChart3 className="h-4 w-4" />
                 <span>AI 观测台</span>
               </Link>
-              <a
-                href={exportHref}
+              <ExportDownloadButton
+                workId={work.id}
+                scope={exportScope}
+                format="md"
                 className="hidden h-10 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-[var(--theme-border)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-zinc-800 dark:hover:text-white md:inline-flex"
                 title={isShortStory ? "导出短篇 Markdown" : "导出全书 Markdown"}
               >
                 <Download className="h-4 w-4" />
                 <span>MD</span>
-              </a>
-              <a
-                href={exportDocxHref}
+              </ExportDownloadButton>
+              <ExportDownloadButton
+                workId={work.id}
+                scope={exportScope}
+                format="docx"
                 className="hidden h-10 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-[var(--theme-border)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-zinc-800 dark:hover:text-white md:inline-flex"
                 title={isShortStory ? "导出短篇 DOCX" : "导出全书 DOCX"}
               >
                 <Download className="h-4 w-4" />
                 <span>DOCX</span>
-              </a>
+              </ExportDownloadButton>
             </>
           ) : null}
 

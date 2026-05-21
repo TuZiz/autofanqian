@@ -84,7 +84,9 @@
 - 支持短篇类型、标签、目标字数、风格、叙事视角、结局倾向和创意输入。
 - 支持目标字数 3000、5000、8000、12000、20000。
 - 支持结构模板：三幕式、反转式、悬疑式、爽文式、虐恋式、治愈式。
-- 调用 `POST /api/ai/short-story` 一次生成标题、简介、结构化短篇大纲和完整正文。
+- 调用 `POST /api/ai/short-story` 生成标题、简介、结构化短篇大纲和正文。
+- 3000 / 5000 字以内走同步生成；8000 / 12000 / 20000 字走 `GenerationJob` 后台分段生成。
+- 长文本短篇会先生成结构化 JSON 大纲，再按 beats 逐段生成正文，前端展示任务状态、段落进度和失败重试入口。
 - 生成结果保存为 `Work.workType = short_story`，并自动创建第 1 章。
 - 短篇大纲会以结构化 JSON 保存到 `Work.outline` 和 `Work.rawOutline`，包括主题、钩子、结局倾向、角色、3-8 个 beats 和 `fullOutline`。
 - 短篇不套用长篇分卷分章流程，后续可按短篇场景继续编辑、润色和导出。
@@ -118,7 +120,7 @@
 - AI 生成中状态常驻展示。
 - 故事圣经入口：集中维护角色、设定、时间线、伏笔、关系和写作记忆。
 - 全书一致性检查入口：全书检查会创建 `GenerationJob` 异步任务。
-- 全书 / 短篇 Markdown 导出入口。
+- 全书 / 短篇 Markdown、DOCX 导出入口，下载前会做空章节和断章预检。
 
 ### 故事圣经
 
@@ -181,6 +183,7 @@ AI 章节能力分为四类：
 - 改写模式：扩写、压缩、爽文化、细腻化、去 AI 味、增强开头钩子、增强结尾追读感、对话自然化、小红书风、番茄风、短剧化等。
 - 预览后应用：先生成预览，确认后再写入正文。
 - 应用前自动保存历史版本：应用改写前会生成章节历史快照，便于回退。
+- `ChapterRevision` 使用防爆策略：AI 生成 / 重写 / 恢复前必建快照，普通保存仅在间隔超过 5 分钟或正文变化超过 300 字时建快照。
 
 AI 一致性检查支持：
 
@@ -200,9 +203,25 @@ AI 一致性检查支持：
 - 当前章节导出 TXT / Markdown。
 - 全书导出 TXT / Markdown。
 - 短篇导出 TXT / Markdown。
+- 当前章节、全书和短篇均支持 DOCX 导出。
+- DOCX 包含中文字体样式、标题样式、章节分页和文档属性。
+- EPUB 接口结构已预留，本轮暂未开放下载。
+- 导出前端会先调用预检接口，发现空章节或章节序号断裂时提示用户确认。
 - 导出按章节顺序排列，并过滤 `deletedAt` 不为空的章节。
 - 导出文件名包含作品名、范围和日期。
-- DOCX / EPUB 接口已预留。
+
+### 异步任务
+
+- `GenerationJob` 后台执行器支持 `chapter.consistency.book`、`short_story.generate.long`、`chapter.batch_generate`、`bible.extract`。
+- 管理员可以在 `/dashboard/admin/jobs` 查看 pending / running / succeeded / failed 任务，并手动执行待处理任务。
+- 用户可以通过短篇创建页查看自己的长文本短篇任务状态、生成段落进度、结果摘要和失败原因。
+- 任务查询和重试均做服务端权限校验，仅任务所属用户或管理员可访问。
+
+### AI Action Key
+
+- `src/shared/ai-actions.ts` 统一定义 AI action key。
+- 额度、日志、`GenerationJob` 和 `PromptTemplate` 优先使用统一 key，例如 `short_story.generate`、`chapter.rewrite`、`chapter.consistency`。
+- 旧 action key 保持兼容，不做破坏性迁移。
 
 正文生成会参考：
 
@@ -335,6 +354,7 @@ AI 一致性检查支持：
 | `/dashboard/admin/users` | 用户管理 |
 | `/dashboard/admin/ai-model` | AI 模型配置 |
 | `/dashboard/admin/prompts` | 提示词模板中心 |
+| `/dashboard/admin/jobs` | GenerationJob 任务队列和手动执行 |
 
 ## API 路由
 
@@ -392,11 +412,17 @@ AI 一致性检查支持：
 - `GET /api/works/[id]/chapters/[index]`
 - `PUT /api/works/[id]/chapters/[index]`
 - `GET /api/works/[id]/export`
+- `GET /api/works/[id]/export/preview`
 - `GET /api/works/[id]/bible`
 - `POST /api/works/[id]/bible`
 - `PATCH /api/works/[id]/bible/[section]/[itemId]`
 - `DELETE /api/works/[id]/bible/[section]/[itemId]`
 - `POST /api/works/[id]/bible/extract`
+
+### 任务
+
+- `GET /api/jobs/[id]`
+- `POST /api/jobs/[id]/retry`
 
 ### 管理员
 
@@ -407,6 +433,8 @@ AI 一致性检查支持：
 - `POST /api/admin/prompts`
 - `PUT /api/admin/prompts/[id]`
 - `DELETE /api/admin/prompts/[id]`
+- `GET /api/admin/jobs`
+- `POST /api/admin/jobs/run-pending`
 - `GET /api/admin/users`
 - `POST /api/admin/users`
 - `PUT /api/admin/users/[id]`

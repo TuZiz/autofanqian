@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { ExportDownloadButton } from "@/components/workbench/export-download-button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type {
   StoryBibleController,
@@ -564,11 +565,14 @@ function ExportLink({
   workId: string;
 }) {
   return (
-    <a
-      href={`/api/works/${encodeURIComponent(workId)}/export?scope=book&format=${format}`}
+    <ExportDownloadButton
+      workId={workId}
+      scope="book"
+      format={format}
       className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs font-bold text-[var(--theme-text-secondary)] transition hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-200"
+      title={`导出 ${label}`}
     >
       {label}
-    </a>
+    </ExportDownloadButton>
   );
 }

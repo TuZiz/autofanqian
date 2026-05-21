@@ -82,12 +82,118 @@ const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>`;
 
 const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
 </Relationships>`;
+
+const documentRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="SimSun" w:eastAsia="宋体" w:hAnsi="SimSun" w:cs="SimSun"/>
+        <w:sz w:val="24"/>
+      </w:rPr>
+    </w:rPrDefault>
+    <w:pPrDefault>
+      <w:pPr>
+        <w:spacing w:after="120" w:line="420" w:lineRule="auto"/>
+        <w:ind w:firstLine="480" w:firstLineChars="200"/>
+      </w:pPr>
+    </w:pPrDefault>
+  </w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:spacing w:after="120" w:line="420" w:lineRule="auto"/>
+      <w:ind w:firstLine="480" w:firstLineChars="200"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="SimSun" w:eastAsia="宋体" w:hAnsi="SimSun" w:cs="SimSun"/>
+      <w:sz w:val="24"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Title">
+    <w:name w:val="Title"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:jc w:val="center"/>
+      <w:spacing w:before="240" w:after="360" w:line="360" w:lineRule="auto"/>
+      <w:ind w:firstLine="0" w:firstLineChars="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="SimSun" w:eastAsia="宋体" w:hAnsi="SimSun" w:cs="SimSun"/>
+      <w:b/>
+      <w:sz w:val="36"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1">
+    <w:name w:val="heading 1"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:qFormat/>
+    <w:pPr>
+      <w:pageBreakBefore/>
+      <w:keepNext/>
+      <w:jc w:val="center"/>
+      <w:spacing w:before="240" w:after="240" w:line="360" w:lineRule="auto"/>
+      <w:ind w:firstLine="0" w:firstLineChars="0"/>
+      <w:outlineLvl w:val="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="SimSun" w:eastAsia="宋体" w:hAnsi="SimSun" w:cs="SimSun"/>
+      <w:b/>
+      <w:sz w:val="30"/>
+    </w:rPr>
+  </w:style>
+</w:styles>`;
+
+function buildCorePropertiesXml(work: DocxWork, date = new Date()) {
+  const iso = date.toISOString();
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:title>${escapeXml(work.title)}</dc:title>
+  <dc:creator>Autofanqian</dc:creator>
+  <cp:lastModifiedBy>Autofanqian</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">${iso}</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">${iso}</dcterms:modified>
+</cp:coreProperties>`;
+}
+
+function buildAppPropertiesXml(work: DocxWork) {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>Autofanqian</Application>
+  <DocSecurity>0</DocSecurity>
+  <ScaleCrop>false</ScaleCrop>
+  <Company>Autofanqian</Company>
+  <LinksUpToDate>false</LinksUpToDate>
+  <SharedDoc>false</SharedDoc>
+  <HyperlinksChanged>false</HyperlinksChanged>
+  <AppVersion>16.0000</AppVersion>
+  <TitlesOfParts>
+    <vt:vector size="${Math.max(1, work.chapters.length)}" baseType="lpstr">
+      ${work.chapters.map((chapter) => `<vt:lpstr>${escapeXml(chapterHeading(work.workType, chapter.index, chapter.title))}</vt:lpstr>`).join("")}
+    </vt:vector>
+  </TitlesOfParts>
+</Properties>`;
+}
 
 function dosDateTime(date = new Date()) {
   const time =
@@ -168,6 +274,10 @@ export function buildDocxBuffer(work: DocxWork) {
   return zipStore([
     { name: "[Content_Types].xml", content: contentTypesXml },
     { name: "_rels/.rels", content: relsXml },
+    { name: "docProps/core.xml", content: buildCorePropertiesXml(work) },
+    { name: "docProps/app.xml", content: buildAppPropertiesXml(work) },
+    { name: "word/_rels/document.xml.rels", content: documentRelsXml },
+    { name: "word/styles.xml", content: stylesXml },
     { name: "word/document.xml", content: buildDocumentXml(work) },
   ]);
 }

@@ -36,10 +36,6 @@ export function DashboardWorksSection({ dashboard }: DashboardWorksSectionProps)
   const page = filters.page;
   const pageCount = Math.ceil(totalWorks / filters.pageSize);
 
-  const handleExportWork = (workId: string, format: string) => {
-    window.location.href = `/api/works/${workId}/export?format=${format}`;
-  };
-
   return (
     <section className="flex flex-col gap-3">
       {/* 工具栏区 */}
@@ -163,7 +159,6 @@ export function DashboardWorksSection({ dashboard }: DashboardWorksSectionProps)
               canDeleteWork={Boolean(user?.isAdmin || user?.id === work.owner?.id)}
               deleteBusy={deleteBusy}
               onDelete={() => openDeleteDialog(work)}
-              onExport={handleExportWork}
               onWrite={(href) => router.push(href)}
               work={work}
             />

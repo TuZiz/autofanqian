@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { BookOpen, Download, PenTool, Trash2, User as UserIcon } from "lucide-react";
 
+import { ExportDownloadButton } from "@/components/workbench/export-download-button";
 import { formatRelativeTime, formatWordStat } from "@/lib/dashboard/dashboard-format";
 import {
   getChapterLine,
@@ -17,7 +18,6 @@ type DashboardWorkCardProps = {
   canDeleteWork: boolean;
   deleteBusy: boolean;
   onDelete: (work: DashboardWork) => void;
-  onExport: (workId: string, format: "markdown") => void;
   onWrite: (href: string) => void;
   work: DashboardWork;
 };
@@ -26,7 +26,6 @@ export function DashboardWorkCard({
   canDeleteWork,
   deleteBusy,
   onDelete,
-  onExport,
   onWrite,
   work,
 }: DashboardWorkCardProps) {
@@ -100,14 +99,16 @@ export function DashboardWorkCard({
           <PenTool className="h-4 w-4" />
           <span className="hidden sm:inline">写作</span>
         </button>
-        <button
-          onClick={() => onExport(work.id, "markdown")}
+        <ExportDownloadButton
+          workId={work.id}
+          scope={shortStory ? "short_story" : "book"}
+          format="md"
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-muted)] shadow-sm transition-all hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]"
-          aria-label="导出"
+          ariaLabel="导出"
           title="导出"
         >
           <Download className="h-5 w-5" />
-        </button>
+        </ExportDownloadButton>
         {canDeleteWork && (
           <button
             disabled={deleteBusy}

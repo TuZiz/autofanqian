@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { apiRequest, firstFieldErrors } from "@/lib/client/auth-api";
 import {
@@ -15,8 +15,15 @@ import {
   type ShortStoryEndingType,
   type ShortStoryInput,
 } from "@/shared/schemas/short-story";
+import type { SerializedGenerationJob } from "@/shared/schemas/generation-job";
 
-type ShortStoryStage = "idle" | "outline" | "work" | "done";
+type ShortStoryStage = "idle" | "outline" | "work" | "queued" | "failed" | "done";
+type ShortStoryGenerateResponse = {
+  workId: string;
+  jobId?: string | null;
+  status?: string;
+  async?: boolean;
+};
 
 type FieldErrors = Partial<Record<keyof ShortStoryInput | "tagsText" | "customWords", string>>;
 
@@ -58,11 +65,29 @@ export function useShortStoryCreate() {
   const [stage, setStage] = useState<ShortStoryStage>("idle");
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [asyncJobId, setAsyncJobId] = useState<string | null>(null);
+  const [asyncWorkId, setAsyncWorkId] = useState<string | null>(null);
+  const [asyncJob, setAsyncJob] = useState<SerializedGenerationJob | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
-  const busy = stage === "outline" || stage === "work";
+  const busy = stage === "outline" || stage === "work" || stage === "queued" || retrying;
   const targetWords = targetPreset === "custom" ? Number(customWords) : Number(targetPreset);
   const tags = useMemo(() => splitTags(tagsText), [tagsText]);
   const ideaCount = idea.trim().length;
+  const asyncProgress = useMemo(() => {
+    const progress = asyncJob?.progress;
+    if (!progress) return null;
+    return {
+      generatedSegments: progress.generatedSegments,
+      totalSegments: progress.totalSegments,
+      label:
+        typeof progress.totalSegments === "number"
+          ? `${progress.generatedSegments}/${progress.totalSegments}`
+          : progress.generatedSegments
+            ? `${progress.generatedSegments}`
+            : null,
+    };
+  }, [asyncJob]);
 
   const input = useMemo(
     () => ({
@@ -80,6 +105,57 @@ export function useShortStoryCreate() {
 
   const validation = useMemo(() => zodFieldErrors(input), [input]);
 
+  const loadAsyncJob = useCallback(
+    async (jobId: string) => {
+      const jobRes = await apiRequest<SerializedGenerationJob>(
+        `/api/jobs/${encodeURIComponent(jobId)}`,
+        undefined,
+        { redirectOnUnauthorized: true },
+      );
+      if (!jobRes.success || !jobRes.data) {
+        setFormError(jobRes.message || "任务状态读取失败，请稍后刷新。");
+        return null;
+      }
+
+      const job = jobRes.data;
+      setAsyncJob(job);
+      setAsyncWorkId(job.workId || job.progress?.finalWorkId || asyncWorkId);
+
+      if (job.status === "succeeded" || job.status === "success") {
+        setStage("done");
+        router.replace(`/dashboard/work/${job.progress?.finalWorkId || job.workId || asyncWorkId}`);
+      } else if (job.status === "failed") {
+        setStage("failed");
+        setFormError(job.errorMessage || "后台生成失败，可以点击重试继续执行。");
+      } else {
+        setStage("queued");
+        setFormError("");
+      }
+
+      return job;
+    },
+    [asyncWorkId, router],
+  );
+
+  useEffect(() => {
+    if (!asyncJobId) return;
+    const shouldPoll =
+      !asyncJob || asyncJob.status === "queued" || asyncJob.status === "running" || asyncJob.status === "stale";
+    if (!shouldPoll) return;
+
+    const firstTimer = window.setTimeout(() => {
+      void loadAsyncJob(asyncJobId);
+    }, 300);
+    const timer = window.setInterval(() => {
+      void loadAsyncJob(asyncJobId);
+    }, 2500);
+
+    return () => {
+      window.clearTimeout(firstTimer);
+      window.clearInterval(timer);
+    };
+  }, [asyncJob, asyncJobId, loadAsyncJob]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
@@ -93,10 +169,13 @@ export function useShortStoryCreate() {
 
     setFieldErrors({});
     setFormError("");
+    setAsyncJob(null);
+    setAsyncJobId(null);
+    setAsyncWorkId(null);
     setStage("outline");
 
     setStage("work");
-    const workRes = await apiRequest<{ workId: string }>("/api/ai/short-story", localValidation.input);
+    const workRes = await apiRequest<ShortStoryGenerateResponse>("/api/ai/short-story", localValidation.input);
 
     if (!workRes.success || !workRes.data?.workId) {
       setStage("idle");
@@ -105,11 +184,66 @@ export function useShortStoryCreate() {
       return;
     }
 
+    if (workRes.data.async && workRes.data.jobId) {
+      setAsyncWorkId(workRes.data.workId);
+      setAsyncJobId(workRes.data.jobId);
+      setAsyncJob({
+        id: workRes.data.jobId,
+        workId: workRes.data.workId,
+        action: "short_story.generate",
+        jobType: "short_story.generate.long",
+        status: "queued",
+        resultSummary: "后台生成任务已排队，正在等待执行。",
+        errorMessage: null,
+        resultJson: null,
+        progress: { generatedSegments: 0, totalSegments: null, finalWorkId: null },
+        chapterIndex: null,
+        inputTokens: null,
+        outputTokens: null,
+        totalTokens: null,
+        durationMs: null,
+        createdAt: new Date().toISOString(),
+        startedAt: null,
+        heartbeatAt: null,
+        finishedAt: null,
+        completedAt: null,
+        work: null,
+      });
+      setStage("queued");
+      return;
+    }
+
     setStage("done");
     router.replace(`/dashboard/work/${workRes.data.workId}`);
   }
 
+  async function retryAsyncJob() {
+    if (!asyncJobId || retrying) return;
+    setRetrying(true);
+    setFormError("");
+    const retryRes = await apiRequest<SerializedGenerationJob>(
+      `/api/jobs/${encodeURIComponent(asyncJobId)}/retry`,
+      {},
+      { redirectOnUnauthorized: true },
+    );
+    setRetrying(false);
+
+    if (!retryRes.success || !retryRes.data) {
+      setStage("failed");
+      setFormError(retryRes.message || "任务重试失败，请稍后再试。");
+      return;
+    }
+
+    setAsyncJob(retryRes.data);
+    setAsyncWorkId(retryRes.data.workId || asyncWorkId);
+    setStage("queued");
+  }
+
   return {
+    asyncJob,
+    asyncJobId,
+    asyncProgress,
+    asyncWorkId,
     busy,
     customWords,
     endingType,
@@ -121,6 +255,8 @@ export function useShortStoryCreate() {
     ideaCount,
     inputValid: Boolean(validation.input),
     pov,
+    retryAsyncJob,
+    retrying,
     setCustomWords,
     setEndingType,
     setFormError,

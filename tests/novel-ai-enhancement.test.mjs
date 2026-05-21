@@ -1305,9 +1305,9 @@ test("short story one-shot generation and selected text rewrite are wired", () =
   assert.match(shortGenerateSource, /normalizeGeneratedOutline/);
   assert.match(shortGenerateSource, /splitOutlineTextIntoBeats/);
   assert.match(shortGenerateSource, /persistShortStoryContext/);
-  assert.match(shortGenerateSource, /prisma\.character\.createMany/);
-  assert.match(shortGenerateSource, /prisma\.writingMemory\.createMany/);
-  assert.match(shortGenerateSource, /prisma\.timelineEvent\.createMany/);
+  assert.match(shortGenerateSource, /character\.createMany/);
+  assert.match(shortGenerateSource, /writingMemory\.createMany/);
+  assert.match(shortGenerateSource, /timelineEvent\.createMany/);
   assert.match(shortGenerateSource, /console\.warn/);
   assert.match(shortGenerateSource, /endingType:\s*input\.endingType/);
   assert.doesNotMatch(shortGenerateSource, /endingType:\s*"twist"/);
