@@ -54,6 +54,8 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
     { action: "add_conflict", label: "加冲突" },
     { action: "add_emotion", label: "加情绪" },
     { action: "short_drama", label: "短剧化" },
+    { action: "fanqie_style", label: "番茄风" },
+    { action: "xiaohongshu_style", label: "小红书风" },
   ] as const;
 
   function syncSelection(target: HTMLTextAreaElement) {

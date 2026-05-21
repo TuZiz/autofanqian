@@ -242,10 +242,10 @@ export function useWorkChapterEditor(params: {
     dirty,
     draftUnsynced,
     effectiveAiBusy,
-    handleRevisionRestored,
     metaSaving,
     saving,
     setError,
+    updateContent,
     workId,
   });
   const { closeRewriteDialog } = rewrite;

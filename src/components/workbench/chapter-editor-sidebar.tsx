@@ -33,6 +33,7 @@ const rewriteQuickActions = [
   { action: "add_emotion", label: "情绪" },
   { action: "short_drama", label: "短剧" },
   { action: "fanqie_style", label: "番茄" },
+  { action: "xiaohongshu_style", label: "小红书" },
 ] as const;
 
 export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorController }) {

@@ -5,8 +5,6 @@ import { useCallback, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/client/auth-api";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 
-import type { ChapterDetail } from "./chapter-editor-types";
-
 export type ChapterRewriteAction =
   | "polish"
   | "expand"
@@ -15,6 +13,7 @@ export type ChapterRewriteAction =
   | "add_emotion"
   | "short_drama"
   | "fanqie_style"
+  | "xiaohongshu_style"
   | "logic_check";
 
 type RewritePreviewResponse = {
@@ -26,10 +25,6 @@ type RewritePreviewResponse = {
   previewWordCount?: number;
 };
 
-type RewriteApplyResponse = {
-  chapter: ChapterDetail;
-};
-
 export const rewriteActionLabels: Record<ChapterRewriteAction, string> = {
   polish: aiZhCN.chapterRewrite.actions.polish.label,
   expand: aiZhCN.chapterRewrite.actions.expand.label,
@@ -38,6 +33,7 @@ export const rewriteActionLabels: Record<ChapterRewriteAction, string> = {
   add_emotion: aiZhCN.chapterRewrite.actions.add_emotion.label,
   short_drama: aiZhCN.chapterRewrite.actions.short_drama.label,
   fanqie_style: aiZhCN.chapterRewrite.actions.fanqie_style.label,
+  xiaohongshu_style: aiZhCN.chapterRewrite.actions.xiaohongshu_style.label,
   logic_check: aiZhCN.chapterRewrite.actions.logic_check.label,
 };
 
@@ -49,6 +45,7 @@ export const rewriteActionDescriptions: Record<ChapterRewriteAction, string> = {
   add_emotion: aiZhCN.chapterRewrite.actions.add_emotion.description,
   short_drama: aiZhCN.chapterRewrite.actions.short_drama.description,
   fanqie_style: aiZhCN.chapterRewrite.actions.fanqie_style.description,
+  xiaohongshu_style: aiZhCN.chapterRewrite.actions.xiaohongshu_style.description,
   logic_check: aiZhCN.chapterRewrite.actions.logic_check.description,
 };
 
@@ -58,10 +55,10 @@ export function useChapterEditorRewrite(params: {
   dirty: boolean;
   draftUnsynced: boolean;
   effectiveAiBusy: boolean;
-  handleRevisionRestored: (chapter: ChapterDetail) => void;
   metaSaving: boolean;
   saving: boolean;
   setError: (message: string) => void;
+  updateContent: (value: string) => void;
   workId: string;
 }) {
   const {
@@ -70,10 +67,10 @@ export function useChapterEditorRewrite(params: {
     dirty,
     draftUnsynced,
     effectiveAiBusy,
-    handleRevisionRestored,
     metaSaving,
     saving,
     setError,
+    updateContent,
     workId,
   } = params;
 
@@ -84,7 +81,7 @@ export function useChapterEditorRewrite(params: {
   const [rewriteReport, setRewriteReport] = useState("");
   const [rewriteSelection, setRewriteSelection] = useState({ start: 0, end: 0, text: "" });
   const [rewriteBusy, setRewriteBusy] = useState(false);
-  const [rewriteApplying, setRewriteApplying] = useState(false);
+  const rewriteApplying = false;
   const [rewriteError, setRewriteError] = useState("");
 
   const rewriteBlockedReason = useMemo(() => {
@@ -129,7 +126,7 @@ export function useChapterEditorRewrite(params: {
       "/api/ai/chapter/rewrite",
       {
         workId,
-        index: chapterIndex,
+        chapterIndex,
         rewriteMode: rewriteAction,
         selectedText: rewriteSelection.text || undefined,
         extraPrompt: rewritePrompt,
@@ -164,7 +161,7 @@ export function useChapterEditorRewrite(params: {
     workId,
   ]);
 
-  const handleApplyRewrite = useCallback(async () => {
+  const handleApplyRewrite = useCallback(() => {
     if (rewriteApplying || rewriteBusy) return;
     if (rewriteAction === "logic_check") return;
     if (!rewritePreview.trim()) {
@@ -172,51 +169,25 @@ export function useChapterEditorRewrite(params: {
       return;
     }
 
-    setRewriteApplying(true);
     setRewriteError("");
 
-    const draftContent =
+    const nextContent =
       rewriteSelection.text && rewriteSelection.end > rewriteSelection.start
         ? `${content.slice(0, rewriteSelection.start)}${rewritePreview}${content.slice(rewriteSelection.end)}`
         : rewritePreview;
-
-    const res = await apiRequest<RewriteApplyResponse>(
-      "/api/ai/chapter/rewrite",
-      {
-        workId,
-        index: chapterIndex,
-        rewriteMode: rewriteAction,
-        apply: true,
-        draftContent,
-      },
-      { method: "POST" },
-    );
-
-    setRewriteApplying(false);
-
-    if (!res.success || !res.data?.chapter) {
-      const message = res.message || aiZhCN.chapterRewrite.applyFailed;
-      setRewriteError(message);
-      setError(message);
-      return;
-    }
-
-    handleRevisionRestored(res.data.chapter);
+    updateContent(nextContent);
     setRewriteDialogOpen(false);
     resetRewriteResult();
     setRewritePrompt("");
   }, [
-    chapterIndex,
     content,
-    handleRevisionRestored,
     resetRewriteResult,
     rewriteAction,
     rewriteApplying,
     rewriteBusy,
     rewritePreview,
     rewriteSelection,
-    setError,
-    workId,
+    updateContent,
   ]);
 
   const closeRewriteDialog = useCallback(() => {

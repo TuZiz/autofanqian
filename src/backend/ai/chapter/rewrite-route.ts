@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { queueChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
 import {
   assertAiQuotaAvailable,
   runWithAiQuotaReservation,
@@ -16,7 +15,6 @@ import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { prisma } from "@/lib/prisma";
-import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { requireWorkAccess } from "@/lib/works/access";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 import { assertCanUseAiAction } from "@/lib/membership/guards";
@@ -31,25 +29,32 @@ const rewriteModeSchema = z.enum([
   "add_emotion",
   "short_drama",
   "fanqie_style",
+  "xiaohongshu_style",
   "logic_check",
 ]);
 const legacyRewriteActionSchema = z.enum(["polish", "expand", "compress", "conflict", "logic_check"]);
 
 const bodySchema = z.object({
   workId: z.string().min(1).max(64),
-  index: z.coerce.number().int().min(1).max(9999),
+  chapterIndex: z.coerce.number().int().min(1).max(9999).optional(),
+  index: z.coerce.number().int().min(1).max(9999).optional(),
   rewriteMode: rewriteModeSchema.optional(),
   action: legacyRewriteActionSchema.optional(),
   extraPrompt: z.string().trim().max(2000).optional().nullable(),
   selectedText: z.string().max(80_000).optional().nullable(),
-  apply: z.boolean().optional(),
-  draftContent: z.string().max(200_000).optional().nullable(),
 }).superRefine((body, ctx) => {
   if (!body.rewriteMode && !body.action) {
     ctx.addIssue({
       code: "custom",
       path: ["rewriteMode"],
       message: "请选择改写模式。",
+    });
+  }
+  if (!body.chapterIndex && !body.index) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["chapterIndex"],
+      message: "请选择章节。",
     });
   }
 });
@@ -70,30 +75,12 @@ const actionLabel: Record<RewriteAction, string> = {
   add_emotion: "增强情绪",
   short_drama: "短剧化改写",
   fanqie_style: "番茄风改写",
+  xiaohongshu_style: "小红书风改写",
   logic_check: "检查逻辑矛盾",
 };
 
 function countWords(text: string) {
   return text.replace(/\s+/g, "").length;
-}
-
-function serializeChapter(chapter: {
-  id: string;
-  index: number;
-  title: string | null;
-  content: string;
-  wordCount: number;
-  summary: string | null;
-  chapterOutline: string | null;
-  details: unknown;
-  createdAt: Date;
-  updatedAt: Date;
-}) {
-  return {
-    ...chapter,
-    createdAt: chapter.createdAt.toISOString(),
-    updatedAt: chapter.updatedAt.toISOString(),
-  };
 }
 
 function buildRewritePrompt(params: {
@@ -116,6 +103,7 @@ function buildRewritePrompt(params: {
     add_emotion: "强化人物情绪、心理变化和情绪落点，让读者更容易共情。",
     short_drama: "改成短剧风表达：对白更密、节奏更快、冲突更直给、反转更清晰。",
     fanqie_style: "改成番茄小说风格：钩子更强、爽点更明确、句子更顺滑、推进更快。",
+    xiaohongshu_style: "改成小红书故事风：开头更抓人、情绪共鸣更强、细节更生活化，表达更适合轻量传播。",
     logic_check: "检查时间顺序、人物状态、动机、场景连续性和伏笔矛盾。",
   };
   const rewriteTarget = params.selectedText?.trim() || params.content;
@@ -148,9 +136,10 @@ export async function POST(request: Request) {
 
     const body = parsed.data;
     const rewriteMode = normalizeRewriteMode(body);
+    const chapterIndex = body.chapterIndex ?? body.index ?? 1;
     const { user, work } = await requireWorkAccess(body.workId);
     const chapter = await prisma.chapter.findUnique({
-      where: { workId_index: { workId: work.id, index: body.index } },
+      where: { workId_index: { workId: work.id, index: chapterIndex } },
       select: {
         id: true,
         title: true,
@@ -162,60 +151,6 @@ export async function POST(request: Request) {
 
     if (!chapter || chapter.deletedAt) {
       throw new AuthApiError(404, "章节不存在或已被删除。");
-    }
-
-    if (body.apply) {
-      if (rewriteMode === "logic_check") {
-        throw new AuthApiError(400, "逻辑检查没有可应用的正文内容。");
-      }
-
-      const nextContent = (body.draftContent ?? "").trim().slice(0, 200_000);
-      if (!nextContent) {
-        throw new AuthApiError(400, "请先生成改写预览，再应用到正文。");
-      }
-
-      await createChapterRevisionSnapshot({
-        workId: work.id,
-        index: body.index,
-        source: "ai_rewrite",
-        reason: rewriteMode,
-      });
-
-      const updatedChapter = await prisma.chapter.update({
-        where: { id: chapter.id },
-        data: {
-          content: nextContent,
-          wordCount: countWords(nextContent),
-          status: "written",
-        },
-        select: {
-          id: true,
-          index: true,
-          title: true,
-          content: true,
-          wordCount: true,
-          summary: true,
-          chapterOutline: true,
-          details: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      queueChapterContextExtraction({
-        user,
-        workId: work.id,
-        chapterId: chapter.id,
-        index: body.index,
-        trigger: "rewrite_apply",
-        force: true,
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: aiZhCN.chapterRewrite.applySuccess,
-        data: { chapter: serializeChapter(updatedChapter) },
-      });
     }
 
     if (!chapter.content.trim()) {
@@ -253,7 +188,7 @@ export async function POST(request: Request) {
         userId: user.id,
         workId: work.id,
         chapterId: chapter.id,
-        chapterIndex: body.index,
+        chapterIndex,
         action: `chapter.rewrite.${rewriteMode}`,
         jobType: "chapter.rewrite",
         status: "running",

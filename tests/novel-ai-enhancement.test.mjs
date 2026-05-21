@@ -1263,12 +1263,16 @@ test("short story one-shot generation and selected text rewrite are wired", () =
   const shortSchemaSource = read("src/shared/schemas/short-story-generate.ts");
   const shortCreateViewSource = read("src/frontend/features/create/short-story-create-view.tsx");
   const shortCreateHookSource = read("src/lib/create/use-short-story-create.ts");
+  const shortPromptSource = read("src/lib/ai/short-story-generate-prompt.ts");
   const rewriteRouteSource = read("src/backend/ai/chapter/rewrite-route.ts");
   const rewriteHookSource = read("src/lib/workbench/use-chapter-editor-rewrite.ts");
   const editorMainSource = read("src/components/workbench/chapter-editor-main.tsx");
+  const rewriteCopySource = read("src/lib/copy/ai-zh-cn.ts");
 
   assert.match(shortRouteSource, /@\/backend\/ai\/short-story\/generate-route/);
   assert.match(shortSchemaSource, /SHORT_STORY_GENRES/);
+  assert.match(shortSchemaSource, /shortStoryGenerateSchema\s*=\s*shortStoryInputSchema/);
+  assert.doesNotMatch(shortSchemaSource, /genre:\s*z\.enum\(SHORT_STORY_GENRES\)/);
   for (const keyword of [
     "悬疑",
     "恋爱",
@@ -1298,23 +1302,41 @@ test("short story one-shot generation and selected text rewrite are wired", () =
   assert.match(shortGenerateSource, /index:\s*1/);
   assert.match(shortGenerateSource, /content:\s*output\.content/);
   assert.match(shortGenerateSource, /runWithAiQuotaReservation\(\s*user,\s*"short_story_outline_generate"/s);
+  assert.match(shortGenerateSource, /normalizeGeneratedOutline/);
+  assert.match(shortGenerateSource, /splitOutlineTextIntoBeats/);
+  assert.match(shortGenerateSource, /persistShortStoryContext/);
+  assert.match(shortGenerateSource, /prisma\.character\.createMany/);
+  assert.match(shortGenerateSource, /prisma\.writingMemory\.createMany/);
+  assert.match(shortGenerateSource, /prisma\.timelineEvent\.createMany/);
+  assert.match(shortGenerateSource, /console\.warn/);
+  assert.match(shortGenerateSource, /endingType:\s*input\.endingType/);
+  assert.doesNotMatch(shortGenerateSource, /endingType:\s*"twist"/);
   assert.match(shortGenerateSource, /successResponse/);
+  assert.match(shortPromptSource, /formatTags/);
+  assert.match(shortPromptSource, /input\.tags/);
+  assert.match(shortPromptSource, /input\.pov/);
+  assert.match(shortPromptSource, /input\.endingType/);
+  assert.match(shortPromptSource, /SHORT_STORY_ENDING_LABELS/);
 
   for (const keyword of [
     "rewriteMode",
+    "chapterIndex",
     "selectedText",
     "rewrittenText",
     "add_conflict",
     "add_emotion",
     "short_drama",
     "fanqie_style",
-    "draftContent",
+    "xiaohongshu_style",
     "setRewriteSelection",
+    "updateContent",
     "已选中",
     "加冲突",
     "加情绪",
     "短剧化",
   ]) {
-    assert.match(rewriteRouteSource + rewriteHookSource + editorMainSource, new RegExp(keyword));
+    assert.match(rewriteRouteSource + rewriteHookSource + editorMainSource + rewriteCopySource, new RegExp(keyword));
   }
+  assert.doesNotMatch(rewriteRouteSource, /prisma\.chapter\.update\(/);
+  assert.doesNotMatch(rewriteHookSource, /draftContent/);
 });

@@ -10,6 +10,7 @@ export type AiRewriteAction =
   | "add_emotion"
   | "short_drama"
   | "fanqie_style"
+  | "xiaohongshu_style"
   | "logic_check";
 
 const chapterMetaCopy = {
@@ -187,6 +188,10 @@ export const aiZhCN = {
       fanqie_style: {
         label: "番茄风",
         description: "强化爽点、钩子和阅读推进感。",
+      },
+      xiaohongshu_style: {
+        label: "小红书风",
+        description: "强化共鸣、生活细节和轻量传播感。",
       },
       logic_check: {
         label: "逻辑检查",

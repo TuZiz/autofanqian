@@ -1,4 +1,9 @@
 import type { ShortStoryGenerateInput } from "@/shared/schemas/short-story-generate";
+import { SHORT_STORY_ENDING_LABELS } from "@/shared/schemas/short-story";
+
+function formatTags(tags: string[]) {
+  return tags.length ? tags.join("、") : "无";
+}
 
 export function buildShortStoryGenerateSystemPrompt() {
   return [
@@ -8,17 +13,23 @@ export function buildShortStoryGenerateSystemPrompt() {
     "硬性输出要求：",
     "1) 只输出严格 JSON 对象，不要 Markdown，不要代码块，不要解释。",
     "2) JSON 字段只能包含 title、synopsis、outline、content。",
-    "3) content 是完整正文，不是大纲，不要留待续写。",
-    "4) 内容必须原创、连贯、可读，有开端、冲突、转折和收束。",
+    "3) outline 优先输出结构化对象，字段为 tag/title/synopsis/targetWords/theme/hook/endingType/characters/beats。",
+    "4) content 是完整正文，不是大纲，不要留待续写。",
+    "5) 内容必须原创、连贯、可读，有开端、冲突、转折和收束。",
   ].join("\n");
 }
 
 export function buildShortStoryGenerateUserPrompt(input: ShortStoryGenerateInput) {
+  const endingLabel = SHORT_STORY_ENDING_LABELS[input.endingType];
+
   return [
     "请生成一篇完整短篇小说：",
     `短篇类型：${input.genre}`,
+    `标签：${formatTags(input.tags)}`,
     `目标字数：${input.targetWords}`,
     `风格：${input.style}`,
+    `叙事视角：${input.pov}`,
+    `结局倾向：${endingLabel}（${input.endingType}）`,
     "",
     `创意：${input.idea}`,
     "",
@@ -26,7 +37,17 @@ export function buildShortStoryGenerateUserPrompt(input: ShortStoryGenerateInput
     "{",
     '  "title": "短篇标题",',
     '  "synopsis": "简介，交代主角、核心冲突、卖点和情绪落点",',
-    '  "outline": "短篇大纲，用 5-8 个自然段概括剧情推进",',
+    '  "outline": {',
+    '    "tag": "12字以内短标签",',
+    '    "title": "短篇标题",',
+    '    "synopsis": "短篇简介",',
+    '    "targetWords": 目标字数数字,',
+    '    "theme": "主题或情绪内核",',
+    '    "hook": "开篇钩子",',
+    `    "endingType": "${input.endingType}",`,
+    '    "characters": [{ "name": "角色名", "role": "角色定位", "description": "动机、秘密或人物功能" }],',
+    '    "beats": [{ "index": 1, "title": "场景标题", "purpose": "剧情目的", "targetWords": 段落字数, "writingPrompt": "这一段如何写" }]',
+    "  },",
     '  "content": "完整正文"',
     "}",
     "",
@@ -34,8 +55,11 @@ export function buildShortStoryGenerateUserPrompt(input: ShortStoryGenerateInput
     "- 标题要有传播感，不要空泛。",
     "- 简介要像作品详情页可直接展示的简介。",
     "- 大纲要清楚标出开局、推进、反转或高潮、结尾。",
+    "- outline.beats 必须 3-8 个，按短篇节奏拆成开局、推进、反转/高潮、收束。",
+    "- characters 必须 1-5 个，只保留真正推动冲突的人。",
     "- 正文按目标字数尽量贴近，但不需要机械凑字。",
-    "- 风格要贴合用户选择，不要写成后台说明文。",
+    "- 风格要贴合用户选择；视角必须全篇一致；标签要体现在人物、场景、反转或情绪里。",
+    "- 结局必须遵守用户选择，不要固定成反转式。",
     "- 只输出 JSON。",
   ].join("\n");
 }

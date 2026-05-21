@@ -27,6 +27,7 @@ const actionOrder: ChapterRewriteAction[] = [
   "add_emotion",
   "short_drama",
   "fanqie_style",
+  "xiaohongshu_style",
   "logic_check",
 ];
 

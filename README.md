@@ -78,6 +78,14 @@
 - 作品创建后进入作品详情页。
 - 大纲结构会保存到 `Work.outline`，后续写作和章节生成都会使用。
 
+### 短篇小说一键生成
+路由：`/dashboard/create/short`
+
+- 支持短篇类型、标签、目标字数、风格、叙事视角、结局倾向和创意输入。
+- 调用 `POST /api/ai/short-story` 一次生成标题、简介、结构化短篇大纲和完整正文。
+- 生成结果保存为 `Work.workType = short_story`，并自动创建第 1 章。
+- 短篇大纲会以结构化 JSON 保存到 `Work.outline` 和 `Work.rawOutline`，包括主题、钩子、结局倾向、角色和 3-8 个 beats。
+
 ### 作品详情页
 
 路由：`/dashboard/work/[id]`
@@ -132,6 +140,7 @@ AI 章节能力分为四类：
 - 章节摘要：`/api/ai/chapter/summary`
 - 章节大纲：`/api/ai/chapter/outline`
 - 细节提取：`/api/ai/chapter/details`
+- 章节 AI 改写：`/api/ai/chapter/rewrite`
 
 正文生成会参考：
 
@@ -244,6 +253,7 @@ AI 章节能力分为四类：
 | `/forgot-password` | 找回密码 |
 | `/dashboard` | 作者首页和作品库 |
 | `/dashboard/create` | 创建作品第一步 |
+| `/dashboard/create/short` | 短篇小说一键生成入口 |
 | `/dashboard/create/outline` | AI 生成大纲和创建作品 |
 | `/dashboard/import` | 导入入口 |
 | `/dashboard/work/[id]` | 作品详情页 |
@@ -284,10 +294,12 @@ AI 章节能力分为四类：
 - `POST /api/ai/idea/analyze`
 - `POST /api/ai/outline`
 - `POST /api/ai/outline/refine`
+- `POST /api/ai/short-story`
 - `POST /api/ai/chapter`
 - `POST /api/ai/chapter/summary`
 - `POST /api/ai/chapter/outline`
 - `POST /api/ai/chapter/details`
+- `POST /api/ai/chapter/rewrite`
 
 ### 作品和章节
 
@@ -475,4 +487,3 @@ npm run db:generate
 - 用户密码使用哈希存储，不保存明文密码。
 - 后台生成的临时密码只在创建或重置时展示一次。
 - AI Key 仅在服务端读取，不应暴露到客户端。
-
