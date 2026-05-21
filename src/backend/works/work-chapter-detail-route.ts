@@ -29,6 +29,10 @@ const updateSchema = z.object({
   summary: z.string().max(12_000).optional().nullable(),
   chapterOutline: z.string().max(24_000).optional().nullable(),
   details: z.array(z.string().trim().min(1).max(400)).max(200).optional().nullable(),
+  revisionSource: z
+    .enum(["manual_save", "ai_generate", "ai_regenerate", "ai_rewrite", "restore_before", "meta_update"])
+    .optional(),
+  revisionReason: z.string().trim().max(200).optional().nullable(),
 });
 
 function countWords(text: string) {
@@ -263,7 +267,8 @@ export async function PUT(
         await createChapterRevisionSnapshot({
           workId: work.id,
           index: parsed.index,
-          source: "manual_save",
+          source: body.revisionSource ?? "manual_save",
+          reason: body.revisionReason ?? undefined,
         });
       } catch (revisionError) {
         console.error("create chapter revision failed", revisionError);

@@ -191,7 +191,7 @@ export const aiZhCN = {
       },
       xiaohongshu_style: {
         label: "小红书风",
-        description: "强化共鸣、生活细节和轻量传播感。",
+        description: "更口语、更短段落，强化情绪共鸣但不营销化。",
       },
       logic_check: {
         label: "逻辑检查",

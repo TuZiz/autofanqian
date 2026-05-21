@@ -20,8 +20,10 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
     handleManualSave,
     metaSaving,
     outlinePreviewLines,
+    openFullChapterRewriteDialog,
     openRewriteDialog,
     rewriteApplying,
+    rewriteBlockedReason,
     rewriteBusy,
     rewriteSelection,
     saving,
@@ -253,10 +255,22 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
 
         {/* 正文输入区 */}
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3 py-2 shadow-sm">
-          <div className="min-w-0 text-xs font-semibold text-[var(--theme-text-muted)]">
-            {selectedLength
-              ? `已选中 ${selectedLength.toLocaleString("zh-CN")} 字，可只改写选中文本`
-              : "选中正文后，可用 AI 只改写选中文本"}
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={!work || rewriteBusy || rewriteApplying}
+              onClick={() => openFullChapterRewriteDialog("polish")}
+              title={rewriteBlockedReason || "无需选中文本，打开整章 AI 改写预览"}
+              className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-45 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              整章 AI 改写
+            </button>
+            <div className="min-w-0 text-xs font-semibold text-[var(--theme-text-muted)]">
+              {selectedLength
+                ? `已选中 ${selectedLength.toLocaleString("zh-CN")} 字，可只改写选中文本`
+                : "可整章改写，或选中正文后只改写选中文本"}
+            </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {rewriteToolbarActions.map((item) => (

@@ -103,7 +103,8 @@ function buildRewritePrompt(params: {
     add_emotion: "强化人物情绪、心理变化和情绪落点，让读者更容易共情。",
     short_drama: "改成短剧风表达：对白更密、节奏更快、冲突更直给、反转更清晰。",
     fanqie_style: "改成番茄小说风格：钩子更强、爽点更明确、句子更顺滑、推进更快。",
-    xiaohongshu_style: "改成小红书故事风：开头更抓人、情绪共鸣更强、细节更生活化，表达更适合轻量传播。",
+    xiaohongshu_style:
+      "改成小红书故事风：表达更口语，情绪更明显，段落更短，更有共鸣感；适合短篇故事/情绪故事，但不要写成营销文、种草文或带货口吻。",
     logic_check: "检查时间顺序、人物状态、动机、场景连续性和伏笔矛盾。",
   };
   const rewriteTarget = params.selectedText?.trim() || params.content;

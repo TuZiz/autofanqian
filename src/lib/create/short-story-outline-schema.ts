@@ -36,6 +36,7 @@ export const shortStoryOutlineSchema = z
     endingType: z.enum(SHORT_STORY_ENDING_TYPES),
     characters: z.array(shortStoryCharacterSchema).min(1).max(5),
     beats: z.array(shortStoryBeatSchema).min(3).max(12),
+    fullOutline: z.string().trim().max(12_000).optional(),
   })
   .strict()
   .superRefine((outline, ctx) => {
@@ -52,11 +53,17 @@ export const shortStoryOutlineSchema = z
 
 export type ShortStoryCharacter = z.infer<typeof shortStoryCharacterSchema>;
 export type ShortStoryBeat = z.infer<typeof shortStoryBeatSchema>;
-export type ShortStoryOutline = z.infer<typeof shortStoryOutlineSchema>;
+export type ShortStoryOutlineInput = z.infer<typeof shortStoryOutlineSchema>;
+export type ShortStoryOutline = Omit<
+  ShortStoryOutlineInput,
+  "fullOutline"
+> & {
+  fullOutline: string;
+};
 export type { ShortStoryEndingType };
 
 export function normalizeShortStoryOutline(
-  outline: z.infer<typeof shortStoryOutlineSchema>,
+  outline: ShortStoryOutlineInput,
 ): ShortStoryOutline {
   const beats = outline.beats
     .slice()
@@ -80,5 +87,32 @@ export function normalizeShortStoryOutline(
       description: character.description.trim(),
     })),
     beats,
+    fullOutline: normalizeFullOutline(outline, beats),
   };
+}
+
+function normalizeFullOutline(
+  outline: ShortStoryOutlineInput,
+  beats: ShortStoryBeat[],
+) {
+  const explicit = outline.fullOutline?.trim();
+  if (explicit && explicit.length >= 20) return explicit;
+
+  return [
+    `标题：${outline.title.trim()}`,
+    `简介：${outline.synopsis.trim()}`,
+    `主题：${outline.theme.trim()}`,
+    `开篇钩子：${outline.hook.trim()}`,
+    `结局倾向：${outline.endingType}`,
+    "角色：",
+    ...outline.characters.map(
+      (character) =>
+        `- ${character.name.trim()}（${character.role.trim()}）：${character.description.trim()}`,
+    ),
+    "节奏 beats：",
+    ...beats.map(
+      (beat) =>
+        `${beat.index}. ${beat.title}：${beat.purpose}。写作提示：${beat.writingPrompt}`,
+    ),
+  ].join("\n");
 }

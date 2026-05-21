@@ -50,7 +50,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
     handleGenerateSummary,
     handleOutlineActionClick,
     metaSaving,
-    openRewriteDialog,
+    openFullChapterRewriteDialog,
     openMetaEditor,
     outlineActionLabel,
     outlineActionError,
@@ -134,7 +134,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
                 <button
                   key={item.action}
                   type="button"
-                  onClick={() => openRewriteDialog(item.action)}
+                  onClick={() => openFullChapterRewriteDialog(item.action)}
                   disabled={!work || rewriteBusy || rewriteApplying}
                   title={rewriteBlockedReason || undefined}
                   className="inline-flex h-7 items-center justify-center rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-2 text-xs font-semibold text-[var(--theme-text-secondary)] transition-colors hover:bg-[var(--theme-surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"

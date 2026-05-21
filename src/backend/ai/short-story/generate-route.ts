@@ -25,6 +25,7 @@ import {
   shortStoryOutlineSchema,
   type ShortStoryBeat,
   type ShortStoryOutline,
+  type ShortStoryOutlineInput,
 } from "@/lib/create/short-story-outline-schema";
 import { assertCanCreateWork, assertCanUseAiAction } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
@@ -60,6 +61,14 @@ function countWords(text: string) {
   return text.replace(/\s+/g, "").length;
 }
 
+function clampText(text: string, max: number) {
+  return text.trim().slice(0, max);
+}
+
+function formatTags(tags: string[]) {
+  return tags.length ? tags.join("、") : "无";
+}
+
 function splitOutlineTextIntoBeats(outline: string, targetWords: number): ShortStoryBeat[] {
   const parts = outline
     .split(/\n+|(?<=[。！？!?])\s*/g)
@@ -83,10 +92,10 @@ function splitOutlineTextIntoBeats(outline: string, targetWords: number): ShortS
   }));
 }
 
-function normalizeGeneratedOutline(input: ShortStoryGenerateInput, output: {
+function buildShortStoryOutlineJson(input: ShortStoryGenerateInput, output: {
   title: string;
   synopsis: string;
-  outline: string | ShortStoryOutline;
+  outline: string | ShortStoryOutlineInput;
   content: string;
 }): ShortStoryOutline {
   const parsed =
@@ -100,17 +109,18 @@ function normalizeGeneratedOutline(input: ShortStoryGenerateInput, output: {
       synopsis: parsed.data.synopsis || output.synopsis,
       endingType: input.endingType,
       targetWords: input.targetWords,
+      beats: parsed.data.beats.slice(0, 8),
     });
   }
 
   const outlineText = typeof output.outline === "string" ? output.outline : output.synopsis;
   return normalizeShortStoryOutline({
-    tag: input.genre.slice(0, 12),
+    tag: (input.tags[0] || input.genre).slice(0, 12),
     title: output.title,
     synopsis: output.synopsis,
     targetWords: input.targetWords,
-    theme: `${input.genre} / ${input.style} / ${SHORT_STORY_ENDING_LABELS[input.endingType]}`,
-    hook: input.idea.slice(0, 300),
+    theme: `${input.genre} / ${input.style} / ${input.pov} / ${SHORT_STORY_ENDING_LABELS[input.endingType]}`,
+    hook: clampText(input.idea, 300),
     endingType: input.endingType,
     characters: [
       {
@@ -120,14 +130,25 @@ function normalizeGeneratedOutline(input: ShortStoryGenerateInput, output: {
       },
     ],
     beats: splitOutlineTextIntoBeats(outlineText, input.targetWords),
+    fullOutline: clampText(outlineText, 12_000),
   });
 }
 
+function normalizeGeneratedOutline(input: ShortStoryGenerateInput, output: {
+  title: string;
+  synopsis: string;
+  outline: string | ShortStoryOutlineInput;
+  content: string;
+}): ShortStoryOutline {
+  return buildShortStoryOutlineJson(input, output);
+}
+
 async function persistShortStoryContext(params: {
+  input: ShortStoryGenerateInput;
   outline: ShortStoryOutline;
   workId: string;
 }) {
-  const { outline, workId } = params;
+  const { input, outline, workId } = params;
   try {
     await prisma.character.createMany({
       data: outline.characters.map((character) => ({
@@ -165,6 +186,20 @@ async function persistShortStoryContext(params: {
           priority: 75,
           source: "short_story_generate",
           content: `结局倾向：${SHORT_STORY_ENDING_LABELS[outline.endingType]}（${outline.endingType}）`,
+        },
+        {
+          novelId: workId,
+          kind: "style",
+          priority: 72,
+          source: "short_story_generate",
+          content: `短篇标签：${formatTags(input.tags)}`,
+        },
+        {
+          novelId: workId,
+          kind: "style",
+          priority: 72,
+          source: "short_story_generate",
+          content: `叙事视角：${input.pov}`,
         },
       ],
     });
@@ -295,12 +330,13 @@ export async function POST(request: Request) {
             content: output.content,
             wordCount: contentWordCount,
             status: "written",
-            chapterOutline: typeof output.outline === "string" ? output.outline : outlineJson.beats.map((beat) => `${beat.title}：${beat.purpose}`).join("\n"),
+            chapterOutline: outlineJson.fullOutline,
             details: [
               `短篇类型：${input.genre}`,
               `风格：${input.style}`,
               `视角：${input.pov}`,
               `结局：${SHORT_STORY_ENDING_LABELS[input.endingType]}`,
+              `标签：${formatTags(input.tags)}`,
               `目标字数：${input.targetWords}`,
             ],
           },
@@ -331,7 +367,7 @@ export async function POST(request: Request) {
       select: { id: true },
     });
 
-    await persistShortStoryContext({ outline: outlineJson, workId: work.id });
+    await persistShortStoryContext({ input, outline: outlineJson, workId: work.id });
 
     return successResponse(
       {

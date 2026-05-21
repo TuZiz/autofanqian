@@ -56,9 +56,14 @@ export function useChapterEditorRewrite(params: {
   draftUnsynced: boolean;
   effectiveAiBusy: boolean;
   metaSaving: boolean;
+  saveNow: (next?: {
+    title?: string;
+    content?: string;
+    revisionSource?: "ai_rewrite";
+    revisionReason?: string;
+  }) => Promise<boolean>;
   saving: boolean;
   setError: (message: string) => void;
-  updateContent: (value: string) => void;
   workId: string;
 }) {
   const {
@@ -68,9 +73,9 @@ export function useChapterEditorRewrite(params: {
     draftUnsynced,
     effectiveAiBusy,
     metaSaving,
+    saveNow,
     saving,
     setError,
-    updateContent,
     workId,
   } = params;
 
@@ -81,7 +86,7 @@ export function useChapterEditorRewrite(params: {
   const [rewriteReport, setRewriteReport] = useState("");
   const [rewriteSelection, setRewriteSelection] = useState({ start: 0, end: 0, text: "" });
   const [rewriteBusy, setRewriteBusy] = useState(false);
-  const rewriteApplying = false;
+  const [rewriteApplying, setRewriteApplying] = useState(false);
   const [rewriteError, setRewriteError] = useState("");
 
   const rewriteBlockedReason = useMemo(() => {
@@ -108,6 +113,14 @@ export function useChapterEditorRewrite(params: {
       }
     },
     [resetRewriteResult, rewriteBlockedReason],
+  );
+
+  const openFullChapterRewriteDialog = useCallback(
+    (action: ChapterRewriteAction) => {
+      setRewriteSelection({ start: 0, end: 0, text: "" });
+      openRewriteDialog(action);
+    },
+    [openRewriteDialog],
   );
 
   const handleConfirmRewrite = useCallback(async () => {
@@ -161,7 +174,7 @@ export function useChapterEditorRewrite(params: {
     workId,
   ]);
 
-  const handleApplyRewrite = useCallback(() => {
+  const handleApplyRewrite = useCallback(async () => {
     if (rewriteApplying || rewriteBusy) return;
     if (rewriteAction === "logic_check") return;
     if (!rewritePreview.trim()) {
@@ -175,7 +188,22 @@ export function useChapterEditorRewrite(params: {
       rewriteSelection.text && rewriteSelection.end > rewriteSelection.start
         ? `${content.slice(0, rewriteSelection.start)}${rewritePreview}${content.slice(rewriteSelection.end)}`
         : rewritePreview;
-    updateContent(nextContent);
+
+    setRewriteApplying(true);
+    const saved = await saveNow({
+      content: nextContent,
+      revisionSource: "ai_rewrite",
+      revisionReason: `AI 改写应用前快照：${rewriteActionLabels[rewriteAction]}`,
+    });
+    setRewriteApplying(false);
+
+    if (!saved) {
+      const message = aiZhCN.chapterRewrite.applyFailed;
+      setRewriteError(message);
+      setError(message);
+      return;
+    }
+
     setRewriteDialogOpen(false);
     resetRewriteResult();
     setRewritePrompt("");
@@ -187,7 +215,8 @@ export function useChapterEditorRewrite(params: {
     rewriteBusy,
     rewritePreview,
     rewriteSelection,
-    updateContent,
+    saveNow,
+    setError,
   ]);
 
   const closeRewriteDialog = useCallback(() => {
@@ -202,6 +231,7 @@ export function useChapterEditorRewrite(params: {
     closeRewriteDialog,
     handleApplyRewrite,
     handleConfirmRewrite,
+    openFullChapterRewriteDialog,
     openRewriteDialog,
     resetRewriteResult,
     rewriteAction,

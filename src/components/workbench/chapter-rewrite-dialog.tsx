@@ -46,6 +46,7 @@ export function ChapterRewriteDialog({ editor }: { editor: WorkChapterEditorCont
     rewritePreview,
     rewritePrompt,
     rewriteReport,
+    rewriteSelection,
     setRewriteAction,
     setRewritePrompt,
   } = editor;
@@ -55,6 +56,9 @@ export function ChapterRewriteDialog({ editor }: { editor: WorkChapterEditorCont
   const isLogicCheck = rewriteAction === "logic_check";
   const hasResult = isLogicCheck ? Boolean(rewriteReport.trim()) : Boolean(rewritePreview.trim());
   const isBusy = rewriteBusy || rewriteApplying;
+  const scopeLabel = rewriteSelection.text.trim()
+    ? `当前范围：选中文本 ${rewriteSelection.text.trim().length.toLocaleString("zh-CN")} 字`
+    : "当前范围：整章正文";
 
   const selectAction = (action: ChapterRewriteAction) => {
     if (isBusy) return;
@@ -98,7 +102,7 @@ export function ChapterRewriteDialog({ editor }: { editor: WorkChapterEditorCont
                 {aiZhCN.chapterRewrite.title}
               </h3>
               <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-zinc-500 dark:text-zinc-400">
-                {aiZhCN.chapterRewrite.subtitle}
+                {aiZhCN.chapterRewrite.subtitle} {scopeLabel}
               </p>
             </div>
           </div>

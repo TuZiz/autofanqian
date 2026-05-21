@@ -244,8 +244,8 @@ export function useWorkChapterEditor(params: {
     effectiveAiBusy,
     metaSaving,
     saving,
+    saveNow,
     setError,
-    updateContent,
     workId,
   });
   const { closeRewriteDialog } = rewrite;

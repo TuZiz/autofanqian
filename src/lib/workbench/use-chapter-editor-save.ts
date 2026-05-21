@@ -6,6 +6,21 @@ import type { MutableRefObject } from "react";
 import { apiRequest } from "@/lib/client/auth-api";
 import type { ChapterBootstrap } from "./chapter-editor-types";
 
+type SaveRevisionSource =
+  | "manual_save"
+  | "ai_generate"
+  | "ai_regenerate"
+  | "ai_rewrite"
+  | "restore_before"
+  | "meta_update";
+
+type SaveNowInput = {
+  title?: string;
+  content?: string;
+  revisionSource?: SaveRevisionSource;
+  revisionReason?: string;
+};
+
 function clearTimer(ref: MutableRefObject<number | null>) {
   if (!ref.current) return;
   window.clearTimeout(ref.current);
@@ -44,9 +59,9 @@ export function useChapterEditorSave(params: {
   const draftSavingRef = useRef(false);
 
   const saveNow = useCallback(
-    async (next?: { title?: string; content?: string }) => {
+    async (next?: SaveNowInput) => {
       if (!workId || !Number.isFinite(chapterIndex) || chapterIndex <= 0 || saving) {
-        return;
+        return false;
       }
 
       setSaving(true);
@@ -55,6 +70,8 @@ export function useChapterEditorSave(params: {
         {
           title: next?.title ?? title,
           content: next?.content ?? content,
+          revisionSource: next?.revisionSource,
+          revisionReason: next?.revisionReason,
         },
         { method: "PUT" },
       );
@@ -62,7 +79,7 @@ export function useChapterEditorSave(params: {
 
       if (!res.success || !res.data?.chapter) {
         setError(res.message || "保存失败");
-        return;
+        return false;
       }
 
       applyBootstrap(res.data);
@@ -74,6 +91,7 @@ export function useChapterEditorSave(params: {
         undefined,
         { method: "DELETE" },
       );
+      return true;
     },
     [
       applyBootstrap,

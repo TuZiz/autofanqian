@@ -84,7 +84,7 @@
 - 支持短篇类型、标签、目标字数、风格、叙事视角、结局倾向和创意输入。
 - 调用 `POST /api/ai/short-story` 一次生成标题、简介、结构化短篇大纲和完整正文。
 - 生成结果保存为 `Work.workType = short_story`，并自动创建第 1 章。
-- 短篇大纲会以结构化 JSON 保存到 `Work.outline` 和 `Work.rawOutline`，包括主题、钩子、结局倾向、角色和 3-8 个 beats。
+- 短篇大纲会以结构化 JSON 保存到 `Work.outline` 和 `Work.rawOutline`，包括主题、钩子、结局倾向、角色、3-8 个 beats 和 `fullOutline`。
 
 ### 作品详情页
 
@@ -141,6 +141,13 @@ AI 章节能力分为四类：
 - 章节大纲：`/api/ai/chapter/outline`
 - 细节提取：`/api/ai/chapter/details`
 - 章节 AI 改写：`/api/ai/chapter/rewrite`
+
+章节 AI 改写支持：
+
+- AI 改写正文：可整章改写，也可选中文本后局部改写。
+- AI 逻辑检查：只输出矛盾、动机和衔接风险，不直接覆盖正文。
+- 预览后应用：先生成预览，确认后再写入正文。
+- 应用前自动保存历史版本：应用改写前会生成章节历史快照，便于回退。
 
 正文生成会参考：
 
