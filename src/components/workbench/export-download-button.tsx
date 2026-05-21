@@ -37,6 +37,9 @@ function formatPreviewMessage(preview: WorkExportPreview) {
     "",
     `章节数：${preview.chapterCount}`,
     `总字数：${preview.totalWordCount.toLocaleString("zh-CN")}`,
+    `空章节：${preview.emptyChapters.length ? preview.emptyChapters.join("、") : "无"}`,
+    `缺失章节序号：${preview.missingIndexes.length ? preview.missingIndexes.join("、") : "无"}`,
+    `可导出格式：${preview.availableFormats.map((item) => item.toUpperCase()).join(" / ")}`,
     "",
     "仍然继续下载吗？",
   ].join("\n");

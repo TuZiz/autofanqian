@@ -34,6 +34,12 @@ import { assertCanCreateChapter } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { getActivePromptTemplate } from "@/lib/ai/prompt-templates";
 import {
+  getGenerationJobFailureCount,
+  shouldAutoRunGenerationJob,
+  withGenerationJobFailureCount,
+} from "@/lib/jobs/generation-job-progress";
+import { shouldSkipLongShortStoryJobForExistingChapter } from "@/lib/jobs/long-short-story-job-state";
+import {
   chapterConsistencyResultSchema,
   type ChapterConsistencyResult,
 } from "@/shared/schemas/chapter-consistency";
@@ -49,10 +55,17 @@ const SUPPORTED_JOB_TYPES = [
 ] as const;
 const SHORT_STORY_CONTEXT_SOURCE = "short_story_generate";
 const SHORT_STORY_TIMELINE_MARKER = "[short_story_generate]";
+export const GENERATION_JOB_STALE_MS = 30 * 60 * 1000;
+export const GENERATION_JOB_MAX_AUTO_FAILURES = 3;
 
 const runJobOptionsSchema = z.object({
   limit: z.coerce.number().int().min(1).max(20).optional().default(5),
   jobId: z.string().trim().min(1).max(64).optional().nullable(),
+  status: z
+    .enum(["all", "queued", "running", "succeeded", "success", "failed", "cancelled", "stale"])
+    .optional()
+    .default("all"),
+  includeFailed: z.boolean().optional().default(false),
 });
 
 const shortStoryLongJobJsonSchema = z
@@ -136,6 +149,41 @@ function usageFromJob(job: GenerationJob): JobUsage {
     totalTokens: job.totalTokens ?? 0,
     durationMs: job.durationMs ?? 0,
   };
+}
+
+async function markSupportedStaleGenerationJobs(now = new Date()) {
+  const staleBefore = new Date(now.getTime() - GENERATION_JOB_STALE_MS);
+  const staleJobs = await prisma.generationJob.findMany({
+    where: {
+      status: "running",
+      heartbeatAt: { lt: staleBefore },
+      jobType: { in: [...SUPPORTED_JOB_TYPES] },
+    },
+    select: { id: true, resultJson: true },
+  });
+
+  for (const job of staleJobs) {
+    const failureCount = getGenerationJobFailureCount(job.resultJson) + 1;
+    await prisma.generationJob.update({
+      where: { id: job.id },
+      data: {
+        status: "stale",
+        error: "generation_job_stale",
+        errorMessage: "生成任务超过 30 分钟未更新心跳，已自动标记为过期。",
+        resultJson: withGenerationJobFailureCount(job.resultJson, failureCount) as Prisma.InputJsonValue,
+        resultSummary:
+          failureCount >= GENERATION_JOB_MAX_AUTO_FAILURES
+            ? "任务连续失败次数过多，已停止自动重试，请手动重试。"
+            : "任务心跳过期，等待 worker 自动恢复。",
+        finishedAt: now,
+        completedAt: now,
+        heartbeatAt: now,
+        activeLockKey: null,
+      },
+    });
+  }
+
+  return staleJobs.length;
 }
 
 async function loadJobUser(job: GenerationJob) {
@@ -369,10 +417,10 @@ async function runLongShortStoryJob(job: GenerationJob) {
       where: { workId_index: { workId: rawState.data.finalWorkId, index: 1 } },
       select: { status: true, content: true, wordCount: true },
     });
-    if (existingChapter?.status === "written" && existingChapter.content.trim()) {
+    if (shouldSkipLongShortStoryJobForExistingChapter(rawState.data, existingChapter)) {
       return {
         resultJson: (job.resultJson ?? {}) as Prisma.InputJsonValue,
-        resultSummary: `长文本短篇已完成，正文 ${existingChapter.wordCount} 字。`,
+        resultSummary: `长文本短篇已完成，正文 ${existingChapter?.wordCount ?? 0} 字。`,
         usage: usageFromJob(job),
       };
     }
@@ -813,6 +861,18 @@ export async function runGenerationJob(
   jobId: string,
   options: { retryFailed?: boolean } = {},
 ) {
+  const existing = await prisma.generationJob.findUnique({
+    where: { id: jobId },
+    select: { resultJson: true, status: true },
+  });
+  if (
+    existing &&
+    !options.retryFailed &&
+    !shouldAutoRunGenerationJob(existing.resultJson, GENERATION_JOB_MAX_AUTO_FAILURES)
+  ) {
+    return { jobId, status: "skipped" as const, message: "failure_limit_reached" };
+  }
+
   const now = new Date();
   const runnableStatuses: GenerationJobStatus[] = options.retryFailed
     ? ["queued", "stale", "failed"]
@@ -863,13 +923,18 @@ export async function runGenerationJob(
   } catch (error) {
     const message = error instanceof Error ? error.message : "GenerationJob 执行失败。";
     const finishedAt = new Date();
+    const failureCount = getGenerationJobFailureCount(job.resultJson) + 1;
     await prisma.generationJob.update({
       where: { id: job.id },
       data: {
         status: "failed",
         error: message,
         errorMessage: message,
-        resultSummary: message,
+        resultJson: withGenerationJobFailureCount(job.resultJson, failureCount) as Prisma.InputJsonValue,
+        resultSummary:
+          failureCount >= GENERATION_JOB_MAX_AUTO_FAILURES
+            ? `${message}（已连续失败 ${failureCount} 次，停止自动重试）`
+            : message,
         heartbeatAt: finishedAt,
         finishedAt,
         completedAt: finishedAt,
@@ -881,11 +946,29 @@ export async function runGenerationJob(
 
 export async function runPendingGenerationJobs(options?: RunJobOptions) {
   const parsed = runJobOptionsSchema.parse(options ?? {});
+  await markSupportedStaleGenerationJobs();
   await markStaleGenerationJobs();
+  const executableStatuses: GenerationJobStatus[] = parsed.jobId
+    ? ["queued", "stale", "failed"]
+    : parsed.includeFailed
+      ? ["queued", "stale", "failed"]
+      : ["queued", "stale"];
+  const filteredStatuses =
+    parsed.status === "all"
+      ? executableStatuses
+      : executableStatuses.includes(parsed.status as GenerationJobStatus)
+        ? [parsed.status as GenerationJobStatus]
+        : [];
+  if (!filteredStatuses.length) {
+    return {
+      scanned: 0,
+      results: [],
+    };
+  }
   const jobs = await prisma.generationJob.findMany({
     where: {
       ...(parsed.jobId ? { id: parsed.jobId } : {}),
-      status: { in: parsed.jobId ? ["queued", "stale", "failed"] : ["queued", "stale"] },
+      status: { in: filteredStatuses },
       jobType: { in: [...SUPPORTED_JOB_TYPES] },
     },
     orderBy: [{ createdAt: "asc" }],
@@ -894,7 +977,8 @@ export async function runPendingGenerationJobs(options?: RunJobOptions) {
 
   const results = [];
   for (const job of jobs) {
-    results.push(await runGenerationJob(job.id, { retryFailed: Boolean(parsed.jobId) }));
+    const retryFailed = Boolean(parsed.jobId || (parsed.includeFailed && job.status === "failed"));
+    results.push(await runGenerationJob(job.id, { retryFailed }));
   }
 
   return {

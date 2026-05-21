@@ -11,6 +11,10 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   limit: z.coerce.number().int().min(1).max(20).optional(),
   jobId: z.string().trim().min(1).max(64).optional().nullable(),
+  status: z
+    .enum(["all", "queued", "running", "succeeded", "success", "failed", "cancelled", "stale"])
+    .optional(),
+  includeFailed: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {

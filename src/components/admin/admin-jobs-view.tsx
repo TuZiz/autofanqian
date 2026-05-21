@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bot, Loader2, Play, RefreshCw } from "lucide-react";
+import { Bot, ListFilter, Loader2, Play, RefreshCw, RotateCcw } from "lucide-react";
 
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 import type { AdminGenerationJob, AdminJobsController, AdminJobStatus } from "@/lib/admin/use-admin-jobs";
@@ -57,6 +57,32 @@ export function AdminJobsView({ jobs }: { jobs: AdminJobsController }) {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
+                onClick={() => jobs.setAutoRefresh(!jobs.autoRefresh)}
+                className={cn(
+                  "inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition",
+                  jobs.autoRefresh
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200"
+                    : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]",
+                )}
+              >
+                <RotateCcw className={cn("h-4 w-4", jobs.autoRefresh && "animate-spin")} />
+                自动刷新
+              </button>
+              <button
+                type="button"
+                onClick={() => jobs.setExecutableOnly(!jobs.executableOnly)}
+                className={cn(
+                  "inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition",
+                  jobs.executableOnly
+                    ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200"
+                    : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]",
+                )}
+              >
+                <ListFilter className="h-4 w-4" />
+                只看可执行
+              </button>
+              <button
+                type="button"
                 onClick={() => void jobs.load()}
                 disabled={jobs.loading}
                 className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-bold text-[var(--theme-text-secondary)] disabled:opacity-50"
@@ -72,6 +98,15 @@ export function AdminJobsView({ jobs }: { jobs: AdminJobsController }) {
               >
                 {jobs.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                 执行待处理
+              </button>
+              <button
+                type="button"
+                onClick={() => void jobs.runCurrentFilter()}
+                disabled={jobs.running}
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {jobs.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                执行当前筛选
               </button>
             </div>
           </div>
@@ -151,9 +186,25 @@ function JobRow({
       <td className="max-w-[360px] px-4 py-3">
         <div className="font-extrabold text-[var(--theme-text-strong)]">{job.jobType || job.action}</div>
         <div className="mt-1 truncate text-xs font-semibold text-[var(--theme-text-muted)]">{job.id}</div>
-        <div className="mt-1 line-clamp-2 text-xs font-semibold text-[var(--theme-text-secondary)]">
-          {job.errorMessage || job.resultSummary || "暂无摘要"}
-        </div>
+        {job.progress ? (
+          <div className="mt-1 text-xs font-black text-sky-600 dark:text-sky-300">
+            分段进度 {job.progress.generatedSegments}/{job.progress.totalSegments ?? "-"}
+          </div>
+        ) : null}
+        {job.failureCount ? (
+          <div className="mt-1 text-xs font-bold text-amber-600 dark:text-amber-300">
+            连续失败 {job.failureCount} 次
+          </div>
+        ) : null}
+        {job.errorMessage ? (
+          <div className="mt-2 max-w-[520px] whitespace-pre-wrap rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold leading-5 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
+            {job.errorMessage}
+          </div>
+        ) : (
+          <div className="mt-1 line-clamp-2 text-xs font-semibold text-[var(--theme-text-secondary)]">
+            {job.resultSummary || "暂无摘要"}
+          </div>
+        )}
       </td>
       <td className="px-4 py-3">
         {job.novel ? (

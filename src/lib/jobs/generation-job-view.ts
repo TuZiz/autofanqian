@@ -5,11 +5,9 @@ import type { Prisma } from "@prisma/client";
 import { isAdminUser } from "@/lib/auth/admin";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
+import { parseGenerationJobProgress } from "@/lib/jobs/generation-job-progress";
 import { prisma } from "@/lib/prisma";
-import type {
-  SerializedGenerationJob,
-  SerializedGenerationJobProgress,
-} from "@/shared/schemas/generation-job";
+import type { SerializedGenerationJob } from "@/shared/schemas/generation-job";
 
 const generationJobViewSelect = {
   id: true,
@@ -46,27 +44,6 @@ type GenerationJobViewRow = Prisma.GenerationJobGetPayload<{
   select: typeof generationJobViewSelect;
 }>;
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getJobProgress(resultJson: unknown): SerializedGenerationJobProgress | null {
-  const json = asRecord(resultJson);
-  if (!json) return null;
-  const segments = Array.isArray(json.segments) ? json.segments : [];
-  const outline = asRecord(json.outline);
-  const beats = Array.isArray(outline?.beats) ? outline.beats : null;
-  const finalWorkId = typeof json.finalWorkId === "string" ? json.finalWorkId : null;
-
-  if (!segments.length && !beats?.length && !finalWorkId) return null;
-  return {
-    generatedSegments: segments.length,
-    totalSegments: beats?.length ?? null,
-    finalWorkId,
-  };
-}
-
 export function serializeGenerationJob(row: GenerationJobViewRow): SerializedGenerationJob {
   return {
     id: row.id,
@@ -77,7 +54,7 @@ export function serializeGenerationJob(row: GenerationJobViewRow): SerializedGen
     resultSummary: row.resultSummary,
     errorMessage: row.errorMessage,
     resultJson: row.resultJson,
-    progress: getJobProgress(row.resultJson),
+    progress: parseGenerationJobProgress(row.resultJson),
     chapterIndex: row.chapterIndex,
     inputTokens: row.inputTokens,
     outputTokens: row.outputTokens,

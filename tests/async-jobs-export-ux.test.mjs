@@ -43,7 +43,7 @@ test("long short story job and context persistence are idempotent", () => {
   const route = read("src/backend/ai/short-story/generate-route.ts");
 
   assert.match(runner, /rawState\.success && rawState\.data\.finalWorkId/);
-  assert.match(runner, /existingChapter\?\.status === "written"/);
+  assert.match(runner, /shouldSkipLongShortStoryJobForExistingChapter\(rawState\.data, existingChapter\)/);
   assert.match(runner, /writingMemory\.deleteMany\(\{[\s\S]*source: SHORT_STORY_CONTEXT_SOURCE/);
   assert.match(runner, /timelineEvent\.deleteMany\(\{[\s\S]*startsWith: SHORT_STORY_TIMELINE_MARKER/);
   assert.match(route, /after\(async \(\) => \{[\s\S]*runGenerationJob\(jobId\)/);

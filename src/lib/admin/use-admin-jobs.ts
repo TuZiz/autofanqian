@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
+import type { SerializedGenerationJobProgress } from "@/shared/schemas/generation-job";
 
 export type AdminJobStatus =
   | "all"
@@ -26,6 +27,8 @@ export type AdminGenerationJob = {
   outputTokens: number | null;
   totalTokens: number | null;
   durationMs: number | null;
+  failureCount: number;
+  progress: SerializedGenerationJobProgress | null;
   createdAt: string;
   startedAt: string | null;
   heartbeatAt: string | null;
@@ -44,6 +47,8 @@ export function useAdminJobs() {
   const [jobs, setJobs] = useState<AdminGenerationJob[]>([]);
   const [counts, setCounts] = useState<AdminJobsResponse["counts"]>([]);
   const [status, setStatus] = useState<AdminJobStatus>("all");
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [executableOnly, setExecutableOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
@@ -59,7 +64,7 @@ export function useAdminJobs() {
     setLoading(true);
     setError("");
     const response = await apiRequest<AdminJobsResponse>(
-      `/api/admin/jobs?status=${encodeURIComponent(status)}&take=80`,
+      `/api/admin/jobs?status=${encodeURIComponent(status)}&take=80&executableOnly=${executableOnly ? "true" : "false"}`,
     );
     setLoading(false);
     if (!response.success || !response.data) {
@@ -68,15 +73,21 @@ export function useAdminJobs() {
     }
     setJobs(response.data.jobs);
     setCounts(response.data.counts);
-  }, [status]);
+  }, [executableOnly, status]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = window.setInterval(() => void load(), 10_000);
+    return () => window.clearInterval(timer);
+  }, [autoRefresh, load]);
+
   const runPending = useCallback(
-    async (jobId?: string) => {
+    async (jobId?: string, options: { currentFilter?: boolean } = {}) => {
       if (running) return;
       setRunning(true);
       setError("");
@@ -86,7 +97,13 @@ export function useAdminJobs() {
         results: Array<{ jobId: string; status: string; message?: string }>;
       }>(
         "/api/admin/jobs/run-pending",
-        jobId ? { jobId, limit: 1 } : { limit: 5 },
+        jobId
+          ? { jobId, limit: 1 }
+          : {
+              limit: 20,
+              status: options.currentFilter ? status : "all",
+              includeFailed: options.currentFilter && status === "failed",
+            },
         { method: "POST" },
       );
       setRunning(false);
@@ -100,18 +117,28 @@ export function useAdminJobs() {
       );
       await load();
     },
-    [load, running],
+    [load, running, status],
+  );
+
+  const runCurrentFilter = useCallback(
+    () => runPending(undefined, { currentFilter: true }),
+    [runPending],
   );
 
   return {
+    autoRefresh,
     countMap,
     error,
+    executableOnly,
     jobs,
     load,
     loading,
     notice,
+    runCurrentFilter,
     runPending,
     running,
+    setAutoRefresh,
+    setExecutableOnly,
     setStatus,
     status,
   };

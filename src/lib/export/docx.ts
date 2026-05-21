@@ -39,9 +39,21 @@ function escapeXml(value: string) {
     .replace(/'/g, "&apos;");
 }
 
-function paragraph(text: string, style?: string) {
-  const styleXml = style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : "";
-  return `<w:p>${styleXml}<w:r><w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r></w:p>`;
+function textRuns(text: string) {
+  if (!text) return "";
+  const chunks = text.match(/[\s\S]{1,8000}/g) ?? [text];
+  return chunks
+    .map((chunk) => `<w:r><w:t xml:space="preserve">${escapeXml(chunk)}</w:t></w:r>`)
+    .join("");
+}
+
+function paragraph(text: string, style?: string, options: { pageBreakBefore?: boolean } = {}) {
+  const pPr = [
+    style ? `<w:pStyle w:val="${style}"/>` : "",
+    options.pageBreakBefore ? "<w:pageBreakBefore/>" : "",
+  ].filter(Boolean).join("");
+  const pPrXml = pPr ? `<w:pPr>${pPr}</w:pPr>` : "";
+  return `<w:p>${pPrXml}${textRuns(text)}</w:p>`;
 }
 
 function chapterHeading(workType: string, index: number, title: string | null) {
@@ -53,13 +65,11 @@ function buildDocumentXml(work: DocxWork) {
   const body = [
     paragraph(work.title, "Title"),
     work.synopsis ? paragraph(work.synopsis) : "",
-    ...work.chapters.flatMap((chapter) => [
-      paragraph(chapterHeading(work.workType, chapter.index, chapter.title), "Heading1"),
-      ...chapter.content
-        .split(/\r?\n/g)
-        .map((line) => line.trimEnd())
-        .filter((line) => line.trim())
-        .map((line) => paragraph(line)),
+    ...work.chapters.flatMap((chapter, chapterOffset) => [
+      paragraph(chapterHeading(work.workType, chapter.index, chapter.title), "Heading1", {
+        pageBreakBefore: chapterOffset > 0 || Boolean(work.title.trim() || work.synopsis.trim()),
+      }),
+      ...contentParagraphs(chapter.content),
     ]),
   ]
     .filter(Boolean)
@@ -77,12 +87,33 @@ function buildDocumentXml(work: DocxWork) {
 </w:document>`;
 }
 
+function contentParagraphs(content: string) {
+  const paragraphs: string[] = [];
+  let blankCount = 0;
+
+  for (const rawLine of content.split(/\r?\n/g)) {
+    const line = rawLine.trimEnd();
+    if (!line.trim()) {
+      blankCount += 1;
+      if (blankCount <= 3) paragraphs.push(paragraph("", "BlankLine"));
+      continue;
+    }
+
+    blankCount = 0;
+    paragraphs.push(paragraph(line));
+  }
+
+  return paragraphs.length ? paragraphs : [paragraph("", "BlankLine")];
+}
+
 const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+  <Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
   <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
 </Types>`;
@@ -97,6 +128,8 @@ const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 const documentRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>
 </Relationships>`;
 
 const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -143,13 +176,24 @@ const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
       <w:sz w:val="36"/>
     </w:rPr>
   </w:style>
+  <w:style w:type="paragraph" w:styleId="BlankLine">
+    <w:name w:val="Blank Line"/>
+    <w:basedOn w:val="Normal"/>
+    <w:pPr>
+      <w:spacing w:after="80" w:line="240" w:lineRule="auto"/>
+      <w:ind w:firstLine="0" w:firstLineChars="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="SimSun" w:eastAsia="宋体" w:hAnsi="SimSun" w:cs="SimSun"/>
+      <w:sz w:val="24"/>
+    </w:rPr>
+  </w:style>
   <w:style w:type="paragraph" w:styleId="Heading1">
     <w:name w:val="heading 1"/>
     <w:basedOn w:val="Normal"/>
     <w:next w:val="Normal"/>
     <w:qFormat/>
     <w:pPr>
-      <w:pageBreakBefore/>
       <w:keepNext/>
       <w:jc w:val="center"/>
       <w:spacing w:before="240" w:after="240" w:line="360" w:lineRule="auto"/>
@@ -163,6 +207,29 @@ const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     </w:rPr>
   </w:style>
 </w:styles>`;
+
+const settingsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:defaultTabStop w:val="420"/>
+  <w:characterSpacingControl w:val="doNotCompress"/>
+  <w:compat/>
+</w:settings>`;
+
+const fontTableXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:font w:name="宋体">
+    <w:altName w:val="SimSun"/>
+    <w:charset w:val="86"/>
+    <w:family w:val="roman"/>
+    <w:pitch w:val="variable"/>
+  </w:font>
+  <w:font w:name="SimSun">
+    <w:altName w:val="宋体"/>
+    <w:charset w:val="86"/>
+    <w:family w:val="roman"/>
+    <w:pitch w:val="variable"/>
+  </w:font>
+</w:fonts>`;
 
 function buildCorePropertiesXml(work: DocxWork, date = new Date()) {
   const iso = date.toISOString();
@@ -278,6 +345,8 @@ export function buildDocxBuffer(work: DocxWork) {
     { name: "docProps/app.xml", content: buildAppPropertiesXml(work) },
     { name: "word/_rels/document.xml.rels", content: documentRelsXml },
     { name: "word/styles.xml", content: stylesXml },
+    { name: "word/settings.xml", content: settingsXml },
+    { name: "word/fontTable.xml", content: fontTableXml },
     { name: "word/document.xml", content: buildDocumentXml(work) },
   ]);
 }

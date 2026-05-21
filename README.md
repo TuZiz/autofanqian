@@ -213,7 +213,11 @@ AI 一致性检查支持：
 ### 异步任务
 
 - `GenerationJob` 后台执行器支持 `chapter.consistency.book`、`short_story.generate.long`、`chapter.batch_generate`、`bible.extract`。
+- 生产环境建议常驻 `npm run worker:generation`，每 10-30 秒扫描一批 queued / stale 任务。
+- Worker 支持 `GENERATION_WORKER_INTERVAL_MS` 和 `GENERATION_WORKER_BATCH_SIZE` 环境变量，并会优雅响应 `SIGINT` / `SIGTERM`。
+- running 任务超过心跳窗口会标记为 stale，worker 会自动恢复；连续失败达到阈值后停止自动重试，保留给用户或管理员手动重试。
 - 管理员可以在 `/dashboard/admin/jobs` 查看 pending / running / succeeded / failed 任务，并手动执行待处理任务。
+- `/dashboard/admin/jobs` 支持自动刷新、只看可执行任务、执行当前筛选下待处理任务，并展示分段生成进度。
 - 用户可以通过短篇创建页查看自己的长文本短篇任务状态、生成段落进度、结果摘要和失败原因。
 - 任务查询和重试均做服务端权限校验，仅任务所属用户或管理员可访问。
 
