@@ -204,7 +204,14 @@ export async function POST(request: Request) {
           select: { kind: true, priority: true, content: true },
         }),
         prisma.timelineEvent.findMany({
-          where: { novelId: work.id, deletedAt: null },
+          where: {
+            novelId: work.id,
+            deletedAt: null,
+            OR: [
+              { chapterIndex: null },
+              { chapterIndex: { lte: chapterIndex } },
+            ],
+          },
           orderBy: [{ chapterIndex: "desc" }, { order: "desc" }],
           take: 24,
           select: { chapterIndex: true, title: true, summary: true },

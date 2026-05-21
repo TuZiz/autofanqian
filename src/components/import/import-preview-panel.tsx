@@ -9,9 +9,11 @@ import { cn } from "@/lib/utils";
 export function ImportPreviewPanel({
   preview,
   singleLongImportWarning,
+  shortStoryMergeWarning,
 }: {
   preview: ImportedNovelParseResult | null;
   singleLongImportWarning: boolean;
+  shortStoryMergeWarning: boolean;
 }) {
   if (!preview) {
     return (
@@ -46,12 +48,12 @@ export function ImportPreviewPanel({
           <span
             className={cn(
               "rounded-lg px-2.5 py-1 text-xs font-bold",
-              singleLongImportWarning
+              singleLongImportWarning || shortStoryMergeWarning
                 ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20"
                 : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-400/20",
             )}
           >
-            {singleLongImportWarning ? "需确认" : "可导入"}
+            {singleLongImportWarning ? "需确认" : shortStoryMergeWarning ? "会合并" : "可导入"}
           </span>
         </div>
 
@@ -60,6 +62,17 @@ export function ImportPreviewPanel({
           <Metric icon={Gauge} label="总字数" value={preview.totalWords.toLocaleString("zh-CN")} />
         </div>
       </div>
+
+      {shortStoryMergeWarning ? (
+        <div className="border-b border-[var(--theme-border)] p-4">
+          <div className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-400/10 dark:text-amber-100 dark:ring-amber-400/20">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              当前选择短篇小说，确认导入时会把以上章节合并为 1 个完整短篇正文，不会丢失内容。
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {highSignalWarnings.length ? (
         <div className="border-b border-[var(--theme-border)] p-4">

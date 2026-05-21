@@ -53,6 +53,8 @@ export function WorkImportView({ controller }: { controller: WorkImportControlle
   const confirming = stage === "confirming";
   const canPreview = Boolean(title.trim() && genre.trim() && rawText.trim()) && !busy;
   const canConfirm = Boolean(preview?.chapters.length) && !busy;
+  const shortStoryMergeWarning =
+    workType === "short_story" && (preview?.chapters.length ?? 0) > 1;
 
   return (
     <main className="theme-page relative min-h-screen overflow-hidden font-sans transition-[background-color,color]">
@@ -201,6 +203,7 @@ export function WorkImportView({ controller }: { controller: WorkImportControlle
             <ImportPreviewPanel
               preview={preview}
               singleLongImportWarning={singleLongImportWarning}
+              shortStoryMergeWarning={shortStoryMergeWarning}
             />
             <button
               type="button"
@@ -215,7 +218,9 @@ export function WorkImportView({ controller }: { controller: WorkImportControlle
               )}
               {confirming
                 ? "正在导入"
-                : singleLongImportWarning
+                : shortStoryMergeWarning
+                  ? "合并为短篇并导入"
+                  : singleLongImportWarning
                   ? "确认作为单章导入"
                   : "确认导入作品"}
             </button>
