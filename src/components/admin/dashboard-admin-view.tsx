@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Clock3,
   CreditCard,
+  DatabaseZap,
   Eye,
   FileText,
   Loader2,
@@ -87,6 +88,9 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
             </AdminLink>
             <AdminLink href="/dashboard/admin/prompts" icon={FileText}>
               提示词模板
+            </AdminLink>
+            <AdminLink href="/dashboard/admin/jobs" icon={DatabaseZap}>
+              后台任务
             </AdminLink>
             <AdminLink href="/dashboard/admin/payments" icon={CreditCard}>
               支付设置

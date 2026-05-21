@@ -240,24 +240,24 @@ test("membership guards enforce works, chapters and outline action limits server
   assert.match(workRouteSource, /await assertCanCreateWork\(user\)/);
   assert.match(shortWorkRouteSource, /await assertCanCreateWork\(user\)/);
   assert.match(chapterRouteSource, /await assertCanCreateChapter\(user, work\.id/);
-  assert.match(outlineRouteSource, /await assertCanUseAiAction\(user, "outline_generate"\)/);
-  assert.match(shortOutlineRouteSource, /await assertCanUseAiAction\(user, "short_story_outline_generate"\)/);
+  assert.match(outlineRouteSource, /await assertCanUseAiAction\(user, AI_ACTIONS\.outlineGenerate\)/);
+  assert.match(shortOutlineRouteSource, /await assertCanUseAiAction\(user, AI_ACTIONS\.shortStoryGenerate\)/);
 });
 
 test("membership guards define configurable limits for all billable AI actions", () => {
   const guardsSource = read("src/lib/membership/guards.ts");
 
   const expectedMappings = [
-    ["idea_generate", "dailyIdeaGenerations"],
-    ["idea_analyze", "dailyIdeaAnalyses"],
-    ["chapter_generate", "dailyChapterGenerations"],
-    ["chapter_summary", "dailyChapterSummaries"],
-    ["chapter_outline", "dailyChapterOutlines"],
-    ["chapter_details", "dailyChapterDetails"],
+    ['params.action === "idea_generate"', "dailyIdeaGenerations"],
+    ['params.action === "idea_analyze"', "dailyIdeaAnalyses"],
+    ["normalizedAction === AI_ACTIONS.chapterGenerate", "dailyChapterGenerations"],
+    ["normalizedAction === AI_ACTIONS.chapterSummary", "dailyChapterSummaries"],
+    ["normalizedAction === AI_ACTIONS.chapterOutline", "dailyChapterOutlines"],
+    ["normalizedAction === AI_ACTIONS.chapterDetails", "dailyChapterDetails"],
   ];
 
-  for (const [action, limitKey] of expectedMappings) {
-    assert.match(guardsSource, new RegExp(`params\\.action === "${action}"`));
+  for (const [actionPattern, limitKey] of expectedMappings) {
+    assert.match(guardsSource, new RegExp(actionPattern.replaceAll(".", "\\.")));
     assert.match(guardsSource, new RegExp(`limit: params\\.${limitKey}`));
   }
 
@@ -401,10 +401,10 @@ test("quota checks happen before every explicit retry or expansion call", () => 
   assertBefore(
     outlineSource,
     "await assertAiQuotaAvailable(user);",
-    'const second = await runWithAiQuotaReservation(user, "outline_generate_retry"',
+    "const second = await runWithAiQuotaReservation(user, AI_ACTIONS.outlineGenerate",
     "long outline retry",
   );
-  assert.match(outlineSource, /runWithAiQuotaReservation\(user, "outline_generate"[\s\S]*callAiText\(/);
+  assert.match(outlineSource, /runWithAiQuotaReservation\(user, AI_ACTIONS\.outlineGenerate[\s\S]*callAiText\(/);
 
   assert.ok((refineSource.match(/await assertAiQuotaAvailable\(user\)/g) ?? []).length >= 2);
   assertBefore(
@@ -419,17 +419,17 @@ test("quota checks happen before every explicit retry or expansion call", () => 
   assertBefore(
     shortOutlineSource,
     "await assertAiQuotaAvailable(user);",
-    'const retry = await runWithAiQuotaReservation(user, "short_story_outline_generate_retry"',
+    "const retry = await runWithAiQuotaReservation(user, AI_ACTIONS.shortStoryGenerate",
     "short outline retry",
   );
-  assert.match(shortOutlineSource, /runWithAiQuotaReservation\(user, "short_story_outline_generate"[\s\S]*callAiText\(/);
+  assert.match(shortOutlineSource, /runWithAiQuotaReservation\(user, AI_ACTIONS\.shortStoryGenerate[\s\S]*callAiText\(/);
 });
 
 test("chapter metadata routes verify access before quota and AI calls", () => {
   const checks = [
-    ["src/backend/ai/chapter/summary-route.ts", "chapter_summary"],
-    ["src/backend/ai/chapter/outline-route.ts", "chapter_outline"],
-    ["src/backend/ai/chapter/details-route.ts", "chapter_details"],
+    ["src/backend/ai/chapter/summary-route.ts", "AI_ACTIONS.chapterSummary"],
+    ["src/backend/ai/chapter/outline-route.ts", "AI_ACTIONS.chapterOutline"],
+    ["src/backend/ai/chapter/details-route.ts", "AI_ACTIONS.chapterDetails"],
   ];
 
   for (const [file, action] of checks) {
@@ -437,12 +437,11 @@ test("chapter metadata routes verify access before quota and AI calls", () => {
     assertBefore(source, "const work = await prisma.work.findUnique", "await assertAiQuotaAvailable(user);", file);
     assertBefore(
       source,
-      `await assertCanUseAiAction(user, "${action}")`,
-      `const result = await runWithAiQuotaReservation(user, "${action}"`,
+      `await assertCanUseAiAction(user, ${action})`,
+      `const result = await runWithAiQuotaReservation(user, ${action}`,
       file,
     );
-    assert.match(source, new RegExp(`runWithAiQuotaReservation\\(user, "${action}"`));
-    assert.doesNotMatch(source, new RegExp(`action: \\\`${action}_\\$\\{body\\.index\\}`));
+    assert.match(source, new RegExp(`runWithAiQuotaReservation\\(user, ${action.replaceAll(".", "\\.")}`));
   }
 });
 
@@ -559,24 +558,22 @@ test("reservation finalization owns usage logging for protected AI calls", () =>
 
 test("reservation-protected AI actions are not followed by manual usage logging", () => {
   const protectedActions = [
-    ["src/backend/ai/idea/generate-route.ts", "idea_generate"],
-    ["src/backend/ai/idea/generate-route.ts", "idea_generate_expand"],
-    ["src/backend/ai/idea/analyze-route.ts", "idea_analyze"],
-    ["src/backend/ai/outline/generate-route.ts", "outline_generate"],
-    ["src/backend/ai/outline/generate-route.ts", "outline_generate_retry"],
-    ["src/backend/ai/short-story/generate-route.ts", "short_story_outline_generate"],
-    ["src/backend/ai/short-story/outline-route.ts", "short_story_outline_generate"],
-    ["src/backend/ai/short-story/outline-route.ts", "short_story_outline_generate_retry"],
-    ["src/backend/ai/chapter/generate-service.ts", "chapter_generate"],
-    ["src/backend/ai/chapter/summary-route.ts", "chapter_summary"],
-    ["src/backend/ai/chapter/outline-route.ts", "chapter_outline"],
-    ["src/backend/ai/chapter/details-route.ts", "chapter_details"],
+    ["src/backend/ai/idea/generate-route.ts", '"idea_generate"'],
+    ["src/backend/ai/idea/generate-route.ts", '"idea_generate_expand"'],
+    ["src/backend/ai/idea/analyze-route.ts", '"idea_analyze"'],
+    ["src/backend/ai/outline/generate-route.ts", "AI_ACTIONS.outlineGenerate"],
+    ["src/backend/ai/short-story/generate-route.ts", "AI_ACTIONS.shortStoryGenerate"],
+    ["src/backend/ai/short-story/outline-route.ts", "AI_ACTIONS.shortStoryGenerate"],
+    ["src/backend/ai/chapter/generate-service.ts", "AI_ACTIONS.chapterGenerate"],
+    ["src/backend/ai/chapter/summary-route.ts", "AI_ACTIONS.chapterSummary"],
+    ["src/backend/ai/chapter/outline-route.ts", "AI_ACTIONS.chapterOutline"],
+    ["src/backend/ai/chapter/details-route.ts", "AI_ACTIONS.chapterDetails"],
   ];
 
   for (const [file, action] of protectedActions) {
     const source = read(file);
     const callIndex = source.search(
-      new RegExp(`runWithAiQuotaReservation\\(\\s*user,\\s*"${action}"`),
+      new RegExp(`runWithAiQuotaReservation\\(\\s*user,\\s*${action.replaceAll(".", "\\.")}`),
     );
     assert.notEqual(callIndex, -1, `${file} must reserve quota for ${action}`);
 
@@ -595,13 +592,13 @@ test("chapter provider probes keep manual usage logging outside reserved generat
   const generateSource = read("src/backend/ai/chapter/generate-service.ts");
   const probeLogIndex = generateSource.indexOf("await logAiUsage({");
   const generationIndex = generateSource.search(
-    /runWithAiQuotaReservation\(\s*user,\s*"chapter_generate"/,
+    /runWithAiQuotaReservation\(\s*user,\s*AI_ACTIONS\.chapterGenerate/,
   );
 
   assert.notEqual(probeLogIndex, -1);
   assert.ok(probeLogIndex < generationIndex);
   assertBefore(generateSource, "await logAiUsage({", "userId: null,", "chapter probe user id");
-  assert.match(generateSource, /action: `chapter_generate_\$\{input\.index\}_probe`/);
+  assert.match(generateSource, /action: `\$\{AI_ACTIONS\.chapterGenerate\}\.probe`/);
 });
 
 test("quota finalization creates one usage event for one reserved successful call", async () => {
@@ -736,13 +733,14 @@ test("chapter generation and stream generation use aggregated action names", () 
   const generateSource = read("src/backend/ai/chapter/generate-service.ts");
   const streamSource = read("src/backend/ai/chapter/stream-route.ts");
 
-  assert.match(generateSource, /runWithAiQuotaReservation\(\s*user,\s*"chapter_generate"[\s\S]*callAiText\(/);
+  assert.match(generateSource, /runWithAiQuotaReservation\(\s*user,\s*AI_ACTIONS\.chapterGenerate[\s\S]*callAiText\(/);
   assert.match(generateSource, /generated\.selectedProviderId = selected\.provider\.id/);
   assert.doesNotMatch(generateSource, /action: `chapter_generate_\$\{input\.index\}`/);
   assert.doesNotMatch(generateSource, /action: `chapter_generate_length_repair_\$\{input\.index\}`/);
 
-  assert.match(streamSource, /reserveAiQuota\([\s\S]*"chapter_generate_stream"/);
-  assert.match(streamSource, /finalizeAiQuotaUsage\(\{[\s\S]*action: "chapter_generate_stream"/);
+  assert.match(streamSource, /reserveAiQuota\([\s\S]*AI_ACTIONS\.chapterGenerate/);
+  assert.match(streamSource, /finalizeAiQuotaUsage\(\{[\s\S]*action: AI_ACTIONS\.chapterGenerate/);
   assert.doesNotMatch(streamSource, /action: `chapter_generate_stream_\$\{parsedBody\.data\.index\}`/);
+  assert.match(streamSource, /action: `\$\{AI_ACTIONS\.chapterGenerate\}\.stream\.probe`/);
   assert.doesNotMatch(streamSource, /settleAiQuotaReservation\(quotaReservation, usageResult\)/);
 });

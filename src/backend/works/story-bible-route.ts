@@ -4,10 +4,10 @@ import { z } from "zod";
 import { errorResponse, parseJsonBody, successResponse } from "@/lib/auth/api";
 import { AuthApiError } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/service";
-import { runChapterContextExtraction } from "@/lib/ai/chapter-context-extract";
 import { prisma } from "@/lib/prisma";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 import { requireWorkAccess } from "@/lib/works/access";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 import {
   storyBibleExtractSchema,
   storyBibleListQuerySchema,
@@ -320,15 +320,25 @@ export async function EXTRACT(request: Request, context: RouteContext) {
       select: { id: true, deletedAt: true },
     });
     if (!chapter || chapter.deletedAt) throw new AuthApiError(404, "章节不存在。");
-    const queued = await runChapterContextExtraction({
-      user,
-      workId: work.id,
-      chapterId: chapter.id,
-      index: body.chapterIndex,
-      trigger: "save",
-      force: body.force,
+    const job = await prisma.generationJob.create({
+      data: {
+        userId: user.id,
+        novelId: work.id,
+        workId: work.id,
+        chapterId: chapter.id,
+        chapterIndex: body.chapterIndex,
+        action: AI_ACTIONS.bibleExtract,
+        jobType: "bible.extract",
+        status: "queued",
+        resultSummary: "故事圣经提取已加入后台任务队列。",
+        resultJson: { force: body.force ?? false },
+      },
+      select: { id: true, status: true },
     });
-    return successResponse({ queued }, { message: queued ? "已从当前章节提取故事圣经。" : "本章刚提取过，请稍后再试。" });
+    return successResponse(
+      { queued: true, jobId: job.id, status: job.status },
+      { message: "已加入故事圣经提取队列，可稍后刷新查看结果。" },
+    );
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && (error.code === "P2021" || error.code === "P2022")) {
       return errorResponse(new AuthApiError(500, "数据表尚未迁移完成，请先执行 Prisma 迁移。"));

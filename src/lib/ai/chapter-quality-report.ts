@@ -6,6 +6,7 @@ import type { ChapterConsistencyCheckResult } from "@/lib/ai/chapter-consistency
 import { parseChapterQualityCheck } from "@/lib/ai/chapter-quality-check";
 import type { ChapterQualityCheckResult } from "@/lib/ai/chapter-quality-check";
 import { prisma } from "@/lib/prisma";
+import { AI_ACTIONS, getAiActionAliases } from "@/shared/ai-actions";
 
 export type ChapterQualityReport = {
   consistencyScore: number | null;
@@ -98,6 +99,8 @@ function warnInvalidResultJson(scope: string, value: unknown) {
   });
 }
 
+const CONSISTENCY_ACTIONS = getAiActionAliases(AI_ACTIONS.chapterConsistency);
+
 export async function getChapterQualityReport(
   workId: string,
   chapterIndex: number,
@@ -107,7 +110,7 @@ export async function getChapterQualityReport(
       where: {
         novelId: workId,
         chapterIndex,
-        action: "chapter.consistency_check",
+        action: { in: CONSISTENCY_ACTIONS },
       },
       orderBy: { createdAt: "desc" },
       select: {
@@ -140,7 +143,7 @@ export async function getChapterQualityReport(
   const hasConsistencyResultJson = consistencyJob?.resultJson != null;
   const consistencyJson = parseConsistencyReportResultJson(consistencyJob?.resultJson);
   if (hasConsistencyResultJson && !consistencyJson) {
-    warnInvalidResultJson("chapter.consistency_check", consistencyJob.resultJson);
+    warnInvalidResultJson(AI_ACTIONS.chapterConsistency, consistencyJob.resultJson);
   }
 
   const hasQualityResultJson = qualityJob?.resultJson != null;

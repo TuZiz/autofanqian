@@ -19,6 +19,7 @@ import { prisma } from "@/lib/prisma";
 import { requireWorkAccess } from "@/lib/works/access";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 import { assertCanUseAiAction } from "@/lib/membership/guards";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export const runtime = "nodejs";
 
@@ -178,7 +179,7 @@ export async function POST(request: Request) {
     }
 
     await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, `chapter_rewrite_${rewriteMode}`);
+    await assertCanUseAiAction(user, AI_ACTIONS.chapterRewrite);
 
     const providersFromEnv = getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();
@@ -213,8 +214,8 @@ export async function POST(request: Request) {
         workId: work.id,
         chapterId: chapter.id,
         chapterIndex,
-        action: `chapter.rewrite.${rewriteMode}`,
-        jobType: "chapter.rewrite",
+        action: AI_ACTIONS.chapterRewrite,
+        jobType: AI_ACTIONS.chapterRewrite,
         status: "running",
         routeId,
         providerId: primaryProvider.id,
@@ -227,7 +228,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const usageAction = `chapter_rewrite_${rewriteMode}`;
+    const usageAction = AI_ACTIONS.chapterRewrite;
     const result = await runWithAiQuotaReservation(user, usageAction, () =>
       callAiText({
       providers,

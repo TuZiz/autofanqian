@@ -22,6 +22,7 @@ import {
   type UpstreamTextResult,
 } from "@/lib/ai/upstream-text";
 import { AuthApiError } from "@/lib/auth/errors";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 import type { ChapterPlan } from "@/lib/ai/chapter-plan";
 import type { NovelMode } from "@/lib/ai/novel-canon-state";
 import type { ChapterAuxiliaryAiCallRunner } from "@/lib/ai/chapter-plan";
@@ -212,7 +213,7 @@ export async function runChapterConsistencyCheck(params: {
   let checkJob: { id: string } | null = null;
   let repairJob: { id: string } | null = null;
   let activeStep:
-    | "chapter_consistency_check"
+    | typeof AI_ACTIONS.chapterConsistency
     | "chapter_consistency_repair"
     | null = null;
   let completedCheck: ChapterConsistencyCheckResult | null = null;
@@ -228,14 +229,14 @@ export async function runChapterConsistencyCheck(params: {
           workId: params.workId,
           chapterId: params.chapterId ?? null,
           chapterIndex: params.chapterIndex ?? null,
-          action: "chapter.consistency_check",
+          action: AI_ACTIONS.chapterConsistency,
           routeId: params.routeId,
           providerId: params.preferredProviderId,
           modelUsed: params.providers?.[0]?.model ?? null,
           promptSnapshot: checkMessages.map((message) => message.content).join("\n\n"),
       })
     : null;
-    activeStep = "chapter_consistency_check";
+    activeStep = AI_ACTIONS.chapterConsistency;
     const executeCheckCall = (signal: AbortSignal) =>
       callText({
         messages: checkMessages,
@@ -244,10 +245,10 @@ export async function runChapterConsistencyCheck(params: {
         signal,
       }) as Promise<UpstreamTextResult>;
     const checkResult = params.runAiCall
-      ? await params.runAiCall("chapter_consistency_check", () =>
-          withAuxiliaryTimeoutSignal("chapter_consistency_check", executeCheckCall),
+      ? await params.runAiCall(AI_ACTIONS.chapterConsistency, () =>
+          withAuxiliaryTimeoutSignal(AI_ACTIONS.chapterConsistency, executeCheckCall),
         )
-      : await withAuxiliaryTimeoutSignal("chapter_consistency_check", executeCheckCall);
+      : await withAuxiliaryTimeoutSignal(AI_ACTIONS.chapterConsistency, executeCheckCall);
     activeStep = null;
     const check =
       checkResult.ok && checkResult.text

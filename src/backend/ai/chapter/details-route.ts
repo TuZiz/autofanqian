@@ -24,6 +24,7 @@ import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export const runtime = "nodejs";
 
@@ -145,7 +146,7 @@ export async function POST(request: Request) {
 
     try {
       await assertAiQuotaAvailable(user);
-      await assertCanUseAiAction(user, "chapter_details");
+      await assertCanUseAiAction(user, AI_ACTIONS.chapterDetails);
     } catch (error) {
       return errorResponse(error);
     }
@@ -176,7 +177,7 @@ export async function POST(request: Request) {
 
     const primaryProvider = providers[0];
 
-    const result = await runWithAiQuotaReservation(user, "chapter_details", () =>
+    const result = await runWithAiQuotaReservation(user, AI_ACTIONS.chapterDetails, () =>
       callAiText({
       providers,
       preferredProviderId: primaryProvider.id,

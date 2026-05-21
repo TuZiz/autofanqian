@@ -148,6 +148,14 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
                 <FileText className="h-3.5 w-3.5" />
                 MD
               </a>
+              <a
+                href={`/api/works/${encodeURIComponent(work.id)}/export?scope=chapter&chapterIndex=${chapterIndex}&format=docx`}
+                className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
+                title="导出当前章节 DOCX"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                DOCX
+              </a>
             </div>
           ) : null}
           <button

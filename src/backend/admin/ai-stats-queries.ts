@@ -27,10 +27,22 @@ export function getShanghaiDayRange(now = new Date()): AiStatsDayRange {
 export function buildProbeWhere(range?: { start: Date; end: Date }) {
   return {
     ...(range ? { createdAt: { gte: range.start, lt: range.end } } : {}),
-    action: {
-      startsWith: "chapter_generate_",
-      endsWith: "_probe",
-    },
+    OR: [
+      { action: "chapter.generate.probe" },
+      { action: "chapter.generate.stream.probe" },
+      {
+        action: {
+          startsWith: "chapter_generate_",
+          endsWith: "_probe",
+        },
+      },
+      {
+        action: {
+          startsWith: "chapter_generate_stream_",
+          endsWith: "_probe",
+        },
+      },
+    ],
   };
 }
 
@@ -54,6 +66,8 @@ export function buildChapterMainWhere(range?: { start: Date; end: Date }) {
   return {
     ...(range ? { createdAt: { gte: range.start, lt: range.end } } : {}),
     OR: [
+      { action: "chapter.generate" },
+      { action: "chapter.generate.stream" },
       {
         action: {
           startsWith: "chapter_generate_",

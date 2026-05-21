@@ -12,6 +12,7 @@ import {
   OBSERVABILITY_ACTIONS,
 } from "@/lib/ai/generation-actions";
 import { prisma } from "@/lib/prisma";
+import { AI_ACTIONS, getAiActionAliases } from "@/shared/ai-actions";
 
 export type ChapterGenerationObservabilityItem = {
   chapterIndex: number;
@@ -102,6 +103,19 @@ function getLatestGenerateJob(latest: Map<string, ChapterGenerationJobRow>, chap
   );
 }
 
+function getLatestByActions(
+  latest: Map<string, ChapterGenerationJobRow>,
+  chapterIndex: number,
+  actions: readonly string[],
+) {
+  return (
+    actions
+      .map((action) => latest.get(`${chapterIndex}:${action}`))
+      .filter((row): row is ChapterGenerationJobRow => Boolean(row))
+      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0] ?? null
+  );
+}
+
 export async function getChapterGenerationObservability(
   workId: string,
   options: ChapterGenerationObservabilityOptions = {},
@@ -131,10 +145,11 @@ export async function getChapterGenerationObservability(
     },
   });
   const latest = latestByChapterAndAction(rows);
+  const consistencyActions = getAiActionAliases(AI_ACTIONS.chapterConsistency);
 
   return [...chapterIndexes].sort((left, right) => left - right).map((chapterIndex) => {
     const generate = getLatestGenerateJob(latest, chapterIndex);
-    const consistency = latest.get(`${chapterIndex}:chapter.consistency_check`);
+    const consistency = getLatestByActions(latest, chapterIndex, consistencyActions);
     const quality = latest.get(`${chapterIndex}:chapter.quality_check`);
     const consistencyPayload = parseConsistencyReportResultJson(consistency?.resultJson);
     const qualityPayload =

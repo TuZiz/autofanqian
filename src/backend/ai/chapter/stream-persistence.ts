@@ -24,6 +24,7 @@ import {
   type UpstreamTextResult,
 } from "@/lib/ai/upstream-text";
 import { prisma } from "@/lib/prisma";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { extractTitleAndContentFromStream, saveDraftPreview } from "./stream-draft";
 import type { ChapterStreamEvent } from "./stream-events";
@@ -317,8 +318,8 @@ export async function completeSuccessfulStreamGeneration(params: {
       workId: prepared.work.id,
       chapterId: chapter.id,
       chapterIndex: index,
-      action: "context.extract",
-      jobType: "context.extract",
+      action: AI_ACTIONS.bibleExtract,
+      jobType: "bible.extract",
       status: "queued",
       routeId: prepared.contextExtractRouteId,
       resultSummary: "章节生成后等待后台提取上下文记忆。",

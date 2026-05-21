@@ -43,6 +43,7 @@ import type { SessionUser } from "@/lib/auth/user";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 import type { WorkTypeValue } from "@/shared/work-type";
 
 type GeneratedChapterResponse = {
@@ -88,7 +89,7 @@ export async function getCompletedChapterGenerationResult(params: {
       ? [params.action]
       : params.action?.length
         ? params.action
-        : ["chapter.generate", "regenerate.all"];
+        : [AI_ACTIONS.chapterGenerate, "regenerate.all"];
 
   const generationJob = await prisma.generationJob.findFirst({
     where: {
@@ -187,7 +188,7 @@ export async function generateChapterForUser(params: {
     const generationAction =
       prepared.generationMode === "regenerate"
         ? "regenerate.all"
-        : "chapter.generate";
+        : AI_ACTIONS.chapterGenerate;
     const generationJobResult = await beginGenerationJob({
       userId: user.id,
       workId: prepared.work.id,
@@ -228,7 +229,7 @@ export async function generateChapterForUser(params: {
 
     await logAiUsage({
       userId: null,
-      action: `chapter_generate_${input.index}_probe`,
+      action: `${AI_ACTIONS.chapterGenerate}.probe`,
       result: {
         ok: Boolean(selected.provider),
         status: selected.provider
@@ -315,7 +316,7 @@ export async function generateChapterForUser(params: {
 
     const result = await runWithAiQuotaReservation(
       user,
-      "chapter_generate",
+      AI_ACTIONS.chapterGenerate,
       async () => {
         const generated = await callAiText({
           providers: orderedProviders,
@@ -526,8 +527,8 @@ export async function generateChapterForUser(params: {
         workId: prepared.work.id,
         chapterId: chapter.id,
         chapterIndex: input.index,
-        action: "context.extract",
-        jobType: "context.extract",
+        action: AI_ACTIONS.bibleExtract,
+        jobType: "bible.extract",
         status: "queued",
         routeId: prepared.contextExtractRouteId,
         resultSummary: "章节生成后等待后台提取上下文记忆。",

@@ -27,6 +27,7 @@ import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 import { isShortStoryWork } from "@/shared/work-type";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export const runtime = "nodejs";
 
@@ -176,7 +177,7 @@ export async function POST(request: Request) {
 
     try {
       await assertAiQuotaAvailable(user);
-      await assertCanUseAiAction(user, "chapter_outline");
+      await assertCanUseAiAction(user, AI_ACTIONS.chapterOutline);
     } catch (error) {
       return errorResponse(error);
     }
@@ -249,7 +250,7 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
-    const result = await runWithAiQuotaReservation(user, "chapter_outline", () =>
+    const result = await runWithAiQuotaReservation(user, AI_ACTIONS.chapterOutline, () =>
       callAiText({
         providers,
         preferredProviderId: primaryProvider.id,

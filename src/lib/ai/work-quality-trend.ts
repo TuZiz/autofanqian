@@ -8,6 +8,7 @@ import {
   type ChapterQualityReport,
 } from "@/lib/ai/chapter-quality-report";
 import { prisma } from "@/lib/prisma";
+import { AI_ACTIONS, getAiActionAliases } from "@/shared/ai-actions";
 
 export type WorkQualityTrendItem = ChapterQualityReport & {
   chapterIndex: number;
@@ -33,7 +34,8 @@ type QualityTrendJobRow = {
   createdAt: Date;
 };
 
-const QUALITY_ACTIONS = ["chapter.consistency_check", "chapter.quality_check"] as const;
+const CONSISTENCY_ACTIONS = getAiActionAliases(AI_ACTIONS.chapterConsistency);
+const QUALITY_ACTIONS = [...CONSISTENCY_ACTIONS, "chapter.quality_check"] as const;
 
 function normalizeOptions(options?: number | WorkQualityTrendOptions) {
   const raw =
@@ -67,6 +69,19 @@ function keepLatestByChapterAndAction(rows: QualityTrendJobRow[]) {
     }
   }
   return latest;
+}
+
+function getLatestByActions(
+  latest: Map<string, QualityTrendJobRow>,
+  chapterIndex: number,
+  actions: readonly string[],
+) {
+  return (
+    actions
+      .map((action) => latest.get(`${chapterIndex}:${action}`))
+      .filter((row): row is QualityTrendJobRow => Boolean(row))
+      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0] ?? null
+  );
 }
 
 async function getRecentChapterIndexesByChapterIndex(
@@ -152,7 +167,7 @@ export async function getWorkQualityTrend(
       : [...chapterIndexes].sort((left, right) => left - right);
 
   return sortedChapterIndexes.map((chapterIndex) => {
-    const consistency = latest.get(`${chapterIndex}:chapter.consistency_check`);
+    const consistency = getLatestByActions(latest, chapterIndex, CONSISTENCY_ACTIONS);
     const quality = latest.get(`${chapterIndex}:chapter.quality_check`);
     const consistencyPayload = parseConsistencyReportResultJson(consistency?.resultJson);
     const qualityPayload =

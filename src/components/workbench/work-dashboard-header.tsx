@@ -43,6 +43,9 @@ export function WorkDashboardHeader({
   const exportHref = work
     ? `/api/works/${encodeURIComponent(work.id)}/export?scope=${isShortStory ? "short_story" : "book"}&format=md`
     : "";
+  const exportDocxHref = work
+    ? `/api/works/${encodeURIComponent(work.id)}/export?scope=${isShortStory ? "short_story" : "book"}&format=docx`
+    : "";
   const sectionTabs = [
     { label: "总览", value: `${progressPercent || 0}%`, sectionId: "overview" as const },
     { label: isShortStory ? "场景" : "章节", value: `${writtenChapterCount} ${isShortStory ? "段" : "章"}`, sectionId: "chapters" as const },
@@ -133,7 +136,15 @@ export function WorkDashboardHeader({
                 title={isShortStory ? "导出短篇 Markdown" : "导出全书 Markdown"}
               >
                 <Download className="h-4 w-4" />
-                <span>导出</span>
+                <span>MD</span>
+              </a>
+              <a
+                href={exportDocxHref}
+                className="hidden h-10 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-[var(--theme-border)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-zinc-800 dark:hover:text-white md:inline-flex"
+                title={isShortStory ? "导出短篇 DOCX" : "导出全书 DOCX"}
+              >
+                <Download className="h-4 w-4" />
+                <span>DOCX</span>
               </a>
             </>
           ) : null}

@@ -10,6 +10,7 @@ import {
   isUnlimitedMembershipLimit,
 } from "@/lib/membership/rules";
 import { prisma } from "@/lib/prisma";
+import { AI_ACTIONS, getAiActionAliases, normalizeAiAction } from "@/shared/ai-actions";
 
 export type MembershipGuardUser = {
   id: string;
@@ -45,31 +46,27 @@ export function getAiActionLimit(params: {
   dailyChapterOutlines: number;
   dailyChapterDetails: number;
 }): ActionLimit | null {
+  const normalizedAction = normalizeAiAction(params.action);
   if (
-    params.action === "short_story_outline_generate" ||
+    normalizedAction === AI_ACTIONS.shortStoryGenerate ||
     params.action === "short_story_outline_generate_retry"
   ) {
     return {
       actionName: "短篇大纲",
-      actions: ["short_story_outline_generate", "short_story_outline_generate_retry"],
+      actions: getAiActionAliases(AI_ACTIONS.shortStoryGenerate),
       limit: params.dailyShortStoryOutlines,
     };
   }
 
   if (
-    params.action === "outline_generate" ||
+    normalizedAction === AI_ACTIONS.outlineGenerate ||
     params.action === "outline_generate_retry" ||
     params.action === "outline_extend" ||
     params.action === "outline_extend_retry"
   ) {
     return {
       actionName: "长篇大纲",
-      actions: [
-        "outline_generate",
-        "outline_generate_retry",
-        "outline_extend",
-        "outline_extend_retry",
-      ],
+      actions: getAiActionAliases(AI_ACTIONS.outlineGenerate),
       limit: params.dailyLongNovelOutlines,
     };
   }
@@ -91,43 +88,38 @@ export function getAiActionLimit(params: {
   }
 
   if (
-    params.action === "chapter_generate" ||
+    normalizedAction === AI_ACTIONS.chapterGenerate ||
     params.action === "chapter_generate_stream" ||
     params.action === "chapter_generate_length_repair" ||
     params.action === "chapter_generate_stream_length_repair"
   ) {
     return {
       actionName: "章节生成",
-      actions: [
-        "chapter_generate",
-        "chapter_generate_stream",
-        "chapter_generate_length_repair",
-        "chapter_generate_stream_length_repair",
-      ],
+      actions: getAiActionAliases(AI_ACTIONS.chapterGenerate),
       limit: params.dailyChapterGenerations,
     };
   }
 
-  if (params.action === "chapter_summary") {
+  if (normalizedAction === AI_ACTIONS.chapterSummary) {
     return {
       actionName: "章节摘要",
-      actions: ["chapter_summary"],
+      actions: getAiActionAliases(AI_ACTIONS.chapterSummary),
       limit: params.dailyChapterSummaries,
     };
   }
 
-  if (params.action === "chapter_outline") {
+  if (normalizedAction === AI_ACTIONS.chapterOutline) {
     return {
       actionName: "章节大纲",
-      actions: ["chapter_outline"],
+      actions: getAiActionAliases(AI_ACTIONS.chapterOutline),
       limit: params.dailyChapterOutlines,
     };
   }
 
-  if (params.action === "chapter_details") {
+  if (normalizedAction === AI_ACTIONS.chapterDetails) {
     return {
       actionName: "细节提取",
-      actions: ["chapter_details"],
+      actions: getAiActionAliases(AI_ACTIONS.chapterDetails),
       limit: params.dailyChapterDetails,
     };
   }

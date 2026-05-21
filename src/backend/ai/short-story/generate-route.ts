@@ -31,6 +31,7 @@ import {
 import { assertCanCreateWork, assertCanUseAiAction } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 import {
   shortStoryGeneratedSchema,
   shortStoryGenerateSchema,
@@ -40,6 +41,7 @@ import { SHORT_STORY_ENDING_LABELS } from "@/shared/schemas/short-story";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+const SYNC_SHORT_STORY_WORD_LIMIT = 5000;
 
 function extractJson(text: string) {
   const trimmed = text
@@ -236,7 +238,90 @@ export async function POST(request: Request) {
     const input = await parseJsonBody(request, shortStoryGenerateSchema);
     await assertCanCreateWork(user);
     await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "short_story_outline_generate");
+    await assertCanUseAiAction(user, AI_ACTIONS.shortStoryGenerate);
+
+    if (input.targetWords > SYNC_SHORT_STORY_WORD_LIMIT) {
+      const placeholderOutline = normalizeShortStoryOutline({
+        tag: (input.tags[0] || input.genre).slice(0, 12),
+        title: `${input.genre}短篇生成中`,
+        synopsis: `正在按 ${input.targetWords} 字目标生成长文本短篇。`,
+        targetWords: input.targetWords,
+        theme: `${input.genre} / ${input.structureTemplate} / ${input.style}`,
+        hook: clampText(input.idea, 300),
+        endingType: input.endingType,
+        characters: [
+          {
+            name: "主角",
+            role: "核心视角",
+            description: "后台生成完成后会替换为 AI 提取的人物设定。",
+          },
+        ],
+        beats: splitOutlineTextIntoBeats(input.idea, input.targetWords),
+        fullOutline: input.idea,
+      });
+
+      const work = await prisma.work.create({
+        data: {
+          userId: user.id,
+          workType: "short_story",
+          genreId: "short_story",
+          genreLabel: input.genre,
+          idea: input.idea,
+          tags: input.tags,
+          platformId: input.style,
+          platformLabel: input.style,
+          words: `${input.targetWords} 字`,
+          dnaBookTitle: null,
+          tag: input.genre,
+          title: placeholderOutline.title,
+          synopsis: placeholderOutline.synopsis,
+          outline: placeholderOutline as unknown as Prisma.InputJsonValue,
+          rawOutline: {
+            input,
+            status: "queued",
+            generatedBy: "POST /api/ai/short-story",
+          } as Prisma.InputJsonValue,
+          targetChapters: 1,
+          plannedUntilChapter: 1,
+          planningMode: "progressive",
+          generationJobs: {
+            create: {
+              userId: user.id,
+              action: AI_ACTIONS.shortStoryGenerate,
+              jobType: "short_story.generate.long",
+              status: "queued",
+              promptTemplateKey: AI_ACTIONS.shortStoryGenerate,
+              resultSummary: "长文本短篇已加入后台分段生成队列。",
+              resultJson: {
+                input,
+                outline: null,
+                segments: [],
+                finalWorkId: null,
+              } as Prisma.InputJsonValue,
+              heartbeatAt: new Date(),
+            },
+          },
+        },
+        select: {
+          id: true,
+          generationJobs: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { id: true, status: true },
+          },
+        },
+      });
+
+      return successResponse(
+        {
+          workId: work.id,
+          jobId: work.generationJobs[0]?.id ?? null,
+          status: "queued",
+          async: true,
+        },
+        { message: "长文本短篇已进入后台分段生成队列，生成完成后会自动写入作品正文。" },
+      );
+    }
 
     const aiModelConfig = await getAiModelConfig();
     const target = aiModelConfig.outlineGenerate;
@@ -255,13 +340,13 @@ export async function POST(request: Request) {
     }
 
     const systemTemplate = await getActivePromptTemplate(
-      "short-story.generate",
+      AI_ACTIONS.shortStoryGenerate,
       buildShortStoryGenerateSystemPrompt(),
     );
     const prompt = buildShortStoryGenerateUserPrompt(input);
     const result = await runWithAiQuotaReservation(
       user,
-      "short_story_outline_generate",
+      AI_ACTIONS.shortStoryGenerate,
       () =>
         callAiText({
           providers,
@@ -350,13 +435,13 @@ export async function POST(request: Request) {
         generationJobs: {
           create: {
             userId: user.id,
-            action: "short_story.generate",
-            jobType: "short_story.generate",
+            action: AI_ACTIONS.shortStoryGenerate,
+            jobType: AI_ACTIONS.shortStoryGenerate,
             status: "succeeded",
             routeId: result.providerId ?? target.providerId,
             providerId: result.providerId ?? null,
             modelUsed: result.modelUsed ?? null,
-            promptTemplateKey: "short-story.generate",
+            promptTemplateKey: AI_ACTIONS.shortStoryGenerate,
             promptTemplateVersion: systemTemplate.version || null,
             promptSnapshot: prompt.slice(0, 20000),
             resultSummary: `${output.title}，正文 ${contentWordCount} 字。`,

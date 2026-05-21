@@ -27,6 +27,7 @@ import {
 } from "@/lib/create/short-story-outline-schema";
 import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 import { shortStoryInputSchema } from "@/shared/schemas/short-story";
 
 export const runtime = "nodejs";
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
 
     const input = await parseJsonBody(request, shortStoryInputSchema);
     await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "short_story_outline_generate");
+    await assertCanUseAiAction(user, AI_ACTIONS.shortStoryGenerate);
 
     const aiModelConfig = await getAiModelConfig();
     const target = aiModelConfig.outlineGenerate;
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
       { role: "user", content: buildShortStoryOutlineUserPrompt(input) },
     ];
 
-    const first = await runWithAiQuotaReservation(user, "short_story_outline_generate", () =>
+    const first = await runWithAiQuotaReservation(user, AI_ACTIONS.shortStoryGenerate, () =>
       callAiText({
         providers,
         messages,
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
     if (!rawOutline) {
       await assertAiQuotaAvailable(user);
 
-      const retry = await runWithAiQuotaReservation(user, "short_story_outline_generate_retry", () =>
+      const retry = await runWithAiQuotaReservation(user, AI_ACTIONS.shortStoryGenerate, () =>
         callAiText({
         providers,
         preferredProviderId: firstProviderId,

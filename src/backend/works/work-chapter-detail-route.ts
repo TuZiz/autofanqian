@@ -12,6 +12,7 @@ import { getEffectivePlannedUntil, isChapterWithinPlanning } from "@/lib/create/
 import { assertCanCreateChapter } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
 import { createChapterRevisionSnapshot } from "@/lib/workbench/chapter-revisions";
+import { shouldCreateChapterRevisionSnapshot } from "@/lib/workbench/chapter-revision-policy";
 import { assertSameOriginRequest } from "@/lib/security/origin";
 import { isShortStoryWork } from "@/shared/work-type";
 
@@ -251,7 +252,7 @@ export async function PUT(
 
     const previousChapter = await prisma.chapter.findUnique({
       where: { workId_index: { workId: work.id, index: parsed.index } },
-      select: { id: true, deletedAt: true },
+      select: { id: true, content: true, deletedAt: true },
     });
 
     if (previousChapter?.deletedAt) {
@@ -264,12 +265,26 @@ export async function PUT(
 
     if (previousChapter) {
       try {
-        await createChapterRevisionSnapshot({
-          workId: work.id,
-          index: parsed.index,
-          source: body.revisionSource ?? "manual_save",
-          reason: body.revisionReason ?? undefined,
+        const lastRevision = await prisma.chapterRevision.findFirst({
+          where: { workId: work.id, index: parsed.index },
+          orderBy: { createdAt: "desc" },
+          select: { createdAt: true },
         });
+        const revisionPolicy = shouldCreateChapterRevisionSnapshot({
+          previousContent: previousChapter.content,
+          nextContent,
+          revisionSource: body.revisionSource ?? "manual_save",
+          lastRevisionAt: lastRevision?.createdAt ?? null,
+        });
+
+        if (revisionPolicy.shouldSnapshot) {
+          await createChapterRevisionSnapshot({
+            workId: work.id,
+            index: parsed.index,
+            source: body.revisionSource ?? "manual_save",
+            reason: body.revisionReason ?? revisionPolicy.reason,
+          });
+        }
       } catch (revisionError) {
         console.error("create chapter revision failed", revisionError);
       }

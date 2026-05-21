@@ -1,5 +1,7 @@
+import { AI_ACTIONS } from "@/shared/ai-actions";
+
 export const MAIN_GENERATION_ACTIONS = [
-  "chapter.generate",
+  AI_ACTIONS.chapterGenerate,
   "chapter.generate.stream",
   "regenerate.all",
   "regenerate.all.stream",
@@ -14,6 +16,7 @@ export const LENGTH_REPAIR_ACTIONS = [
 
 export const AUXILIARY_AI_ACTIONS = [
   "chapter.plan",
+  AI_ACTIONS.chapterConsistency,
   "chapter.consistency_check",
   "chapter.consistency_repair",
   "chapter.quality_check",

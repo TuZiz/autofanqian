@@ -65,13 +65,13 @@ test("consistency check supports current, recent5 and book job output", () => {
   assert.match(schema, /severeProblems/);
   assert.match(schema, /mediumProblems/);
   assert.match(schema, /autoFixPrompt/);
-  assert.match(route, /chapter\.consistency_check\.book/);
+  assert.match(route, /chapter\.consistency\.book/);
   assert.match(route, /status:\s*"queued"/);
   assert.match(panel, /最近 5 章/);
   assert.match(dashboardHook, /handleBookConsistencyCheck/);
 });
 
-test("export API supports chapter, book and short story markdown/txt", () => {
+test("export API supports chapter, book and short story markdown/txt/docx", () => {
   const route = read("src/app/api/works/[id]/export/route.ts");
   const main = read("src/components/workbench/chapter-editor-main.tsx");
   const header = read("src/components/workbench/work-dashboard-header.tsx");
@@ -80,6 +80,8 @@ test("export API supports chapter, book and short story markdown/txt", () => {
   assert.match(route, /chapterIndex/);
   assert.match(route, /deletedAt:\s*null/);
   assert.match(route, /formatDateForFilename/);
+  assert.match(route, /docx/);
+  assert.match(route, /buildDocxBuffer/);
   assert.match(main, /scope=chapter/);
   assert.match(header, /scope=\$\{isShortStory \? "short_story" : "book"\}/);
 });
@@ -97,7 +99,7 @@ test("prompt template center routes and AI fallback are wired", () => {
   assert.match(adminRoute, /isActive:\s*false/);
   assert.match(adminView, /创建新版本/);
   assert.match(helper, /getActivePromptTemplate/);
-  assert.match(shortRoute, /short-story\.generate/);
+  assert.match(shortRoute, /AI_ACTIONS\.shortStoryGenerate/);
   assert.match(rewriteRoute, /chapter\.rewrite/);
   assert.match(consistencyRoute, /chapter\.consistency/);
 });

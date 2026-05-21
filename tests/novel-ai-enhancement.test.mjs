@@ -305,7 +305,7 @@ test("AI step jobs are recorded for plan, check and repair", () => {
 
   for (const action of [
     "chapter.plan",
-    "chapter.consistency_check",
+    "chapter.consistency",
     "chapter.consistency_repair",
     "chapter.quality_check",
   ]) {
@@ -328,7 +328,7 @@ test("plan/check/repair support quota wrapper actions", () => {
 
   assert.match(planSource, /runAiCall\?: ChapterAuxiliaryAiCallRunner/);
   assert.match(planSource, /params\.runAiCall\("chapter_plan"/);
-  assert.match(consistencySource, /params\.runAiCall\("chapter_consistency_check"/);
+  assert.match(consistencySource, /params\.runAiCall\(AI_ACTIONS\.chapterConsistency/);
   assert.match(consistencySource, /params\.runAiCall\("chapter_consistency_repair"/);
   assert.match(generateSource, /runAiCall: \(action, execute\) =>[\s\S]*runWithAiQuotaReservation\(user, action, execute/);
   assert.match(streamRouteSource, /runAiCall: \(action, execute\) =>[\s\S]*runWithAiQuotaReservation\(prepared\.user, action, execute/);
@@ -925,7 +925,7 @@ test("consistency check uses structured final beat flag instead of context regex
 test("chapter quality report reads scores and quality issue payloads", () => {
   const reportSource = read("src/lib/ai/chapter-quality-report.ts");
   assert.match(reportSource, /export async function getChapterQualityReport/);
-  assert.match(reportSource, /action:\s*"chapter\.consistency_check"/);
+  assert.match(reportSource, /action:\s*\{\s*in:\s*CONSISTENCY_ACTIONS\s*\}/);
   assert.match(reportSource, /action:\s*"chapter\.quality_check"/);
   assert.match(reportSource, /consistencyIssues/);
   assert.match(reportSource, /consistencyProviderId/);
@@ -947,7 +947,7 @@ test("chapter quality report reads scores and quality issue payloads", () => {
 test("work quality trend aggregates latest chapter jobs in ascending order", () => {
   const trendSource = read("src/lib/ai/work-quality-trend.ts");
   assert.match(trendSource, /export async function getWorkQualityTrend/);
-  assert.match(trendSource, /chapter\.consistency_check/);
+  assert.match(trendSource, /CONSISTENCY_ACTIONS/);
   assert.match(trendSource, /chapter\.quality_check/);
   assert.match(trendSource, /keepLatestByChapterAndAction/);
   assert.match(trendSource, /\.sort\(\(left, right\) => left - right\)/);
@@ -1026,7 +1026,7 @@ test("backfill and auxiliary cost report cover quality persistence", () => {
 
   for (const action of [
     "chapter.plan",
-    "chapter.consistency_check",
+    "chapter.consistency",
     "chapter.consistency_repair",
     "chapter.quality_check",
     "canon.compress",
@@ -1226,7 +1226,7 @@ test("generation cost and chapter observability include main generation actions"
     "chapter_regenerate",
     "chapter_generate_length_repair",
     "chapter.plan",
-    "chapter.consistency_check",
+    "chapter.consistency",
     "chapter.quality_check",
     "canon.compress",
   ]) {
@@ -1301,7 +1301,7 @@ test("short story one-shot generation and selected text rewrite are wired", () =
   assert.match(shortGenerateSource, /chapters:\s*\{\s*create:\s*\{/s);
   assert.match(shortGenerateSource, /index:\s*1/);
   assert.match(shortGenerateSource, /content:\s*output\.content/);
-  assert.match(shortGenerateSource, /runWithAiQuotaReservation\(\s*user,\s*"short_story_outline_generate"/s);
+  assert.match(shortGenerateSource, /runWithAiQuotaReservation\(\s*user,\s*AI_ACTIONS\.shortStoryGenerate/s);
   assert.match(shortGenerateSource, /normalizeGeneratedOutline/);
   assert.match(shortGenerateSource, /splitOutlineTextIntoBeats/);
   assert.match(shortGenerateSource, /persistShortStoryContext/);

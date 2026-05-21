@@ -13,6 +13,7 @@ import {
 } from "@/lib/ai/upstream-text";
 import { getAiModelConfig } from "@/lib/config/ai-model";
 import { prisma } from "@/lib/prisma";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 import { isShortStoryWork } from "@/shared/work-type";
 import {
   parseContextExtractionResponse,
@@ -148,7 +149,8 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
     where: {
       novelId: params.workId,
       chapterId: params.chapterId,
-      action: "context.extract",
+      ...(params.generationJobId ? { id: { not: params.generationJobId } } : {}),
+      action: { in: [AI_ACTIONS.bibleExtract, "context.extract"] },
       status: { in: ["queued", "running"] },
     },
     orderBy: { createdAt: "desc" },
@@ -159,7 +161,28 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
     return;
   }
 
-  const generationJob = pendingJob
+  const generationJob = params.generationJobId
+    ? await prisma.generationJob.update({
+        where: { id: params.generationJobId },
+        data: {
+          status: "running",
+          userId: params.user.id,
+          workId: params.workId,
+          chapterId: params.chapterId,
+          chapterIndex: params.index,
+          action: AI_ACTIONS.bibleExtract,
+          jobType: "bible.extract",
+          routeId,
+          providerId: providers[0]?.id ?? null,
+          modelUsed: providers[0]?.model ?? null,
+          promptTemplateKey: AI_ACTIONS.bibleExtract,
+          promptSnapshot: userPrompt.slice(0, MAX_PROMPT_CHARS),
+          startedAt: new Date(),
+          heartbeatAt: new Date(),
+        },
+        select: { id: true },
+      })
+    : pendingJob
     ? await prisma.generationJob.update({
         where: { id: pendingJob.id },
         data: {
@@ -167,11 +190,12 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
           userId: params.user.id,
           workId: params.workId,
           chapterIndex: params.index,
-          jobType: "context.extract",
+          action: AI_ACTIONS.bibleExtract,
+          jobType: "bible.extract",
           routeId,
           providerId: providers[0]?.id ?? null,
           modelUsed: providers[0]?.model ?? null,
-          promptTemplateKey: "context.extract",
+          promptTemplateKey: AI_ACTIONS.bibleExtract,
           promptSnapshot: userPrompt.slice(0, MAX_PROMPT_CHARS),
           startedAt: new Date(),
           heartbeatAt: new Date(),
@@ -185,13 +209,13 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
           workId: params.workId,
           chapterId: params.chapterId,
           chapterIndex: params.index,
-          action: "context.extract",
-          jobType: "context.extract",
+          action: AI_ACTIONS.bibleExtract,
+          jobType: "bible.extract",
           status: "running",
           routeId,
           providerId: providers[0]?.id ?? null,
           modelUsed: providers[0]?.model ?? null,
-          promptTemplateKey: "context.extract",
+          promptTemplateKey: AI_ACTIONS.bibleExtract,
           promptSnapshot: userPrompt.slice(0, MAX_PROMPT_CHARS),
           startedAt: new Date(),
           heartbeatAt: new Date(),
@@ -214,7 +238,7 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
 
   await logAiUsage({
     userId: params.user.id,
-    action: `context_extract_${params.index}`,
+    action: AI_ACTIONS.bibleExtract,
     result,
   });
 
@@ -244,7 +268,7 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
 
     await logAiUsage({
       userId: params.user.id,
-      action: `context_extract_retry_${params.index}`,
+      action: AI_ACTIONS.bibleExtract,
       result: retry,
     });
 

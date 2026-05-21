@@ -55,6 +55,7 @@ import {
   failStreamGenerationJob,
 } from "./stream-persistence";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export const runtime = "nodejs";
 
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
       index: parsedBody.data.index,
     });
     await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "chapter_generate_stream");
+    await assertCanUseAiAction(user, AI_ACTIONS.chapterGenerate);
   } catch (error) {
     return errorResponse(error);
   }
@@ -183,7 +184,7 @@ export async function POST(request: Request) {
 
           await logAiUsage({
             userId: prepared.user.id,
-            action: `chapter_generate_stream_${parsedBody.data.index}_probe`,
+            action: `${AI_ACTIONS.chapterGenerate}.stream.probe`,
             result: {
               ok: Boolean(selected.provider),
               status: selected.provider ? 200 : (selected.failures[selected.failures.length - 1]?.status ?? 503),
@@ -283,7 +284,7 @@ export async function POST(request: Request) {
 
           const quotaReservation = await reserveAiQuota(
             prepared.user,
-            "chapter_generate_stream",
+            AI_ACTIONS.chapterGenerate,
             {
               idempotencyKey: parsedBody.data.idempotencyKey ?? null,
               excludeGenerationJobId: generationJobId,
@@ -315,7 +316,7 @@ export async function POST(request: Request) {
             await finalizeAiQuotaUsage({
               reservation: quotaReservation,
               result: usageResult,
-              action: "chapter_generate_stream",
+              action: AI_ACTIONS.chapterGenerate,
               userId: prepared.user.id,
             });
           } catch (error) {

@@ -25,6 +25,7 @@ import {
   type ChapterConsistencyIssue,
   type ChapterConsistencyResult,
 } from "@/shared/schemas/chapter-consistency";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -250,14 +251,14 @@ export async function POST(request: Request) {
       }
 
       await assertAiQuotaAvailable(user);
-      await assertCanUseAiAction(user, "chapter_consistency_check");
+      await assertCanUseAiAction(user, AI_ACTIONS.chapterConsistency);
 
       const job = await prisma.generationJob.create({
         data: {
           novelId: work.id,
           userId: user.id,
           workId: work.id,
-          action: "chapter.consistency_check.book",
+          action: AI_ACTIONS.chapterConsistency,
           jobType: "chapter.consistency.book",
           status: "queued",
           promptTemplateKey: "chapter.consistency",
@@ -373,7 +374,7 @@ export async function POST(request: Request) {
     }
 
     await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "chapter_consistency_check");
+    await assertCanUseAiAction(user, AI_ACTIONS.chapterConsistency);
 
     const aiModelConfig = await getAiModelConfig();
     const target = aiModelConfig.chapterRewrite;
@@ -411,7 +412,7 @@ export async function POST(request: Request) {
         workId: work.id,
         chapterId: chapter.id,
         chapterIndex,
-        action: "chapter.consistency_check",
+        action: AI_ACTIONS.chapterConsistency,
         jobType: "chapter.consistency",
         status: "running",
         routeId,
@@ -427,7 +428,7 @@ export async function POST(request: Request) {
 
     const result = await runWithAiQuotaReservation(
       user,
-      "chapter_consistency_check",
+      AI_ACTIONS.chapterConsistency,
       () =>
         callAiText({
           providers,

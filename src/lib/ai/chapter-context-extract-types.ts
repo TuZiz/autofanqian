@@ -9,6 +9,7 @@ export type QueueChapterContextExtractionParams = {
   index: number;
   trigger: "save" | "generate" | "stream_generate" | "rewrite_apply";
   force?: boolean;
+  generationJobId?: string | null;
 };
 
 export type ContextExtractionCharacter = {

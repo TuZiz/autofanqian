@@ -17,6 +17,7 @@ import {
   getCompletedChapterGenerationResult,
 } from "./generate-service";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export const runtime = "nodejs";
 
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "chapter_generate");
+    await assertCanUseAiAction(user, AI_ACTIONS.chapterGenerate);
     const data = await generateChapterForUser({
       input: parsedBody.data,
       providersFromEnv: getAiProvidersFromEnv(),

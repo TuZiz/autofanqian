@@ -19,6 +19,7 @@ import {
 } from "@/lib/membership/rules";
 import { getAiActionLimit } from "@/lib/membership/guards";
 import { prisma } from "@/lib/prisma";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export type AiQuotaUser = {
   id: string;
@@ -90,12 +91,14 @@ const RESERVATION_TTL_MS = 5 * 60_000;
 const NON_CALL_COUNT_QUOTA_ACTIONS = [
   "chapter_plan",
   "chapter_consistency_check",
+  AI_ACTIONS.chapterConsistency,
   "chapter_consistency_repair",
   "chapter_quality_check",
 ] as const;
 const NON_CALL_COUNT_GENERATION_JOB_ACTIONS = [
   "chapter.plan",
   "chapter.consistency_check",
+  AI_ACTIONS.chapterConsistency,
   "chapter.consistency_repair",
   "chapter.quality_check",
 ] as const;

@@ -7,6 +7,7 @@ import {
   parseQualityReportScore,
 } from "@/lib/ai/chapter-quality-report";
 import { prisma } from "@/lib/prisma";
+import { AI_ACTIONS, getAiActionAliases } from "@/shared/ai-actions";
 
 export type ModelQualityReportRange = {
   from?: Date;
@@ -52,7 +53,8 @@ type ModelQualityAccumulator = {
   durationCount: number;
 };
 
-const QUALITY_ACTIONS = ["chapter.consistency_check", "chapter.quality_check"] as const;
+const CONSISTENCY_ACTIONS = getAiActionAliases(AI_ACTIONS.chapterConsistency);
+const QUALITY_ACTIONS = [...CONSISTENCY_ACTIONS, "chapter.quality_check"] as const;
 
 function average(sum: number, count: number) {
   return count > 0 ? Math.round(sum / count) : null;
@@ -63,7 +65,7 @@ function getScore(row: {
   resultJson: unknown;
   resultSummary: string | null;
 }) {
-  if (row.action === "chapter.consistency_check") {
+  if (CONSISTENCY_ACTIONS.includes(row.action)) {
     return (
       parseConsistencyReportResultJson(row.resultJson)?.score ??
       parseQualityReportScore(row.resultSummary)
@@ -143,7 +145,7 @@ export async function getModelQualityReport(
       };
 
     const score = getScore(row);
-    if (row.action === "chapter.consistency_check") {
+    if (CONSISTENCY_ACTIONS.includes(row.action)) {
       group.consistencyJobCount += 1;
       group.consistencyTokens += row.totalTokens ?? 0;
       if (typeof row.durationMs === "number") {

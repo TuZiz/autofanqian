@@ -4,9 +4,11 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { UpstreamTextResult } from "@/lib/ai/upstream-text";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export type AiStepAction =
   | "chapter.plan"
+  | typeof AI_ACTIONS.chapterConsistency
   | "chapter.consistency_check"
   | "chapter.consistency_repair"
   | "chapter.quality_check"

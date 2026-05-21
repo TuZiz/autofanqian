@@ -1,7 +1,10 @@
 import "server-only";
 
+import { AI_ACTIONS } from "@/shared/ai-actions";
+
 export type ChapterAuxiliaryTimeoutAction =
   | "chapter_plan"
+  | typeof AI_ACTIONS.chapterConsistency
   | "chapter_consistency_check"
   | "chapter_consistency_repair"
   | "chapter_quality_check"
@@ -9,6 +12,7 @@ export type ChapterAuxiliaryTimeoutAction =
 
 const DEFAULT_TIMEOUT_MS: Record<ChapterAuxiliaryTimeoutAction, number> = {
   chapter_plan: 20_000,
+  [AI_ACTIONS.chapterConsistency]: 25_000,
   chapter_consistency_check: 25_000,
   chapter_consistency_repair: 35_000,
   chapter_quality_check: 20_000,
@@ -17,6 +21,7 @@ const DEFAULT_TIMEOUT_MS: Record<ChapterAuxiliaryTimeoutAction, number> = {
 
 const ENV_KEYS: Record<ChapterAuxiliaryTimeoutAction, string> = {
   chapter_plan: "AI_CHAPTER_PLAN_TIMEOUT_MS",
+  [AI_ACTIONS.chapterConsistency]: "AI_CONSISTENCY_CHECK_TIMEOUT_MS",
   chapter_consistency_check: "AI_CONSISTENCY_CHECK_TIMEOUT_MS",
   chapter_consistency_repair: "AI_CONSISTENCY_REPAIR_TIMEOUT_MS",
   chapter_quality_check: "AI_QUALITY_CHECK_TIMEOUT_MS",

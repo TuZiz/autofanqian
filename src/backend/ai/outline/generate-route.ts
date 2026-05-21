@@ -32,6 +32,7 @@ import {
 import { normalizeProgressiveOutline } from "@/lib/create/progressive-planning";
 import { assertCanUseAiAction } from "@/lib/membership/guards";
 import { assertSameOriginRequest } from "@/lib/security/origin";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export const runtime = "nodejs";
 
@@ -256,7 +257,7 @@ export async function POST(request: Request) {
   }
   try {
     await assertAiQuotaAvailable(user);
-    await assertCanUseAiAction(user, "outline_generate");
+    await assertCanUseAiAction(user, AI_ACTIONS.outlineGenerate);
   } catch (error) {
     return errorResponse(error);
   }
@@ -366,7 +367,7 @@ export async function POST(request: Request) {
       { role: "user", content: userPrompt },
     ];
 
-  const first = await runWithAiQuotaReservation(user, "outline_generate", () =>
+  const first = await runWithAiQuotaReservation(user, AI_ACTIONS.outlineGenerate, () =>
     callAiText({
       providers,
       messages,
@@ -397,7 +398,7 @@ export async function POST(request: Request) {
       return errorResponse(error);
     }
 
-    const second = await runWithAiQuotaReservation(user, "outline_generate_retry", () =>
+    const second = await runWithAiQuotaReservation(user, AI_ACTIONS.outlineGenerate, () =>
       callAiText({
       providers,
       preferredProviderId: first.providerId,

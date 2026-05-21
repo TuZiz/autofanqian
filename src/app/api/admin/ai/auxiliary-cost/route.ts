@@ -7,12 +7,14 @@ import {
 import { requireAdminUser } from "@/lib/auth/admin";
 import { errorResponse, successResponse } from "@/lib/auth/api";
 import { parseDateRangeFromSearchParams } from "@/lib/http/date-range";
+import { AI_ACTIONS } from "@/shared/ai-actions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const actionSchema = z.enum([
   "chapter.plan",
+  AI_ACTIONS.chapterConsistency,
   "chapter.consistency_check",
   "chapter.consistency_repair",
   "chapter.quality_check",
