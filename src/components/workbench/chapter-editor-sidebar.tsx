@@ -24,6 +24,7 @@ import {
   MetaTextareaCard,
   type SidebarSectionKey,
 } from "./chapter-editor-sidebar-panels";
+import { ChapterConsistencyPanel } from "./chapter-consistency-panel";
 
 const rewriteQuickActions = [
   { action: "polish", label: aiZhCN.chapterRewrite.actions.polish.label },
@@ -78,6 +79,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
     summary: false,
     outline: false,
     details: false,
+    consistency: false,
   });
 
   const toggleSection = (section: SidebarSectionKey) => {
@@ -144,6 +146,12 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
               ))}
             </div>
           </section>
+
+          <ChapterConsistencyPanel
+            editor={editor}
+            expanded={expandedSections.consistency}
+            onToggle={() => toggleSection("consistency")}
+          />
 
           <CollapsiblePanel
             action={

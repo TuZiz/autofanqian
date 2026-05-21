@@ -86,6 +86,18 @@
 - 生成结果保存为 `Work.workType = short_story`，并自动创建第 1 章。
 - 短篇大纲会以结构化 JSON 保存到 `Work.outline` 和 `Work.rawOutline`，包括主题、钩子、结局倾向、角色、3-8 个 beats 和 `fullOutline`。
 
+### 作品导入
+
+路由：`/dashboard/import`
+
+- 支持粘贴全文导入。
+- 支持读取 TXT / Markdown 文本文件。
+- 支持选择长篇连载或短篇小说。
+- 支持填写标题、题材、标签、平台风格和简介。
+- 自动识别中文、英文和 Markdown 章节标题并切章。
+- 导入前展示章节数量、每章标题、每章字数和总字数。
+- 确认后创建 `Work` 和 `Chapter`，并写入基础 `WritingMemory`。
+
 ### 作品详情页
 
 路由：`/dashboard/work/[id]`
@@ -141,6 +153,7 @@ AI 章节能力分为四类：
 - 章节大纲：`/api/ai/chapter/outline`
 - 细节提取：`/api/ai/chapter/details`
 - 章节 AI 改写：`/api/ai/chapter/rewrite`
+- AI 一致性检查：`/api/ai/chapter/consistency`
 
 章节 AI 改写支持：
 
@@ -148,6 +161,16 @@ AI 章节能力分为四类：
 - AI 逻辑检查：只输出矛盾、动机和衔接风险，不直接覆盖正文。
 - 预览后应用：先生成预览，确认后再写入正文。
 - 应用前自动保存历史版本：应用改写前会生成章节历史快照，便于回退。
+
+AI 一致性检查支持：
+
+- 角色矛盾检查。
+- 时间线矛盾检查。
+- 设定冲突检查。
+- 剧情断裂检查。
+- 风格偏移检查。
+- 强约束遗漏检查。
+- 只展示评分和修改建议，不自动改写正文。
 
 正文生成会参考：
 
@@ -262,7 +285,7 @@ AI 章节能力分为四类：
 | `/dashboard/create` | 创建作品第一步 |
 | `/dashboard/create/short` | 短篇小说一键生成入口 |
 | `/dashboard/create/outline` | AI 生成大纲和创建作品 |
-| `/dashboard/import` | 导入入口 |
+| `/dashboard/import` | 导入作品，支持粘贴全文、TXT / Markdown、自动切章和导入预览 |
 | `/dashboard/work/[id]` | 作品详情页 |
 | `/dashboard/work/[id]/chapter/[index]` | 章节写作页 |
 | `/dashboard/admin` | 管理员控制台 |
@@ -307,11 +330,14 @@ AI 章节能力分为四类：
 - `POST /api/ai/chapter/outline`
 - `POST /api/ai/chapter/details`
 - `POST /api/ai/chapter/rewrite`
+- `POST /api/ai/chapter/consistency`
 
 ### 作品和章节
 
 - `GET /api/works`
 - `POST /api/works`
+- `POST /api/works/import/preview`
+- `POST /api/works/import/confirm`
 - `GET /api/works/[id]`
 - `DELETE /api/works/[id]`
 - `GET /api/works/[id]/chapters`

@@ -6,7 +6,12 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-export type SidebarSectionKey = "target" | "summary" | "outline" | "details";
+export type SidebarSectionKey =
+  | "target"
+  | "summary"
+  | "outline"
+  | "details"
+  | "consistency";
 
 export function CollapsiblePanel({
   action,

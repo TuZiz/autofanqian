@@ -22,6 +22,7 @@ import { useChapterEditorNavigation } from "./use-chapter-editor-navigation";
 import { useChapterEditorRewrite } from "./use-chapter-editor-rewrite";
 import { useChapterEditorSave } from "./use-chapter-editor-save";
 import { useChapterEditorShortcuts } from "./use-chapter-editor-shortcuts";
+import { useChapterConsistency } from "./use-chapter-consistency";
 
 export function useWorkChapterEditor(params: {
   autoAi: boolean;
@@ -250,6 +251,18 @@ export function useWorkChapterEditor(params: {
   });
   const { closeRewriteDialog } = rewrite;
 
+  const consistency = useChapterConsistency({
+    chapterIndex,
+    content,
+    dirty,
+    draftUnsynced,
+    effectiveAiBusy,
+    metaSaving,
+    saving,
+    setError,
+    workId,
+  });
+
   useChapterEditorShortcuts({
     closeRewriteDialog,
     dirty,
@@ -318,6 +331,7 @@ export function useWorkChapterEditor(params: {
     content,
     copiedTarget,
     currentChapterEdited,
+    ...consistency,
     detailsBusy,
     detailsActionError,
     detailsProgressPercent,
