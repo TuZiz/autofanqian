@@ -36,6 +36,11 @@ function formatScore(value: number | null | undefined) {
   return typeof value === "number" ? `${value}` : "—";
 }
 
+function formatPercent(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return `${Math.round(value * 100)}%`;
+}
+
 function modelLabel(providerId?: string | null, modelUsed?: string | null) {
   if (!providerId && !modelUsed) return "—";
   return [providerId, modelUsed].filter(Boolean).join(" / ");
@@ -151,6 +156,7 @@ export function WorkAiObservabilityView({ workId }: WorkAiObservabilityViewProps
         ) : data ? (
           <div className="space-y-4">
             <SummaryCards summary={data.summary} />
+            <LatestChapterReportPanel report={data.latestChapterReport} />
             <ModelRecommendationPanel recommendations={data.modelRecommendation} />
             <QualityTrendTable rows={data.qualityTrend} />
             <ModelQualityTable rows={data.modelQuality} />
@@ -159,6 +165,7 @@ export function WorkAiObservabilityView({ workId }: WorkAiObservabilityViewProps
               byAction={data.generationCost.byAction}
               byModel={data.generationCost.byModel}
               totalTokens={data.generationCost.totalTokens}
+              auxiliaryTotalTokens={data.auxiliaryCost.totalTokens}
             />
           </div>
         ) : (
@@ -200,18 +207,23 @@ function FilterInput({
 }
 
 function SummaryCards({ summary }: { summary: WorkAiObservabilityViewData["summary"] }) {
+  const auxiliaryShare =
+    summary.totalGenerationTokens > 0
+      ? summary.totalAuxiliaryTokens / summary.totalGenerationTokens
+      : null;
   const cards = [
     { label: "最新章节", value: formatNumber(summary.latestChapterIndex), icon: Sparkles },
     { label: "平均质量分", value: formatScore(summary.avgQualityScore), icon: Gauge },
     { label: "平均一致性", value: formatScore(summary.avgConsistencyScore), icon: Gauge },
     { label: "总生成 token", value: formatNumber(summary.totalGenerationTokens), icon: BarChart3 },
     { label: "辅助 AI token", value: formatNumber(summary.totalAuxiliaryTokens), icon: BarChart3 },
+    { label: "辅助占比", value: formatPercent(auxiliaryShare), icon: BarChart3 },
     { label: "修复章节数", value: formatNumber(summary.repairedChapterCount), icon: Wrench },
     { label: "长度修复数", value: formatNumber(summary.lengthRepairedChapterCount), icon: Wrench },
   ];
 
   return (
-    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
       {cards.map((card) => {
         const Icon = card.icon;
         return (
@@ -229,6 +241,102 @@ function SummaryCards({ summary }: { summary: WorkAiObservabilityViewData["summa
 }
 
 type WorkAiObservabilityViewData = WorkAiObservabilityData;
+
+function LatestChapterReportPanel({
+  report,
+}: {
+  report: WorkAiObservabilityViewData["latestChapterReport"];
+}) {
+  return (
+    <section className="rounded-[1.4rem] border border-emerald-200/60 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(236,253,245,0.72))] p-4 shadow-sm dark:border-emerald-500/20 dark:bg-[linear-gradient(135deg,rgba(24,28,26,0.96),rgba(16,185,129,0.08))]">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-300">
+            Latest Chapter Report
+          </p>
+          <h2 className="mt-1 text-base font-black text-[var(--theme-text-strong)]">
+            最新章节质量
+          </h2>
+          <p className="mt-1 text-xs font-semibold text-[var(--theme-text-muted)]">
+            最近章节的一致性、质量评分和模型使用情况。
+          </p>
+        </div>
+        <span className="inline-flex h-8 items-center rounded-full bg-emerald-500/10 px-3 text-xs font-black text-emerald-700 ring-1 ring-emerald-500/15 dark:text-emerald-200">
+          {report ? `第 ${report.chapterIndex} 章` : "暂无章节"}
+        </span>
+      </div>
+
+      {report ? (
+        <div className="mt-4 grid gap-3 lg:grid-cols-[220px_1fr]">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+            <MetricCard label="一致性分" value={formatScore(report.consistencyScore)} />
+            <MetricCard label="质量分" value={formatScore(report.qualityScore)} />
+            <MetricCard
+              label="一致性模型"
+              value={modelLabel(report.consistencyProviderId, report.consistencyModelUsed)}
+              small
+            />
+            <MetricCard
+              label="质量模型"
+              value={modelLabel(report.qualityProviderId, report.qualityModelUsed)}
+              small
+            />
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <TextList title="一致性问题" items={report.consistencyIssues} />
+            <TextList title="质量问题" items={report.qualityIssues} />
+            <TextList title="质量建议" items={report.qualitySuggestions} />
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-dashed border-[var(--theme-border)] bg-white/65 p-5 text-sm font-bold text-[var(--theme-text-muted)] dark:bg-white/5">
+          还没有可展示的最新章节质量报告。
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MetricCard({ label, small, value }: { label: string; small?: boolean; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/70 bg-white/80 p-3 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.5)] ring-1 ring-[var(--theme-border)]/70 dark:bg-white/5">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-1 font-black text-[var(--theme-text-strong)]",
+          small ? "truncate text-xs" : "text-2xl tabular-nums",
+        )}
+        title={value}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function TextList({ items, title }: { items: string[]; title: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--theme-border)] bg-white/75 p-3 dark:bg-white/5">
+      <h3 className="text-xs font-black text-[var(--theme-text-strong)]">{title}</h3>
+      {items.length ? (
+        <ul className="mt-2 space-y-2">
+          {items.slice(0, 4).map((item) => (
+            <li
+              key={item}
+              className="rounded-xl bg-[var(--theme-surface-muted)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--theme-text-secondary)]"
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-xs font-semibold text-[var(--theme-text-muted)]">暂无记录。</p>
+      )}
+    </div>
+  );
+}
 
 function ModelRecommendationPanel({ recommendations }: { recommendations: WorkAiObservabilityViewData["modelRecommendation"] }) {
   return (

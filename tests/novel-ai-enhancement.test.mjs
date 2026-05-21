@@ -1120,6 +1120,8 @@ test("work quality trend supports date ranges and dashboard page renders observa
   const viewSource = read("src/components/workbench/work-ai-observability-view.tsx");
   const tableSource = read("src/components/workbench/work-ai-observability-tables.tsx");
   const hookSource = read("src/lib/workbench/use-ai-observability.ts");
+  const headerSource = read("src/components/workbench/work-dashboard-header.tsx");
+  const observabilitySource = read("src/lib/ai/work-ai-observability.ts");
 
   assert.match(trendSource, /from\?: Date/);
   assert.match(trendSource, /to\?: Date/);
@@ -1135,10 +1137,21 @@ test("work quality trend supports date ranges and dashboard page renders observa
   assert.match(generationCostSource, /@\/lib\/ai\/generation-actions/);
   assert.match(chapterSource, /@\/lib\/ai\/generation-actions/);
   assert.match(pageSource, /WorkAiObservabilityView/);
+  assert.match(pageSource, /params\?\.id/);
+  assert.doesNotMatch(pageSource, /params\?\.workId/);
+  assert.match(pageSource, /if \(!workId\)/);
+  assert.match(pageSource, /AI 观测页面参数异常/);
   assert.match(hookSource, /api\/workbench\/works\/\$\{encodeURIComponent\(workId\)\}\/ai-observability/);
   assert.match(hookSource, /trendLimit/);
   assert.match(hookSource, /modelMinJobs/);
   assert.match(hookSource, /chapterLimit/);
+  assert.match(headerSource, /AI 观测台/);
+  assert.match(headerSource, /\/dashboard\/novel\/\$\{encodeURIComponent\(work\.id\)\}\/ai-observability/);
+  assert.match(observabilitySource, /getWorkQualityTrend\(workId, \{\s*limit: trendLimit,\s*orderBy: "chapterIndex",\s*from: options\.from,\s*to: options\.to,/s);
+  assert.match(observabilitySource, /getModelQualityReport\(workId, \{\s*from: options\.from,\s*to: options\.to,/s);
+  assert.match(observabilitySource, /getAuxiliaryAiCostReport\(workId, \{ from: options\.from, to: options\.to \}\)/);
+  assert.match(observabilitySource, /getGenerationCostReport\(workId, \{ from: options\.from, to: options\.to \}\)/);
+  assert.match(observabilitySource, /getChapterGenerationObservability\(workId, \{\s*from: options\.from,\s*to: options\.to,/s);
   for (const keyword of [
     "summary",
     "modelRecommendation",
@@ -1146,6 +1159,24 @@ test("work quality trend supports date ranges and dashboard page renders observa
     "modelQuality",
     "chapterGeneration",
     "generationCost",
+    "latestChapterReport",
+    "最新章节质量",
+    "consistencyIssues",
+    "qualityIssues",
+    "qualitySuggestions",
+    "consistencyModelUsed",
+    "qualityModelUsed",
+    "auxiliaryCost.totalTokens",
+    "辅助占比",
+    "auxiliaryTotalTokens / totalTokens",
+    "value >= 85",
+    "value >= 70",
+    "generateFailed",
+    "repairSucceeded",
+    "lengthRepairSucceeded",
+    "bg-emerald-50",
+    "bg-amber-50",
+    "bg-red-50",
   ]) {
     assert.match(viewSource + tableSource, new RegExp(keyword));
   }

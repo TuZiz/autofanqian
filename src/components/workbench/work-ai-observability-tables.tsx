@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import type { AuxiliaryAiCostDimensionItem, AuxiliaryAiCostReportItem } from "@/lib/ai/auxiliary-cost-report";
 import type { WorkAiObservabilityData } from "@/lib/workbench/ai-observability-types";
+import { cn } from "@/lib/utils";
 
 function formatNumber(value: number | null | undefined, suffix = "") {
   if (typeof value !== "number") return "—";
@@ -14,9 +15,9 @@ function formatScore(value: number | null | undefined) {
   return typeof value === "number" ? `${value}` : "—";
 }
 
-function formatBool(value: boolean | null | undefined) {
-  if (value === null || value === undefined) return "—";
-  return value ? "是" : "否";
+function formatPercent(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return `${Math.round(value * 100)}%`;
 }
 
 function modelLabel(providerId?: string | null, modelUsed?: string | null) {
@@ -27,6 +28,70 @@ function modelLabel(providerId?: string | null, modelUsed?: string | null) {
 function compactList(items: string[] | undefined, empty = "—") {
   if (!items?.length) return empty;
   return items.slice(0, 3).join("；");
+}
+
+function scoreTone(value: number | null | undefined) {
+  if (typeof value !== "number") {
+    return "bg-slate-100 text-slate-500 ring-slate-200 dark:bg-white/5 dark:text-zinc-400 dark:ring-white/10";
+  }
+  if (value >= 85) {
+    return "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20";
+  }
+  if (value >= 70) {
+    return "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20";
+  }
+  return "bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/20";
+}
+
+function ScorePill({ value }: { value: number | null | undefined }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-7 min-w-10 items-center justify-center rounded-full px-2 text-xs font-black tabular-nums ring-1",
+        scoreTone(value),
+      )}
+    >
+      {formatScore(value)}
+    </span>
+  );
+}
+
+function StatusPill({
+  active,
+  label,
+  tone,
+}: {
+  active: boolean | null | undefined;
+  label: string;
+  tone: "blue" | "emerald" | "red" | "yellow";
+}) {
+  if (active === null || active === undefined) {
+    return (
+      <span className="inline-flex h-7 items-center rounded-full bg-slate-100 px-2.5 text-xs font-black text-slate-500 ring-1 ring-slate-200 dark:bg-white/5 dark:text-zinc-400 dark:ring-white/10">
+        —
+      </span>
+    );
+  }
+  if (!active) {
+    return (
+      <span className="inline-flex h-7 items-center rounded-full bg-slate-50 px-2.5 text-xs font-black text-slate-400 ring-1 ring-slate-200/70 dark:bg-white/5 dark:text-zinc-500 dark:ring-white/10">
+        否
+      </span>
+    );
+  }
+
+  const toneClass = {
+    blue: "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-500/20",
+    emerald: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20",
+    red: "bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/20",
+    yellow: "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20",
+  }[tone];
+
+  return (
+    <span className={cn("inline-flex h-7 items-center rounded-full px-2.5 text-xs font-black ring-1", toneClass)}>
+      {label}
+    </span>
+  );
 }
 
 export function Panel({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
@@ -51,8 +116,8 @@ export function QualityTrendTable({ rows }: { rows: WorkAiObservabilityData["qua
         <tbody>{rows.map((row) => (
           <tr key={row.chapterIndex} className="border-t border-[var(--theme-border)]">
             <Cell>第 {row.chapterIndex} 章</Cell>
-            <Cell>{formatScore(row.consistencyScore)}</Cell>
-            <Cell>{formatScore(row.qualityScore)}</Cell>
+            <Cell><ScorePill value={row.consistencyScore} /></Cell>
+            <Cell><ScorePill value={row.qualityScore} /></Cell>
             <Cell>{compactList(row.consistencyIssues)}</Cell>
             <Cell>{compactList(row.qualityIssues)}</Cell>
             <Cell>{modelLabel(row.qualityProviderId ?? row.consistencyProviderId, row.qualityModelUsed ?? row.consistencyModelUsed)}</Cell>
@@ -73,8 +138,8 @@ export function ModelQualityTable({ rows }: { rows: WorkAiObservabilityData["mod
           <tr key={`${row.providerId}-${row.modelUsed}`} className="border-t border-[var(--theme-border)]">
             <Cell>{row.providerId ?? "—"}</Cell>
             <Cell>{row.modelUsed ?? "—"}</Cell>
-            <Cell>{formatScore(row.avgConsistencyScore)}</Cell>
-            <Cell>{formatScore(row.avgQualityScore)}</Cell>
+            <Cell><ScorePill value={row.avgConsistencyScore} /></Cell>
+            <Cell><ScorePill value={row.avgQualityScore} /></Cell>
             <Cell>{formatNumber(row.consistencyJobCount)}</Cell>
             <Cell>{formatNumber(row.qualityJobCount)}</Cell>
             <Cell>{formatNumber(row.totalTokens)}</Cell>
@@ -99,12 +164,12 @@ export function ChapterGenerationTable({ rows }: { rows: WorkAiObservabilityData
             <Cell>{modelLabel(row.generateProviderId, row.generateModelUsed)}</Cell>
             <Cell>{formatNumber(row.generateTokens)}</Cell>
             <Cell>{formatNumber(row.generateDurationMs, "ms")}</Cell>
-            <Cell>{formatScore(row.consistencyScore)}</Cell>
-            <Cell>{formatScore(row.qualityScore)}</Cell>
-            <Cell>{formatBool(row.generateSucceeded)}</Cell>
-            <Cell>{formatBool(row.generateFailed)}</Cell>
-            <Cell>{formatBool(row.repairSucceeded)}</Cell>
-            <Cell>{formatBool(row.lengthRepairSucceeded)}</Cell>
+            <Cell><ScorePill value={row.consistencyScore} /></Cell>
+            <Cell><ScorePill value={row.qualityScore} /></Cell>
+            <Cell><StatusPill active={row.generateSucceeded} label="成功" tone="emerald" /></Cell>
+            <Cell><StatusPill active={row.generateFailed} label="失败" tone="red" /></Cell>
+            <Cell><StatusPill active={row.repairSucceeded} label="已修复" tone="blue" /></Cell>
+            <Cell><StatusPill active={row.lengthRepairSucceeded} label="已修复" tone="yellow" /></Cell>
           </tr>
         ))}</tbody>
       </table>
@@ -114,16 +179,26 @@ export function ChapterGenerationTable({ rows }: { rows: WorkAiObservabilityData
 }
 
 export function CostBreakdown({
+  auxiliaryTotalTokens,
   byAction,
   byModel,
   totalTokens,
 }: {
+  auxiliaryTotalTokens: number;
   byAction: AuxiliaryAiCostReportItem[];
   byModel: AuxiliaryAiCostDimensionItem[];
   totalTokens: number;
 }) {
+  const auxiliaryShare = totalTokens > 0 ? auxiliaryTotalTokens / totalTokens : null;
   return (
     <section className="grid gap-4 xl:grid-cols-2">
+      <div className="rounded-[1.4rem] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-4 shadow-sm xl:col-span-2">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <CostMetric label="正文生成 token" value={formatNumber(totalTokens)} />
+          <CostMetric label="辅助 AI token" value={formatNumber(auxiliaryTotalTokens)} />
+          <CostMetric label="辅助占比" value={formatPercent(auxiliaryShare)} />
+        </div>
+      </div>
       <Panel title="成本构成：Action" subtitle={`总生成成本 ${formatNumber(totalTokens)} token`}>
         <CostTable rows={byAction.map((row) => ({ label: row.action, totalTokens: row.totalTokens, jobCount: row.jobCount, avgTokensPerJob: row.avgTokensPerJob }))} />
       </Panel>
@@ -131,6 +206,19 @@ export function CostBreakdown({
         <CostTable rows={byModel.map((row) => ({ label: modelLabel(row.providerId, row.modelUsed), totalTokens: row.totalTokens, jobCount: row.jobCount, avgTokensPerJob: row.avgTokensPerJob }))} />
       </Panel>
     </section>
+  );
+}
+
+function CostMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[var(--theme-surface-muted)] px-4 py-3">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
+        {label}
+      </p>
+      <p className="mt-1 text-xl font-black tabular-nums text-[var(--theme-text-strong)]">
+        {value}
+      </p>
+    </div>
   );
 }
 

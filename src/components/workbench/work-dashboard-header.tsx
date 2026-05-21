@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BarChart3, LogOut, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -34,6 +34,9 @@ export function WorkDashboardHeader({
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const isShortStory = isShortStoryWork(work?.workType);
   const writtenChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
+  const aiObservabilityHref = work
+    ? `/dashboard/novel/${encodeURIComponent(work.id)}/ai-observability`
+    : "";
   const sectionTabs = [
     { label: "总览", value: `${progressPercent || 0}%`, sectionId: "overview" as const },
     { label: isShortStory ? "场景" : "章节", value: `${writtenChapterCount} ${isShortStory ? "段" : "章"}`, sectionId: "chapters" as const },
@@ -84,6 +87,17 @@ export function WorkDashboardHeader({
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+          {work ? (
+            <Link
+              href={aiObservabilityHref}
+              className="hidden h-10 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-emerald-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30 md:inline-flex"
+              title="AI 观测台"
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span>AI 观测台</span>
+            </Link>
+          ) : null}
+
           <span
             className="hidden max-w-[150px] truncate rounded-xl bg-white px-3 py-2 text-xs font-bold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] md:inline-flex"
             title={userDisplayName || "创作者"}
