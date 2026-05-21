@@ -88,14 +88,24 @@ export function WorkDashboardHeader({
 
           <div className="ml-auto flex items-center gap-2">
           {work ? (
-            <Link
-              href={aiObservabilityHref}
-              className="hidden h-10 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-emerald-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30 md:inline-flex"
-              title="AI 观测台"
-            >
-              <BarChart3 className="h-4 w-4" />
-              <span>AI 观测台</span>
-            </Link>
+            <>
+              <Link
+                href={aiObservabilityHref}
+                aria-label="AI 观测台"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-emerald-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30 md:hidden"
+                title="AI 观测台"
+              >
+                <BarChart3 className="h-4 w-4" />
+              </Link>
+              <Link
+                href={aiObservabilityHref}
+                className="hidden h-10 shrink-0 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-emerald-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-[var(--theme-border)] dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30 md:inline-flex"
+                title="AI 观测台"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>AI 观测台</span>
+              </Link>
+            </>
           ) : null}
 
           <span

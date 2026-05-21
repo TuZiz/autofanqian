@@ -1119,6 +1119,8 @@ test("work quality trend supports date ranges and dashboard page renders observa
   const pageSource = read("src/app/dashboard/novel/[id]/ai-observability/page.tsx");
   const viewSource = read("src/components/workbench/work-ai-observability-view.tsx");
   const tableSource = read("src/components/workbench/work-ai-observability-tables.tsx");
+  const chartSource = read("src/components/workbench/work-ai-observability-charts.tsx");
+  const exportSource = read("src/lib/workbench/ai-observability-export.ts");
   const hookSource = read("src/lib/workbench/use-ai-observability.ts");
   const headerSource = read("src/components/workbench/work-dashboard-header.tsx");
   const observabilitySource = read("src/lib/ai/work-ai-observability.ts");
@@ -1146,6 +1148,9 @@ test("work quality trend supports date ranges and dashboard page renders observa
   assert.match(hookSource, /modelMinJobs/);
   assert.match(hookSource, /chapterLimit/);
   assert.match(headerSource, /AI 观测台/);
+  assert.match(headerSource, /aria-label="AI 观测台"/);
+  assert.match(headerSource, /md:hidden/);
+  assert.match(headerSource, /md:inline-flex/);
   assert.match(headerSource, /\/dashboard\/novel\/\$\{encodeURIComponent\(work\.id\)\}\/ai-observability/);
   assert.match(observabilitySource, /getWorkQualityTrend\(workId, \{\s*limit: trendLimit,\s*orderBy: "chapterIndex",\s*from: options\.from,\s*to: options\.to,/s);
   assert.match(observabilitySource, /getModelQualityReport\(workId, \{\s*from: options\.from,\s*to: options\.to,/s);
@@ -1177,9 +1182,24 @@ test("work quality trend supports date ranges and dashboard page renders observa
     "bg-emerald-50",
     "bg-amber-50",
     "bg-red-50",
+    "QualityTrendChart",
+    "CostByActionChart",
+    "CostByModelChart",
+    "ModelQualityValueChart",
+    "导出质量趋势",
+    "导出模型质量",
+    "导出成本",
+    "exportQualityTrendCsv",
+    "exportModelQualityCsv",
+    "exportGenerationCostCsv",
   ]) {
-    assert.match(viewSource + tableSource, new RegExp(keyword));
+    assert.match(viewSource + tableSource + chartSource + exportSource, new RegExp(keyword));
   }
+  assert.match(chartSource, /from "recharts"/);
+  assert.match(chartSource, /slice\(0, 10\)/);
+  assert.match(chartSource, /其他/);
+  assert.match(exportSource, /replaceAll\('"', '""'\)/);
+  assert.match(exportSource, /中文|章节|质量问题/);
 });
 
 test("model recommendation report exposes quality value speed and exclusions", () => {

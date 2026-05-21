@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BarChart3,
   Clock3,
+  Download,
   Gauge,
   RefreshCw,
   Sparkles,
@@ -14,11 +15,22 @@ import {
 
 import type { ModelRecommendation } from "@/lib/ai/model-recommendation-report";
 import {
+  CostByActionChart,
+  CostByModelChart,
+  ModelQualityValueChart,
+  QualityTrendChart,
+} from "@/components/workbench/work-ai-observability-charts";
+import {
   ChapterGenerationTable,
   CostBreakdown,
   ModelQualityTable,
   QualityTrendTable,
 } from "@/components/workbench/work-ai-observability-tables";
+import {
+  exportGenerationCostCsv,
+  exportModelQualityCsv,
+  exportQualityTrendCsv,
+} from "@/lib/workbench/ai-observability-export";
 import type { WorkAiObservabilityData } from "@/lib/workbench/ai-observability-types";
 import { useAiObservability } from "@/lib/workbench/use-ai-observability";
 import { cn } from "@/lib/utils";
@@ -44,6 +56,23 @@ function formatPercent(value: number | null | undefined) {
 function modelLabel(providerId?: string | null, modelUsed?: string | null) {
   if (!providerId && !modelUsed) return "—";
   return [providerId, modelUsed].filter(Boolean).join(" / ");
+}
+
+function downloadCsv(filename: string, csv: string) {
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildExportFilename(workId: string, scope: string) {
+  const date = new Date().toISOString().slice(0, 10);
+  return `ai-observability-${workId}-${scope}-${date}.csv`;
 }
 
 export function WorkAiObservabilityView({ workId }: WorkAiObservabilityViewProps) {
@@ -155,12 +184,22 @@ export function WorkAiObservabilityView({ workId }: WorkAiObservabilityViewProps
           </section>
         ) : data ? (
           <div className="space-y-4">
+            <ExportToolbar data={data} workId={workId} />
             <SummaryCards summary={data.summary} />
             <LatestChapterReportPanel report={data.latestChapterReport} />
             <ModelRecommendationPanel recommendations={data.modelRecommendation} />
+            <QualityTrendChart qualityTrend={data.qualityTrend} />
             <QualityTrendTable rows={data.qualityTrend} />
+            <ModelQualityValueChart
+              modelQuality={data.modelQuality}
+              byModel={data.generationCost.byModel}
+            />
             <ModelQualityTable rows={data.modelQuality} />
             <ChapterGenerationTable rows={data.chapterGeneration} />
+            <section className="grid gap-4 xl:grid-cols-2">
+              <CostByActionChart byAction={data.generationCost.byAction} />
+              <CostByModelChart byModel={data.generationCost.byModel} />
+            </section>
             <CostBreakdown
               byAction={data.generationCost.byAction}
               byModel={data.generationCost.byModel}
@@ -241,6 +280,67 @@ function SummaryCards({ summary }: { summary: WorkAiObservabilityViewData["summa
 }
 
 type WorkAiObservabilityViewData = WorkAiObservabilityData;
+
+function ExportToolbar({
+  data,
+  workId,
+}: {
+  data: WorkAiObservabilityViewData;
+  workId: string;
+}) {
+  const buttons = [
+    {
+      disabled: !data.qualityTrend.length,
+      label: "导出质量趋势",
+      onClick: () => downloadCsv(
+        buildExportFilename(workId, "quality-trend"),
+        exportQualityTrendCsv(data.qualityTrend),
+      ),
+    },
+    {
+      disabled: !data.modelQuality.length,
+      label: "导出模型质量",
+      onClick: () => downloadCsv(
+        buildExportFilename(workId, "model-quality"),
+        exportModelQualityCsv(data.modelQuality),
+      ),
+    },
+    {
+      disabled: !data.generationCost.byAction.length && !data.generationCost.byModel.length,
+      label: "导出成本",
+      onClick: () => downloadCsv(
+        buildExportFilename(workId, "generation-cost"),
+        exportGenerationCostCsv(data.generationCost),
+      ),
+    },
+  ];
+
+  return (
+    <section className="flex flex-col gap-3 rounded-[1.4rem] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 className="text-sm font-black text-[var(--theme-text-strong)]">数据导出</h2>
+        <p className="text-xs font-semibold text-[var(--theme-text-muted)]">
+          前端生成 CSV，包含当前筛选结果。
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {buttons.map((button) => (
+          <button
+            key={button.label}
+            type="button"
+            onClick={button.onClick}
+            disabled={button.disabled}
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 text-xs font-black text-[var(--theme-text-secondary)] shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:bg-[var(--theme-surface-muted)] disabled:text-[var(--theme-text-muted)] disabled:shadow-none dark:bg-white/5 dark:hover:bg-emerald-500/10"
+            title={button.disabled ? "暂无可导出的数据" : button.label}
+          >
+            <Download className="h-3.5 w-3.5" />
+            {button.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function LatestChapterReportPanel({
   report,
