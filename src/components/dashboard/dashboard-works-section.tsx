@@ -11,7 +11,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DashboardWorkCard } from "@/components/dashboard/dashboard-work-card";
 import type { DashboardFilters } from "@/lib/dashboard/dashboard-types";
 import type { DashboardClientController } from "@/lib/dashboard/use-dashboard-client";
+import {
+  getWorkLibraryEmptyCopy,
+  hasActiveWorkLibraryFilter,
+} from "@/lib/dashboard/work-library-filter";
 import { cn } from "@/lib/utils";
+import type { WorkLibraryTypeFilter } from "@/shared/work-type";
 
 type DashboardWorksSectionProps = {
   dashboard: DashboardClientController;
@@ -30,7 +35,7 @@ export function DashboardWorksSection({ dashboard }: DashboardWorksSectionProps)
 
   const works = overview?.works ?? [];
   const totalWorks = overview?.pagination?.total ?? 0;
-  const hasFilters = hasActiveFilter(filters);
+  const hasFilters = hasActiveWorkLibraryFilter(filters);
   const [filterExpanded, setFilterExpanded] = useState(false);
 
   const page = filters.page;
@@ -51,6 +56,11 @@ export function DashboardWorksSection({ dashboard }: DashboardWorksSectionProps)
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <TypeFilterTabs
+              value={filters.type}
+              onChange={(value) => updateFilters({ type: value })}
+            />
+
             <div className="group relative flex h-9 w-full items-center overflow-hidden rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-sm transition-all focus-within:border-[var(--theme-brand-border)] focus-within:ring-2 focus-within:ring-emerald-500/15 sm:w-[240px]">
               <div className="pl-3 text-zinc-400 group-focus-within:text-[var(--theme-brand-600)]">
                 <Search className="h-4 w-4" />
@@ -141,7 +151,7 @@ export function DashboardWorksSection({ dashboard }: DashboardWorksSectionProps)
                   >
                     <option value="updated_desc">最近更新</option>
                     <option value="created_desc">最新创建</option>
-                    <option value="words_desc">字数最多</option>
+                    <option value="word_desc">字数最多</option>
                   </select>
                 </div>
               </div>
@@ -164,7 +174,7 @@ export function DashboardWorksSection({ dashboard }: DashboardWorksSectionProps)
             />
           ))
         ) : (
-          <EmptyWorksState hasFilters={hasFilters} onCreate={() => router.push("/dashboard/create")} />
+          <EmptyWorksState filters={filters} onCreate={() => router.push("/dashboard/create")} />
         )}
       </div>
 
@@ -208,6 +218,47 @@ function FilterField({
         />
       </div>
     </label>
+  );
+}
+
+function TypeFilterTabs({
+  onChange,
+  value,
+}: {
+  onChange: (value: WorkLibraryTypeFilter) => void;
+  value: WorkLibraryTypeFilter;
+}) {
+  const options: Array<{ label: string; value: WorkLibraryTypeFilter }> = [
+    { label: "全部", value: "all" },
+    { label: "长篇", value: "long" },
+    { label: "短篇", value: "short" },
+  ];
+
+  return (
+    <div
+      className="flex h-9 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-0.5 shadow-sm"
+      aria-label="作品类型筛选"
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={active}
+            className={cn(
+              "inline-flex h-8 items-center rounded px-3 text-xs font-bold transition-all",
+              active
+                ? "bg-zinc-950 text-white shadow-sm dark:bg-white dark:text-zinc-950"
+                : "text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]",
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -280,21 +331,27 @@ function PaginationBar({
   );
 }
 
-function EmptyWorksState({ hasFilters, onCreate }: { hasFilters: boolean; onCreate: () => void }) {
+function EmptyWorksState({
+  filters,
+  onCreate,
+}: {
+  filters: DashboardFilters;
+  onCreate: () => void;
+}) {
+  const copy = getWorkLibraryEmptyCopy(filters);
+
   return (
     <div className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-[var(--theme-border)] bg-zinc-50/50 p-10 text-center shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
       <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-xl bg-zinc-100/80 text-zinc-400 shadow-inner ring-1 ring-[var(--theme-border)] dark:bg-zinc-800/80 dark:text-zinc-500 dark:ring-[var(--theme-border)]">
         <FileText className="h-8 w-8" aria-hidden />
       </div>
       <h3 className="text-2xl font-extrabold tracking-tight text-zinc-950 dark:text-white">
-        {hasFilters ? "没有匹配的作品" : "这里还空空如也"}
+        {copy.title}
       </h3>
       <p className="mt-3 max-w-md text-sm font-bold leading-relaxed text-zinc-500 dark:text-zinc-400">
-        {hasFilters
-          ? "尝试放宽筛选条件，或者换一个关键词再搜索。"
-          : "开启你的第一部作品，工作台会逐步形成你的创作总览。"}
+        {copy.description}
       </p>
-      {!hasFilters && (
+      {copy.canCreate && (
         <button
           onClick={onCreate}
           className="mt-8 inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-8 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-xl hover:shadow-emerald-500/25 active:scale-[0.98] dark:bg-emerald-500 dark:hover:bg-emerald-400"
@@ -305,8 +362,4 @@ function EmptyWorksState({ hasFilters, onCreate }: { hasFilters: boolean; onCrea
       )}
     </div>
   );
-}
-
-function hasActiveFilter(filters: DashboardFilters) {
-  return Boolean(filters.q.trim() || filters.genreId.trim() || filters.tag.trim() || filters.owner.trim());
 }

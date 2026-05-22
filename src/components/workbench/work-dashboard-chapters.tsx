@@ -48,7 +48,7 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
               {isShortStory ? "场景面板" : "章节面板"}
             </div>
             <h3 className="mt-0.5 text-[1.34rem] font-extrabold tracking-tight text-[var(--theme-text-strong)]">
-              {isShortStory ? "场景工作台" : "章节工作台"}
+              {isShortStory ? "短篇正文" : "章节工作台"}
             </h3>
           </div>
         </div>
@@ -79,7 +79,7 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
 
       <p className="mt-2 max-w-2xl text-[13px] font-semibold leading-6 text-[var(--theme-text-muted)]">
         {isShortStory
-          ? "快速查看全部短篇场景，筛出未写内容，或直接跳转到对应写作页。"
+          ? "底层仍以正文文档保存，创作时可按 beats 跳转，但这里以短篇正文为主。"
           : "快速查看全部章节，筛出未写内容，或直接跳转到对应写作页。"}
       </p>
 
@@ -118,7 +118,7 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
           <table className="w-full table-fixed text-left text-sm">
             <thead className="sticky top-0 z-10 border-b border-[var(--theme-border)] bg-stone-50/95 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)] backdrop-blur dark:bg-stone-950/95">
               <tr>
-                <th className="w-[38%] px-4 py-2.5 font-bold">{isShortStory ? "场景" : "章节"}</th>
+                <th className="w-[38%] px-4 py-2.5 font-bold">{isShortStory ? "正文段落" : "章节"}</th>
                 <th className="w-[15%] px-3 py-2.5 font-bold">状态</th>
                 <th className="w-[15%] px-3 py-2.5 font-bold">字数</th>
                 <th className="w-[16%] px-3 py-2.5 font-bold">更新</th>
@@ -132,10 +132,10 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
                     <td className="px-4 py-3">
                       <div className="flex min-w-0 items-center gap-2.5">
                         <span className="inline-flex h-8 min-w-[62px] shrink-0 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] px-2 text-[11px] font-black text-[var(--theme-text-muted)] shadow-sm">
-                          {isShortStory ? `场景 ${chapter.index}` : `第${chapter.index}章`}
+                          {isShortStory ? (chapter.index === 1 ? "正文" : `Beat ${chapter.index}`) : `第${chapter.index}章`}
                         </span>
                         <span className="truncate text-sm font-bold text-[var(--theme-text-strong)]">
-                          {chapter.title || (isShortStory ? "未命名场景" : "未命名章节")}
+                          {chapter.title || (isShortStory ? "短篇正文" : "未命名章节")}
                         </span>
                       </div>
                     </td>

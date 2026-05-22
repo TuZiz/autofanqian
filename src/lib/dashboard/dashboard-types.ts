@@ -1,5 +1,5 @@
 import type { SessionAccessFields } from "@/lib/auth/session-user-types";
-import type { WorkTypeValue } from "@/shared/work-type";
+import type { WorkLibraryTypeFilter, WorkTypeValue } from "@/shared/work-type";
 
 export type SessionUser = SessionAccessFields & {
   id: string;
@@ -87,6 +87,7 @@ export type DashboardFilters = {
   genreId: string;
   tag: string;
   owner: string;
+  type: WorkLibraryTypeFilter;
   sort: DashboardSortKey;
   page: number;
   pageSize: number;

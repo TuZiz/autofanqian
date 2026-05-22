@@ -25,6 +25,7 @@ import {
   type SidebarSectionKey,
 } from "./chapter-editor-sidebar-panels";
 import { ChapterConsistencyPanel } from "./chapter-consistency-panel";
+import { ShortStoryActionPanel } from "./short-story-action-panel";
 
 const rewriteQuickActions = [
   { action: "polish", label: aiZhCN.chapterRewrite.actions.polish.label },
@@ -104,7 +105,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
                   上下文工具
                 </p>
                 <h2 className="mt-1 truncate text-base font-bold tracking-tight text-[var(--theme-text-strong)]">
-                  {currentChapterLabel}
+                  {isShortStory ? "短篇正文" : currentChapterLabel}
                 </h2>
               </div>
               <span
@@ -119,9 +120,11 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
               </span>
             </div>
             <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--theme-text-secondary)]">
-              {title || (isShortStory ? "未命名场景" : "未命名章节")} · 摘要、{isShortStory ? "段落提示" : "大纲"}与细节设定会作为{isShortStory ? "本场景" : "本章"}写作上下文。
+              {title || (isShortStory ? "短篇正文" : "未命名章节")} · 摘要、{isShortStory ? "段落提示" : "大纲"}与细节设定会作为{isShortStory ? "短篇正文" : "本章"}写作上下文。
             </p>
           </section>
+
+          {isShortStory ? <ShortStoryActionPanel editor={editor} /> : null}
 
           <section className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-3">
             <div className="flex items-start gap-2">

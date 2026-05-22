@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { storyOutlineSchema } from "@/lib/create/outline-schema";
+import { WORK_LIBRARY_TYPE_FILTERS } from "@/shared/work-type";
 
 export const workDraftSchema = z.object({
   genre: z.string().min(1).max(64),
@@ -36,6 +37,7 @@ export const workListQuerySchema = z.object({
   genreId: z.string().trim().max(80).optional(),
   tag: z.string().trim().max(80).optional(),
   owner: z.string().trim().max(200).optional(),
+  type: z.enum(WORK_LIBRARY_TYPE_FILTERS).default("all"),
   sort: workListSortSchema.default("updated_desc"),
   page: z.coerce.number().int().min(1).max(500).default(1),
   pageSize: z.coerce.number().int().min(5).max(200).default(80),

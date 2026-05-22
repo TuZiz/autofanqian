@@ -16,6 +16,7 @@ const DEFAULT_FILTERS: DashboardFilters = {
   genreId: "",
   tag: "",
   owner: "",
+  type: "all",
   sort: "updated_desc",
   page: 1,
   pageSize: 80,
@@ -27,6 +28,7 @@ function buildWorksUrl(nextFilters: DashboardFilters) {
   if (nextFilters.genreId.trim()) params.set("genreId", nextFilters.genreId.trim());
   if (nextFilters.tag.trim()) params.set("tag", nextFilters.tag.trim());
   if (nextFilters.owner.trim()) params.set("owner", nextFilters.owner.trim());
+  if (nextFilters.type !== "all") params.set("type", nextFilters.type);
   if (nextFilters.sort) params.set("sort", nextFilters.sort);
   params.set("page", String(nextFilters.page));
   params.set("pageSize", String(nextFilters.pageSize));

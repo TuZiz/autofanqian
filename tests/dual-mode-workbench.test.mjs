@@ -20,7 +20,11 @@ test("short story mode exposes structure templates and no long-volume flow", () 
   for (const words of ["3000", "5000", "8000", "12000", "20000"]) {
     assert.match(schema, new RegExp(words));
   }
-  assert.match(view, /创意输入 → 短篇结构 → 全文生成 → 润色导出/);
+  assert.match(view, /一篇完结 · 快速成稿 · 可润色投稿和导出/);
+  assert.match(view, /确定创意/);
+  assert.match(view, /短篇结构/);
+  assert.match(view, /一键成文/);
+  assert.match(view, /润色导出/);
   assert.match(prompt, /不要套用长篇分卷分章流程/);
 });
 
@@ -85,7 +89,7 @@ test("export API supports chapter, book and short story markdown/txt/docx", () =
   assert.match(route, /docx/);
   assert.match(route, /buildDocxBuffer/);
   assert.match(previewRoute, /workExportPreviewQuerySchema/);
-  assert.match(main, /scope="chapter"/);
+  assert.match(main, /scope=\{isShortStory \? "short_story" : "chapter"\}/);
   assert.match(header, /<ExportDownloadButton[\s\S]*scope=\{exportScope\}/);
 });
 

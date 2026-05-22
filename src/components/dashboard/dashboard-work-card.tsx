@@ -12,7 +12,7 @@ import {
   getTitleInitial,
 } from "@/lib/dashboard/dashboard-visual";
 import type { DashboardWork } from "@/lib/dashboard/dashboard-types";
-import { isShortStoryWork } from "@/shared/work-type";
+import { getWorkTypeBadgeCopy, isShortStoryWork } from "@/shared/work-type";
 
 type DashboardWorkCardProps = {
   canDeleteWork: boolean;
@@ -36,6 +36,7 @@ export function DashboardWorkCard({
   const wordStat = formatWordStat(work.wordCount);
   const ownerLine = work.owner?.name || work.owner?.email;
   const shortStory = isShortStoryWork(work.workType);
+  const typeCopy = getWorkTypeBadgeCopy(work.workType);
 
   const progressPercent = progressParams.hasTarget
     ? Number(progressParams.percent)
@@ -58,7 +59,10 @@ export function DashboardWorkCard({
           <div className="min-w-0">
             <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
               <span className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--theme-text-secondary)]">
-                {shortStory ? "短篇小说" : work.tag || "小说"}
+                {typeCopy.primary}
+              </span>
+              <span className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--theme-text-secondary)]">
+                {shortStory ? "一篇完结" : "连载作品"}
               </span>
               <span className="rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--theme-text-secondary)]">
                 {work.genreLabel || "未分类"}

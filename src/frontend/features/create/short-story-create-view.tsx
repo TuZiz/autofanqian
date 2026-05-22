@@ -15,7 +15,12 @@ import Link from "next/link";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { SHORT_STORY_ENDING_LABELS } from "@/shared/schemas/short-story";
-import type { ShortStoryCreateController } from "@/lib/create/use-short-story-create";
+import {
+  getShortStoryStageMessage,
+  getShortStoryWordOptionHint,
+  SHORT_STORY_STRUCTURE_TEMPLATE_HINTS,
+  type ShortStoryCreateController,
+} from "@/lib/create/use-short-story-create";
 import { cn } from "@/lib/utils";
 
 import { CreateModeSwitch } from "./create-mode-switch";
@@ -33,18 +38,7 @@ type ShortStoryCreateViewProps = {
 };
 
 export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
-  const stageText =
-    create.stage === "outline"
-      ? "AI 正在整理短篇结构..."
-      : create.stage === "work"
-        ? "正在保存短篇作品和正文..."
-        : create.stage === "queued"
-          ? "长文本短篇已进入后台分段生成。"
-          : create.stage === "failed"
-            ? "后台生成失败，可直接重试。"
-            : create.stage === "done"
-              ? "创建完成，即将进入作品页。"
-              : "填写创意后，一次生成完整短篇作品。";
+  const stageText = getShortStoryStageMessage(create.stage);
 
   return (
     <main className="create-modern-shell min-h-dvh w-full overflow-x-clip bg-[#f7f8fa] text-slate-900">
@@ -66,7 +60,7 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                   短篇小说
                 </h1>
                 <p className="hidden truncate text-[13px] font-medium text-slate-500 sm:block">
-                  创意输入 → 短篇结构 → 全文生成 → 润色导出
+                  一篇完结 · 快速成稿 · 可润色投稿和导出
                 </p>
               </div>
               <div className="hidden md:block">
@@ -100,6 +94,7 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                     Short Story
                   </div>
                   <h2 className="text-base font-extrabold text-slate-950">短篇模式</h2>
+                  <p className="mt-0.5 text-[11px] font-semibold text-slate-500">从钩子到结尾，一次完成一篇故事。</p>
                 </div>
               </div>
               <div className="mt-3 space-y-2">
@@ -131,8 +126,11 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                     01 / 创意设定
                   </div>
                   <h2 className="mt-1 text-[24px] font-extrabold tracking-tight text-slate-950">
-                    一键生成完整短篇
+                    一键生成一篇完结短篇
                   </h2>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+                    专为短篇设计：结构 beats、正文、润色和导出在同一条创作线上完成。
+                  </p>
                 </div>
                 <div className="inline-flex items-center rounded-full border border-slate-200 create-tint px-3 py-2 text-xs font-bold text-slate-500">
                   {create.ideaCount}/2000
@@ -190,10 +188,13 @@ export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
                     >
                       {create.wordOptions.map((words) => (
                         <option key={words} value={words}>
-                          {words.toLocaleString("zh-CN")} 字
+                          {words.toLocaleString("zh-CN")} 字 · {getShortStoryWordOptionHint(words)}
                         </option>
                       ))}
                     </select>
+                    <p className="mt-1.5 text-xs font-semibold text-slate-500">
+                      {getShortStoryWordOptionHint(create.targetWords)}
+                    </p>
                     <FieldError message={create.fieldErrors.targetWords} />
                   </div>
                 </div>
@@ -424,19 +425,37 @@ function SegmentGroup<T extends string>({
             key={option}
             type="button"
             onClick={() => onChange(option)}
+            title={getOptionHint(label, option)}
             className={cn(
-              "h-9 rounded-xl border px-3 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5",
+              "min-h-9 rounded-xl border px-3 py-1.5 text-left text-sm font-bold transition-all duration-200 hover:-translate-y-0.5",
               value === option
                 ? "border-transparent create-accent text-white shadow-[0_14px_24px_-18px_rgba(20,32,29,0.78)]"
                 : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-[var(--create-tint)] hover:text-slate-950",
             )}
           >
-            {option}
+            <span className="block leading-5">{option}</span>
+            {getOptionHint(label, option) ? (
+              <span
+                className={cn(
+                  "block text-[10px] font-semibold leading-4",
+                  value === option ? "text-white/75" : "text-slate-400",
+                )}
+              >
+                {getOptionHint(label, option)}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
     </div>
   );
+}
+
+function getOptionHint(label: string, option: string) {
+  if (label !== "结构模板") return "";
+  return SHORT_STORY_STRUCTURE_TEMPLATE_HINTS[
+    option as keyof typeof SHORT_STORY_STRUCTURE_TEMPLATE_HINTS
+  ] ?? "";
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {

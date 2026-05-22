@@ -22,6 +22,13 @@ import type {
 import { useWorkDashboardBootstrap } from "./use-work-dashboard-bootstrap";
 import { isShortStoryWork } from "@/shared/work-type";
 
+function hasOutlineField<K extends string>(
+  outline: unknown,
+  key: K,
+): outline is Record<K, unknown> {
+  return Boolean(outline && typeof outline === "object" && key in outline);
+}
+
 export function useWorkDashboard(workId: string) {
   const router = useRouter();
 
@@ -312,14 +319,16 @@ export function useWorkDashboard(workId: string) {
   const editedChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
   const targetChapterCount =
     work?.targetChapters ||
-    (!isShortStory && outline && "targetChapters" in outline ? outline.targetChapters : undefined) ||
-    (!isShortStory && outline && "totalChapters" in outline ? outline.totalChapters : undefined) ||
+    (!isShortStory && hasOutlineField(outline, "targetChapters") && typeof outline.targetChapters === "number" ? outline.targetChapters : undefined) ||
+    (!isShortStory && hasOutlineField(outline, "totalChapters") && typeof outline.totalChapters === "number" ? outline.totalChapters : undefined) ||
     maxChapterIndex ||
     chapters.length ||
     0;
   const plannedChapterCount = Math.max(
     work?.plannedUntilChapter || 0,
-    outline && "plannedUntilChapter" in outline ? outline.plannedUntilChapter || 0 : 0,
+    hasOutlineField(outline, "plannedUntilChapter") && typeof outline.plannedUntilChapter === "number"
+      ? outline.plannedUntilChapter
+      : 0,
     maxChapterIndex,
     chapters.length,
   );

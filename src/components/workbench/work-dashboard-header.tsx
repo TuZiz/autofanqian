@@ -6,6 +6,7 @@ import { ExportDownloadButton } from "@/components/workbench/export-download-but
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LogoutConfirmDialog } from "@/components/ui/logout-confirm-dialog";
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
+import { getShortStoryOutlineCount } from "@/lib/workbench/short-story-outline-view-model";
 import { cn } from "@/lib/utils";
 import { isShortStoryWork } from "@/shared/work-type";
 
@@ -42,11 +43,13 @@ export function WorkDashboardHeader({
     ? `/dashboard/work/${encodeURIComponent(work.id)}/bible`
     : "";
   const exportScope = isShortStory ? ("short_story" as const) : ("book" as const);
+  const shortOutlineCount = getShortStoryOutlineCount(work?.outline ?? outline, work?.rawOutline);
+  const characterCount = isShortStory ? shortOutlineCount.characters : outline?.characters.length ?? 0;
   const sectionTabs = [
     { label: "总览", value: `${progressPercent || 0}%`, sectionId: "overview" as const },
-    { label: isShortStory ? "场景" : "章节", value: `${writtenChapterCount} ${isShortStory ? "段" : "章"}`, sectionId: "chapters" as const },
-    { label: isShortStory ? "结构" : "卷纲", value: `${plannedChapterCount || chapters.length} ${isShortStory ? "段" : "章"}`, sectionId: "outline" as const },
-    { label: "人物", value: `${outline?.characters.length ?? 0} 人`, sectionId: "characters" as const },
+    { label: isShortStory ? "正文" : "章节", value: `${writtenChapterCount} ${isShortStory ? "篇" : "章"}`, sectionId: "chapters" as const },
+    { label: isShortStory ? "Beats" : "卷纲", value: `${isShortStory ? shortOutlineCount.beats : plannedChapterCount || chapters.length} ${isShortStory ? "个" : "章"}`, sectionId: "outline" as const },
+    { label: "人物", value: `${characterCount} 人`, sectionId: "characters" as const },
     { label: "设定", value: `${targetChapterCount || 0} ${isShortStory ? "段" : "章"}`, sectionId: "context" as const },
   ];
 

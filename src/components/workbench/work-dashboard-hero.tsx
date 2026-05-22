@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Compass, Gauge, Loader2, PencilLine, Save, Sparkles, X } from "lucide-react";
+import { Check, Compass, Download, FileText, Gauge, Loader2, PencilLine, Save, Sparkles, WandSparkles, X } from "lucide-react";
 
+import { ExportDownloadButton } from "@/components/workbench/export-download-button";
+import { ShortStoryOutlineView } from "@/components/workbench/short-story-outline-view";
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
+import { buildShortStoryOutlineViewModel } from "@/lib/workbench/short-story-outline-view-model";
 import { cn } from "@/lib/utils";
 import { isShortStoryWork } from "@/shared/work-type";
 
@@ -35,6 +38,12 @@ export function WorkDashboardHero({ dashboard }: { dashboard: WorkDashboardContr
   const writtenChapterCount = chapters.filter((chapter) => chapter.wordCount > 0).length;
   const tagSummary = work?.tags?.slice(0, 5).join("、");
   const isShortStory = isShortStoryWork(work?.workType);
+  const shortOutline = isShortStory
+    ? buildShortStoryOutlineViewModel(work?.outline ?? outline, work?.rawOutline)
+    : null;
+  const firstReadableChapter = chapters.find((chapter) => chapter.wordCount > 0) ?? chapters[0] ?? null;
+  const shortBodyIndex = firstReadableChapter?.index ?? 1;
+  const shortWordCount = chapters.reduce((sum, chapter) => sum + Math.max(0, chapter.wordCount), 0);
 
   function openTitleDialog() {
     if (!work || workTitleSaving) return;
@@ -157,12 +166,97 @@ export function WorkDashboardHero({ dashboard }: { dashboard: WorkDashboardContr
             </button>
           ) : null}
 
+          {isShortStory && work ? (
+            <div className="mt-3 rounded-[1.3rem] border border-emerald-200/70 bg-emerald-50/65 p-3 shadow-[0_14px_28px_-24px_rgba(16,185,129,0.32)] dark:border-emerald-500/25 dark:bg-emerald-500/10">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700 ring-1 ring-emerald-200/70 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/25">
+                    <Check className="h-3.5 w-3.5" />
+                    短篇已生成
+                  </div>
+                  <h3 className="mt-2 text-lg font-extrabold tracking-tight text-[var(--theme-text-strong)]">
+                    这是一篇完结短篇，可直接阅读、润色或导出投稿稿件。
+                  </h3>
+                  <p className="mt-1 text-sm font-semibold text-[var(--theme-text-secondary)]">
+                    正文 {shortWordCount.toLocaleString("zh-CN")} 字 · {shortOutline?.beats.length ?? 0} 个 beats · 结局 {shortOutline?.endingLabel ?? "未指定"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => dashboard.goToChapter(shortBodyIndex)}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-white dark:text-zinc-950"
+                  >
+                    <FileText className="h-4 w-4" />
+                    阅读正文
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dashboard.goToChapter(shortBodyIndex)}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white/90 px-3.5 text-sm font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-50 active:scale-[0.98] dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-200"
+                  >
+                    <WandSparkles className="h-4 w-4" />
+                    继续润色
+                  </button>
+                  <ExportDownloadButton
+                    workId={work.id}
+                    scope="short_story"
+                    format="txt"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[var(--theme-border)] bg-white/90 px-3 text-xs font-bold text-[var(--theme-text-secondary)] shadow-sm transition hover:bg-white hover:text-[var(--theme-text-strong)]"
+                    title="导出短篇 TXT"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    TXT
+                  </ExportDownloadButton>
+                  <ExportDownloadButton
+                    workId={work.id}
+                    scope="short_story"
+                    format="md"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[var(--theme-border)] bg-white/90 px-3 text-xs font-bold text-[var(--theme-text-secondary)] shadow-sm transition hover:bg-white hover:text-[var(--theme-text-strong)]"
+                    title="导出短篇 Markdown"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Markdown
+                  </ExportDownloadButton>
+                  <ExportDownloadButton
+                    workId={work.id}
+                    scope="short_story"
+                    format="docx"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-[var(--theme-border)] bg-white/90 px-3 text-xs font-bold text-[var(--theme-text-secondary)] shadow-sm transition hover:bg-white hover:text-[var(--theme-text-strong)]"
+                    title="导出短篇 DOCX"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    DOCX
+                  </ExportDownloadButton>
+                  <button
+                    type="button"
+                    onClick={() => window.location.assign("/dashboard")}
+                    className="inline-flex h-9 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-white/90 px-3 text-xs font-bold text-[var(--theme-text-secondary)] shadow-sm transition hover:bg-white hover:text-[var(--theme-text-strong)]"
+                  >
+                    返回作品库
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isShortStory ? (
+            <div className="mt-3">
+              <ShortStoryOutlineView
+                compact
+                outline={work?.outline ?? outline}
+                rawOutline={work?.rawOutline}
+                onOpenBeat={(index) => dashboard.goToChapter(index)}
+              />
+            </div>
+          ) : null}
+
           <div className="mt-3 grid gap-2 sm:grid-cols-2 min-[1200px]:hidden">
             <HeroMetricCard label="总进度" value={`${progressPercent || 0}%`} tone="brand" />
-            <HeroMetricCard label={isShortStory ? "已写场景" : "已写章节"} value={`${writtenChapterCount} ${isShortStory ? "段" : "章"}`} />
-            <HeroMetricCard label={isShortStory ? "已拆场景" : "已规划"} value={`${plannedChapterCount || chapters.length} ${isShortStory ? "段" : "章"}`} />
-            <HeroMetricCard label="角色档案" value={`${outline?.characters.length ?? 0} 人`} />
-            <HeroMetricCard label={isShortStory ? "短篇目标" : "长期目标"} value={`${targetChapterCount || 0} ${isShortStory ? "段" : "章"}`} />
+            <HeroMetricCard label={isShortStory ? "正文" : "已写章节"} value={`${writtenChapterCount} ${isShortStory ? "篇" : "章"}`} />
+            <HeroMetricCard label={isShortStory ? "Beats" : "已规划"} value={`${isShortStory ? shortOutline?.beats.length ?? 0 : plannedChapterCount || chapters.length} ${isShortStory ? "个" : "章"}`} />
+            <HeroMetricCard label="角色档案" value={`${isShortStory ? shortOutline?.characters.length ?? 0 : outline?.characters.length ?? 0} 人`} />
+            <HeroMetricCard label={isShortStory ? "目标字数" : "长期目标"} value={isShortStory ? `${shortOutline?.targetWords?.toLocaleString("zh-CN") ?? 0} 字` : `${targetChapterCount || 0} 章`} />
           </div>
         </div>
 

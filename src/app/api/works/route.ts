@@ -30,6 +30,7 @@ export async function GET(request: Request) {
       genreId: url.searchParams.get("genreId") ?? undefined,
       tag: url.searchParams.get("tag") ?? undefined,
       owner: url.searchParams.get("owner") ?? undefined,
+      type: url.searchParams.get("type") ?? undefined,
       sort: url.searchParams.get("sort") ?? undefined,
       page: url.searchParams.get("page") ?? undefined,
       pageSize: url.searchParams.get("pageSize") ?? undefined,

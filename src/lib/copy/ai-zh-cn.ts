@@ -157,7 +157,7 @@ export const aiZhCN = {
     loadingTitle: "AI 正在处理本章",
     loadingDescription: "正在调整句子、节奏和细节...",
     blockedEmpty: "当前正文为空，不能改写。",
-    blockedDraft: "当前正文还只是草稿，请先点“正式保存”后再改写。",
+    blockedDraft: "当前正文还只是草稿，请先保存后再改写。",
     blockedSaving: "保存完成后再改写。",
     blockedBusy: "AI 正在处理，请稍后再试。",
     failed: "改写失败，请稍后重试。",

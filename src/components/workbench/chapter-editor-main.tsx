@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ExportDownloadButton } from "@/components/workbench/export-download-button";
 import { aiZhCN } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
+import { formatWorkbenchDocumentLabel } from "@/lib/workbench/work-document-label";
 import { cn } from "@/lib/utils";
 import { isShortStoryWork } from "@/shared/work-type";
 
@@ -39,7 +40,7 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
   } = editor;
 
   const isShortStory = isShortStoryWork(work?.workType);
-  const currentChapterLabel = formatChapterLabel(chapterIndex, work?.workType);
+  const currentChapterLabel = formatWorkbenchDocumentLabel(chapterIndex, work?.workType);
   const contextPreview =
     summaryPreview ||
     outlinePreviewLines.join("；") ||
@@ -63,6 +64,10 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
     { action: "增强结尾追读感", label: "结尾追读" },
     { action: "对话自然化", label: "对话自然" },
   ] as const;
+  const editorTitlePlaceholder = isShortStory ? "短篇正文标题" : `${currentChapterLabel}标题`;
+  const contentPlaceholder = isShortStory
+    ? "开始打磨这一篇短篇正文..."
+    : "开始您的创作...";
 
   function syncSelection(target: HTMLTextAreaElement) {
     const start = target.selectionStart;
@@ -133,36 +138,36 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
           </button>
           {work ? (
             <div className="hidden items-center gap-1 rounded-md bg-zinc-100 p-0.5 dark:bg-zinc-800 sm:flex">
-              <ExportDownloadButton
-                workId={work.id}
-                scope="chapter"
-                chapterIndex={chapterIndex}
-                format="txt"
+                <ExportDownloadButton
+                  workId={work.id}
+                  scope={isShortStory ? "short_story" : "chapter"}
+                  chapterIndex={isShortStory ? undefined : chapterIndex}
+                  format="txt"
                 className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
-                title="导出当前章节 TXT"
-              >
+                  title={isShortStory ? "导出短篇 TXT" : "导出当前章节 TXT"}
+                >
                 <Download className="h-3.5 w-3.5" />
                 TXT
               </ExportDownloadButton>
-              <ExportDownloadButton
-                workId={work.id}
-                scope="chapter"
-                chapterIndex={chapterIndex}
-                format="md"
+                <ExportDownloadButton
+                  workId={work.id}
+                  scope={isShortStory ? "short_story" : "chapter"}
+                  chapterIndex={isShortStory ? undefined : chapterIndex}
+                  format="md"
                 className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
-                title="导出当前章节 Markdown"
-              >
+                  title={isShortStory ? "导出短篇 Markdown" : "导出当前章节 Markdown"}
+                >
                 <FileText className="h-3.5 w-3.5" />
                 MD
               </ExportDownloadButton>
-              <ExportDownloadButton
-                workId={work.id}
-                scope="chapter"
-                chapterIndex={chapterIndex}
-                format="docx"
+                <ExportDownloadButton
+                  workId={work.id}
+                  scope={isShortStory ? "short_story" : "chapter"}
+                  chapterIndex={isShortStory ? undefined : chapterIndex}
+                  format="docx"
                 className="inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-bold text-zinc-600 transition hover:bg-white hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white"
-                title="导出当前章节 DOCX"
-              >
+                  title={isShortStory ? "导出短篇 DOCX" : "导出当前章节 DOCX"}
+                >
                 <FileText className="h-3.5 w-3.5" />
                 DOCX
               </ExportDownloadButton>
@@ -265,7 +270,7 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
             value={title}
             onChange={(event) => updateTitle(event.target.value)}
             disabled={!work || effectiveAiBusy}
-            placeholder={`${currentChapterLabel}标题`}
+            placeholder={editorTitlePlaceholder}
             className="w-full rounded-lg border border-transparent bg-transparent px-2 py-2 text-2xl font-medium tracking-tight text-[var(--theme-text-strong)] placeholder:text-zinc-300 focus:border-[var(--theme-border)] focus:bg-[var(--theme-surface-strong)] focus:outline-none disabled:opacity-50 dark:placeholder:text-zinc-700 sm:text-3xl"
           />
           <div className="absolute -left-12 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 hidden sm:block">
@@ -305,12 +310,14 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
               className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-zinc-900 px-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-45 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
             >
               <Sparkles className="h-3.5 w-3.5" />
-              整章 AI 改写
+              {isShortStory ? "整篇 AI 改写" : "整章 AI 改写"}
             </button>
             <div className="min-w-0 text-xs font-semibold text-[var(--theme-text-muted)]">
               {selectedLength
                 ? `已选中 ${selectedLength.toLocaleString("zh-CN")} 字，可只改写选中文本`
-                : "可整章改写，或选中正文后只改写选中文本"}
+                : isShortStory
+                  ? "可整篇改写，或选中正文后只改写选中文本"
+                  : "可整章改写，或选中正文后只改写选中文本"}
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -342,7 +349,7 @@ export function ChapterEditorMain({ editor }: { editor: WorkChapterEditorControl
             onKeyUp={(event) => syncSelection(event.currentTarget)}
             onMouseUp={(event) => syncSelection(event.currentTarget)}
             disabled={!work || effectiveAiBusy}
-            placeholder={`开始您的创作...`}
+            placeholder={contentPlaceholder}
             className="h-full min-h-[52vh] w-full resize-y rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-4 py-3 text-base font-medium leading-8 text-[var(--theme-text-primary)] shadow-sm placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/15 disabled:opacity-50 dark:placeholder:text-zinc-700 sm:text-[18px] lg:min-h-0"
           />
         </div>
@@ -425,9 +432,4 @@ function SaveInlineStatus({
       {label}
     </span>
   );
-}
-
-function formatChapterLabel(index: number, workType?: string | null) {
-  if (isShortStoryWork(workType)) return `场景 ${Math.max(1, index)}`;
-  return `第 ${Math.max(1, index)} 章`;
 }

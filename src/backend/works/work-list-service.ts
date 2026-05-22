@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import type { WorkListQuery, WorkListSort } from "@/shared/schemas/work-api";
+import { matchesWorkLibraryTypeFilter } from "@/shared/work-type";
 
 type ListWorksParams = {
   isAdmin: boolean;
@@ -261,7 +262,10 @@ export async function listWorksForUser(params: ListWorksParams) {
     };
   });
 
-  const sortedSummaries = sortSummaries(workSummaries, query.sort);
+  const filteredSummaries = workSummaries.filter((work) =>
+    matchesWorkLibraryTypeFilter(work.workType, query.type),
+  );
+  const sortedSummaries = sortSummaries(filteredSummaries, query.sort);
   const skip = (query.page - 1) * query.pageSize;
   const pagedSummaries = sortedSummaries.slice(skip, skip + query.pageSize);
 

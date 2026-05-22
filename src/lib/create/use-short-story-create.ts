@@ -18,6 +18,31 @@ import {
 import type { SerializedGenerationJob } from "@/shared/schemas/generation-job";
 
 type ShortStoryStage = "idle" | "outline" | "work" | "queued" | "failed" | "done";
+export const SHORT_STORY_STRUCTURE_TEMPLATE_HINTS = {
+  "三幕式": "稳定完整",
+  "反转式": "适合结尾爆点",
+  "悬疑式": "适合钩子和谜底",
+  "爽文式": "适合强冲突和高反馈",
+  "虐恋式": "适合情绪拉扯",
+  "治愈式": "适合温暖落点",
+} as const satisfies Record<(typeof SHORT_STORY_STRUCTURE_TEMPLATES)[number], string>;
+
+export function getShortStoryWordOptionHint(words: number) {
+  return words <= 5000 ? "适合快速生成" : "会走后台分段生成";
+}
+
+export function getShortStoryStageMessage(stage: ShortStoryStage) {
+  const labels: Record<ShortStoryStage, string> = {
+    idle: "填写创意后，一次生成完整短篇作品。",
+    outline: "正在生成大纲",
+    work: "正在生成正文",
+    queued: "正在分段生成",
+    failed: "生成失败，可重试",
+    done: "生成完成，即将进入作品页。",
+  };
+  return labels[stage];
+}
+
 type ShortStoryGenerateResponse = {
   workId: string;
   jobId?: string | null;
@@ -174,7 +199,10 @@ export function useShortStoryCreate() {
     setAsyncWorkId(null);
     setStage("outline");
 
-    setStage("work");
+    window.setTimeout(() => {
+      setStage((current) => (current === "outline" ? "work" : current));
+    }, 350);
+
     const workRes = await apiRequest<ShortStoryGenerateResponse>("/api/ai/short-story", localValidation.input);
 
     if (!workRes.success || !workRes.data?.workId) {

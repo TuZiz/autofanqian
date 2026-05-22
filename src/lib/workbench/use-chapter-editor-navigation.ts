@@ -13,6 +13,7 @@ import type {
   ChapterOverview,
   WorkLite,
 } from "./chapter-editor-types";
+import { formatWorkbenchDocumentLabel } from "./work-document-label";
 import { isShortStoryWork } from "@/shared/work-type";
 
 type UseChapterEditorNavigationParams = {
@@ -41,11 +42,6 @@ export function resolveBatchChapterCount(id: string, count: number | null) {
   if (!resolve) return;
   batchChapterCountResolvers.delete(id);
   resolve(count);
-}
-
-function formatChapterLabel(index: number, workType?: string | null) {
-  if (isShortStoryWork(workType)) return `场景 ${index}`;
-  return `第${index}章`;
 }
 
 function normalizeSearchText(value: string) {
@@ -118,7 +114,7 @@ export function useChapterEditorNavigation({
         const searchable = normalizeSearchText(
           [
             String(item.index),
-            formatChapterLabel(item.index, work?.workType),
+            formatWorkbenchDocumentLabel(item.index, work?.workType),
             item.title ?? "",
             work?.title ?? "",
           ].join(" "),
@@ -179,13 +175,13 @@ export function useChapterEditorNavigation({
     setMaxChapterIndex((current) => Math.max(current, startIndex + count - 1));
   }, [chapterIndex, maxChapterIndex, workId]);
 
-  const chapterLabel = formatChapterLabel(chapterIndex, work?.workType);
+  const chapterLabel = formatWorkbenchDocumentLabel(chapterIndex, work?.workType);
   const chapterMenuVolumeLabel = chapterList.length
     ? isShortStoryWork(work?.workType)
-      ? `全部场景（${chapterList.length}段）`
+      ? `短篇正文（${chapterList.length} 个文档）`
       : `全部章节（${chapterList.length}章）`
     : isShortStoryWork(work?.workType)
-      ? "全部场景"
+      ? "短篇正文"
       : "全部章节";
   const chapterMenuChapters = commandChapters;
   const currentChapterItem = chapterList.find((item) => item.index === chapterIndex);

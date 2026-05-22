@@ -3,6 +3,7 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
+import { formatWorkbenchDocumentLabel } from "@/lib/workbench/work-document-label";
 import { isShortStoryWork } from "@/shared/work-type";
 import { ChapterEditorMenu } from "./chapter-editor-menu";
 import {
@@ -30,12 +31,13 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
     work,
     workId,
   } = editor;
-  const nextChapterLabel = formatChapterLabel(
+  const nextChapterLabel = formatWorkbenchDocumentLabel(
     Math.max(chapterIndex, maxChapterIndex) + 1,
     work?.workType,
   );
   const aiLabel = normalizeChapterCopy(effectiveAiBusy ? aiStageMessage : aiButtonLabel);
   const progress = Math.round(Math.max(0, Math.min(100, effectiveAiProgress)));
+  const isShortStory = isShortStoryWork(work?.workType);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--theme-border)] bg-white/60 shadow-sm backdrop-blur-xl dark:border-[var(--theme-border)] dark:bg-zinc-950/60">
@@ -53,6 +55,11 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
             <div className="hidden h-8 w-px bg-zinc-200/60 dark:bg-zinc-800/60 sm:block" />
 
             <ChapterEditorMenu editor={editor} nextChapterLabel={nextChapterLabel} />
+            {isShortStory ? (
+              <span className="hidden rounded-lg bg-emerald-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200/70 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20 sm:inline-flex">
+                短篇正文
+              </span>
+            ) : null}
           </div>
 
           <div className="hidden min-w-0 items-center gap-4 md:flex">
@@ -110,9 +117,4 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
       </div>
     </header>
   );
-}
-
-function formatChapterLabel(index: number, workType?: string | null) {
-  if (isShortStoryWork(workType)) return `场景 ${Math.max(1, index)}`;
-  return `第${Math.max(1, index)}章`;
 }

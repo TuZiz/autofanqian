@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { WorkDashboardController } from "@/lib/workbench/use-work-dashboard";
+import { getShortStoryOutlineCount } from "@/lib/workbench/short-story-outline-view-model";
 import { cn } from "@/lib/utils";
 
 import { WorkCharactersPanel } from "./work-dashboard-characters";
@@ -30,7 +31,7 @@ function getWorkDashboardSections(isShortStory: boolean): Array<{
   },
   {
     id: "chapters",
-    label: isShortStory ? "场景" : "章节",
+    label: isShortStory ? "正文" : "章节",
     getValue: (dashboard) => `${dashboard.chapters.length}`,
   },
   {
@@ -38,7 +39,7 @@ function getWorkDashboardSections(isShortStory: boolean): Array<{
     label: isShortStory ? "结构" : "卷纲",
     getValue: (dashboard) =>
       isShortStory
-        ? `${dashboard.chapters.length}`
+        ? `${getShortStoryOutlineCount(dashboard.work?.outline ?? dashboard.outline, dashboard.work?.rawOutline).beats}`
         : dashboard.outline && "volumes" in dashboard.outline && dashboard.outline.volumes.length
           ? `${dashboard.outline.volumes.length}`
           : "0",
@@ -46,7 +47,10 @@ function getWorkDashboardSections(isShortStory: boolean): Array<{
   {
     id: "characters",
     label: "人物",
-    getValue: (dashboard) => (dashboard.outline?.characters.length ? `${dashboard.outline.characters.length}` : "0"),
+    getValue: (dashboard) =>
+      isShortStory
+        ? `${getShortStoryOutlineCount(dashboard.work?.outline ?? dashboard.outline, dashboard.work?.rawOutline).characters}`
+        : dashboard.outline?.characters.length ? `${dashboard.outline.characters.length}` : "0",
   },
   {
     id: "context",
