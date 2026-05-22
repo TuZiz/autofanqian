@@ -22,6 +22,11 @@ import type {
 import { useWorkDashboardBootstrap } from "./use-work-dashboard-bootstrap";
 import { isShortStoryWork } from "@/shared/work-type";
 
+type GoToChapterOptions = {
+  autoAi?: boolean;
+  beatIndex?: number;
+};
+
 function hasOutlineField<K extends string>(
   outline: unknown,
   key: K,
@@ -83,10 +88,16 @@ export function useWorkDashboard(workId: string) {
     workId,
   });
 
-  function goToChapter(index: number, options?: { autoAi?: boolean }) {
+  function goToChapter(index: number, options?: GoToChapterOptions) {
     if (!workId) return;
     const base = `/dashboard/novel/${workId}/chapter/${index}`;
-    const href = options?.autoAi ? `${base}?ai=1` : base;
+    const params = new URLSearchParams();
+    if (options?.autoAi) params.set("ai", "1");
+    if (typeof options?.beatIndex === "number" && Number.isFinite(options.beatIndex)) {
+      params.set("beat", String(options.beatIndex));
+    }
+    const query = params.toString();
+    const href = query ? `${base}?${query}` : base;
     router.push(href);
 
     window.setTimeout(() => {

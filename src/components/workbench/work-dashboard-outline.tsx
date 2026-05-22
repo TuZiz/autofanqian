@@ -41,7 +41,7 @@ export function WorkShortStoryOutlinePanel({ dashboard }: { dashboard: WorkDashb
       <ShortStoryOutlineView
         outline={dashboard.work?.outline ?? dashboard.outline}
         rawOutline={dashboard.work?.rawOutline}
-        onOpenBeat={(index) => dashboard.goToChapter(index)}
+        onOpenBeat={(index) => dashboard.goToChapter(1, { beatIndex: index })}
       />
     </section>
   );

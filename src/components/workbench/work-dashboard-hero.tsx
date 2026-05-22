@@ -246,7 +246,7 @@ export function WorkDashboardHero({ dashboard }: { dashboard: WorkDashboardContr
                 compact
                 outline={work?.outline ?? outline}
                 rawOutline={work?.rawOutline}
-                onOpenBeat={(index) => dashboard.goToChapter(index)}
+                onOpenBeat={(index) => dashboard.goToChapter(1, { beatIndex: index })}
               />
             </div>
           ) : null}

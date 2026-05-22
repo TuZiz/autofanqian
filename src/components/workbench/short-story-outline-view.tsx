@@ -112,7 +112,7 @@ export function ShortStoryOutlineView({
                     onClick={() => onOpenBeat(beat.index)}
                     className="inline-flex h-8 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs font-bold text-[var(--theme-text-secondary)] transition hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-200"
                   >
-                    打开正文
+                    查看正文
                   </button>
                 ) : null}
               </article>
