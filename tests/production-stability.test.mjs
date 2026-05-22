@@ -8,6 +8,7 @@ import { inspectExportChapters } from "../src/lib/export/work-export.ts";
 import { buildDocxBuffer } from "../src/lib/export/docx.ts";
 import {
   getGenerationJobFailureCount,
+  parseGenerationJobProgress,
   shouldAutoRunGenerationJob,
   withGenerationJobFailureCount,
 } from "../src/lib/jobs/generation-job-progress.ts";
@@ -96,6 +97,19 @@ test("buildDocxBuffer emits a usable OOXML zip skeleton", () => {
   assert.ok(raw.includes("pageBreakBefore"));
 });
 
+test("parseGenerationJobProgress extracts segment counts and final work id", () => {
+  const progress = parseGenerationJobProgress({
+    outline: { beats: [{ index: 1 }, { index: 2 }, { index: 3 }, { index: 4 }] },
+    segments: [{ index: 1, content: "a" }, { index: 2, content: "b" }],
+    finalWorkId: "work_final",
+  });
+
+  assert.equal(progress?.generatedSegments, 2);
+  assert.equal(progress?.totalSegments, 4);
+  assert.equal(progress?.finalWorkId, "work_final");
+  assert.equal(parseGenerationJobProgress({ segments: [] }), null);
+});
+
 test("serializeGenerationJob parses segmented progress", async () => {
   process.env.DATABASE_URL ??= "postgresql://user:pass@localhost:5432/autofanqian_test";
   const { serializeGenerationJob } = await import("../src/lib/jobs/generation-job-view.ts");
@@ -174,4 +188,72 @@ test("generation worker script and package command are wired", () => {
   assert.match(worker, /SIGINT/);
   assert.match(worker, /SIGTERM/);
   assert.match(worker, /runPendingGenerationJobs/);
+});
+
+test("export download button previews before downloading", () => {
+  const source = read("src/components/workbench/export-download-button.tsx");
+  const previewCallIndex = source.indexOf("apiRequest<WorkExportPreview>(urls.preview");
+  const downloadIndex = source.indexOf("window.location.href = urls.download");
+
+  assert.ok(previewCallIndex > 0);
+  assert.ok(downloadIndex > previewCallIndex);
+  assert.match(source, /formatPreviewMessage/);
+  assert.match(source, /window\.confirm/);
+});
+
+test("admin jobs view exposes production observability controls", () => {
+  const source = read("src/components/admin/admin-jobs-view.tsx");
+
+  assert.match(source, /autoRefresh/);
+  assert.match(source, /executableOnly/);
+  assert.match(source, /runCurrentFilter/);
+  assert.match(source, /failureCount/);
+  assert.match(source, /job\.progress\.generatedSegments/);
+  assert.match(source, /formatDuration\(job\.durationMs\)/);
+  assert.match(source, /failureCount >= 3/);
+  assert.match(source, /job\.status === "stale"/);
+  assert.match(source, /isOlderThanMinutes\(job\.heartbeatAt \?\? job\.startedAt, 30\)/);
+  assert.ok(source.includes("自动刷新"));
+  assert.ok(source.includes("只看可执行"));
+  assert.ok(source.includes("执行当前筛选"));
+  assert.ok(source.includes("最近耗时"));
+  assert.ok(source.includes("已停止自动重试"));
+  assert.ok(source.includes("等待恢复"));
+  assert.ok(source.includes("可能已卡住"));
+});
+
+test("worker deployment docs cover common process managers", () => {
+  const readme = read("README.md");
+  const docs = read("docs/deployment-worker.md");
+  const combined = `${readme}\n${docs}`;
+
+  assert.match(readme, /npm run worker:generation/);
+  assert.match(combined, /PM2/);
+  assert.match(combined, /systemd/);
+  assert.match(combined, /Docker Compose/);
+  assert.match(combined, /Windows/);
+  assert.match(combined, /GENERATION_WORKER_INTERVAL_MS/);
+  assert.match(combined, /GENERATION_WORKER_BATCH_SIZE/);
+});
+
+test("new job and export APIs keep zod validation and server permissions", () => {
+  const userJobRoute = read("src/app/api/jobs/[id]/route.ts");
+  const retryRoute = read("src/app/api/jobs/[id]/retry/route.ts");
+  const exportPreviewRoute = read("src/app/api/works/[id]/export/preview/route.ts");
+  const adminJobsRoute = read("src/app/api/admin/jobs/route.ts");
+  const adminRunPendingRoute = read("src/app/api/admin/jobs/run-pending/route.ts");
+
+  assert.match(userJobRoute, /generationJobIdParamsSchema\.parse/);
+  assert.match(userJobRoute, /requireGenerationJobAccess/);
+  assert.match(retryRoute, /generationJobIdParamsSchema\.parse/);
+  assert.match(retryRoute, /assertSameOriginRequest/);
+  assert.match(retryRoute, /requireGenerationJobAccess/);
+  assert.match(exportPreviewRoute, /z\.object/);
+  assert.match(exportPreviewRoute, /workExportPreviewQuerySchema\.parse/);
+  assert.match(exportPreviewRoute, /requireWorkAccess/);
+  assert.match(adminJobsRoute, /z\.object/);
+  assert.match(adminJobsRoute, /requireAdminUser/);
+  assert.match(adminRunPendingRoute, /z\.object/);
+  assert.match(adminRunPendingRoute, /assertSameOriginRequest/);
+  assert.match(adminRunPendingRoute, /requireAdminUser/);
 });

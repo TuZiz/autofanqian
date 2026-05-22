@@ -523,12 +523,15 @@ npm run dev          # 使用 Webpack 启动开发服务器
 npm run dev:turbo    # 使用 Turbopack 启动开发服务器
 npm run build        # 生成 Prisma Client 并执行 Next.js 构建
 npm run start        # 启动生产构建
+npm run worker:generation # 启动 GenerationJob 后台 worker
 npm run lint         # ESLint 检查
 npm run db:generate  # 生成 Prisma Client
 npm run db:migrate   # 创建并应用开发迁移
 npm run db:push      # 直接同步 Prisma schema 到数据库
 npm run db:studio    # 打开 Prisma Studio
 ```
+
+生产环境建议使用 PM2、systemd、Docker Compose 或宝塔进程守护常驻运行 `npm run worker:generation`，避免长文本短篇、全书一致性检查等异步任务只依赖普通 HTTP 请求兜底。详细示例见 `docs/deployment-worker.md`。
 
 ## 目录结构
 

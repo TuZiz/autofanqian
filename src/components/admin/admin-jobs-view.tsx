@@ -181,6 +181,9 @@ function JobRow({
   running: boolean;
 }) {
   const canRun = job.status === "queued" || job.status === "stale" || job.status === "failed";
+  const staleWaiting = job.status === "stale";
+  const stuckRunning = job.status === "running" && isOlderThanMinutes(job.heartbeatAt ?? job.startedAt, 30);
+  const autoRetryStopped = job.failureCount >= 3;
   return (
     <tr className="border-b border-[var(--theme-divider)] align-top last:border-0">
       <td className="max-w-[360px] px-4 py-3">
@@ -195,6 +198,9 @@ function JobRow({
           <div className="mt-1 text-xs font-bold text-amber-600 dark:text-amber-300">
             连续失败 {job.failureCount} 次
           </div>
+        ) : null}
+        {autoRetryStopped ? (
+          <StatusHint tone="warning">已停止自动重试</StatusHint>
         ) : null}
         {job.errorMessage ? (
           <div className="mt-2 max-w-[520px] whitespace-pre-wrap rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold leading-5 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
@@ -222,6 +228,8 @@ function JobRow({
         <span className={cn("inline-flex h-7 items-center rounded-full px-2.5 text-xs font-black ring-1", statusTone[job.status] || statusTone.stale)}>
           {job.status}
         </span>
+        {staleWaiting ? <StatusHint tone="info">等待恢复</StatusHint> : null}
+        {stuckRunning ? <StatusHint tone="warning">可能已卡住</StatusHint> : null}
       </td>
       <td className="px-4 py-3 text-xs font-bold text-[var(--theme-text-secondary)]">
         <div>总计 {job.totalTokens ?? 0}</div>
@@ -230,6 +238,7 @@ function JobRow({
       <td className="px-4 py-3 text-xs font-bold text-[var(--theme-text-secondary)]">
         <div>创建 {formatTime(job.createdAt)}</div>
         <div>心跳 {job.heartbeatAt ? formatTime(job.heartbeatAt) : "-"}</div>
+        <div>最近耗时 {formatDuration(job.durationMs)}</div>
       </td>
       <td className="px-4 py-3 text-right">
         <button
@@ -243,6 +252,21 @@ function JobRow({
         </button>
       </td>
     </tr>
+  );
+}
+
+function StatusHint({ children, tone }: { children: React.ReactNode; tone: "info" | "warning" }) {
+  return (
+    <div
+      className={cn(
+        "mt-1 inline-flex rounded-md px-2 py-1 text-[11px] font-black ring-1",
+        tone === "warning"
+          ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20"
+          : "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-500/20",
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -268,4 +292,19 @@ function formatTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatDuration(durationMs: number | null) {
+  if (!durationMs) return "-";
+  if (durationMs < 1000) return `${durationMs}ms`;
+  const seconds = Math.round(durationMs / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const restSeconds = seconds % 60;
+  return `${minutes}m ${restSeconds}s`;
+}
+
+function isOlderThanMinutes(value: string | null, minutes: number) {
+  if (!value) return false;
+  return Date.now() - new Date(value).getTime() > minutes * 60 * 1000;
 }
