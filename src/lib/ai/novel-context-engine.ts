@@ -400,7 +400,7 @@ function buildShortContext(input: NovelContextInput): NovelAssembledContext {
   const completedBeats = input.previousChapters
     .slice()
     .sort((left, right) => left.index - right.index)
-    .map((chapter) => `Beat ${chapter.index}${chapter.title ? `《${chapter.title}》` : ""}：${clampText(chapter.summary || chapter.content, 180)}`)
+    .map((chapter) => `节点 ${chapter.index}${chapter.title ? `《${chapter.title}》` : ""}：${clampText(chapter.summary || chapter.content, 180)}`)
     .slice(-6);
   const protagonist = outline.characters[0] ?? null;
   const mustResolve = uniqueStrings(
@@ -449,9 +449,9 @@ function buildShortContext(input: NovelContextInput): NovelAssembledContext {
     sections.theme ? `短篇主题：${sections.theme}` : "",
     sections.coreConflict ? `核心冲突：${clampText(sections.coreConflict, 260)}` : "",
     isFinalBeat ? "当前是短篇最后 beat：必须回收核心冲突、完成主题落点，并避免留下主要未解释问题。" : "",
-    sections.currentBeat ? `当前 beat：${sections.currentBeat}` : "",
-    sections.previousBeatEnding ? `前一个 beat 结尾：${sections.previousBeatEnding}` : "",
-    completedBeats.length ? `已完成 beat 摘要：\n- ${completedBeats.join("\n- ")}` : "",
+    sections.currentBeat ? `当前节点：${sections.currentBeat}` : "",
+    sections.previousBeatEnding ? `前一个节点结尾：${sections.previousBeatEnding}` : "",
+    completedBeats.length ? `已完成节点摘要：\n- ${completedBeats.join("\n- ")}` : "",
     sections.protagonistState ? `主角当前状态：${sections.protagonistState}` : "",
     mustResolve.length ? `必须回收的问题：\n- ${mustResolve.join("\n- ")}` : "",
     forbiddenNewThreads.length ? `禁止新增的大坑：\n- ${forbiddenNewThreads.join("\n- ")}` : "",
@@ -463,7 +463,7 @@ function buildShortContext(input: NovelContextInput): NovelAssembledContext {
     text,
     continuityWarnings: [
       "不要写成长篇开头，不要铺设无法回收的大坑。",
-      "当前场景必须完成 beat 目的。",
+      "当前场景必须完成节点目标。",
       "每段都要推进冲突或情绪线。",
       "结尾必须服务整体短篇落点。",
       isFinalBeat ? "当前是短篇最后 beat，必须完成主题落点并回收主要问题。" : "",

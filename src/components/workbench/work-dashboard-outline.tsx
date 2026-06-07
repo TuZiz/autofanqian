@@ -21,17 +21,17 @@ export function WorkShortStoryOutlinePanel({ dashboard }: { dashboard: WorkDashb
     <section className="app-compact-panel p-4 sm:p-5">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-500/10 dark:text-emerald-300">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] shadow-sm">
             <Layers className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-[1.45rem] font-extrabold tracking-tight text-zinc-950 dark:text-white">短篇结构</h2>
-            <div className="mt-1 flex flex-wrap items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              <span className="rounded-lg bg-zinc-100/80 px-2 py-1 dark:bg-zinc-800/80">
+            <h2 className="text-[1.45rem] font-extrabold tracking-tight text-[var(--theme-text-strong)]">短篇结构</h2>
+            <div className="mt-1 flex flex-wrap items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
+              <span className="rounded-lg bg-[var(--theme-surface-soft)] px-2 py-1">
                 一篇完结
               </span>
-              <span className="rounded-lg bg-zinc-100/80 px-2 py-1 dark:bg-zinc-800/80">
-                beats / 正文 / 导出
+              <span className="rounded-lg bg-[var(--theme-surface-soft)] px-2 py-1">
+                节点 / 正文 / 导出
               </span>
             </div>
           </div>
@@ -70,19 +70,19 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
     <section className="app-compact-panel p-4 sm:p-5">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-500/10 dark:text-emerald-300">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] shadow-sm">
             <Layers className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-[1.45rem] font-extrabold tracking-tight text-zinc-950 dark:text-white">分卷结构</h2>
-            <div className="mt-1 flex flex-wrap items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              <span className="rounded-lg bg-zinc-100/80 px-2 py-1 dark:bg-zinc-800/80">
+            <h2 className="text-[1.45rem] font-extrabold tracking-tight text-[var(--theme-text-strong)]">分卷结构</h2>
+            <div className="mt-1 flex flex-wrap items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
+              <span className="rounded-lg bg-[var(--theme-surface-soft)] px-2 py-1">
                 {outline ? `${outline.volumes.length}卷` : "0卷"}
               </span>
-              <span className="rounded-lg bg-zinc-100/80 px-2 py-1 dark:bg-zinc-800/80">
+              <span className="rounded-lg bg-[var(--theme-surface-soft)] px-2 py-1">
                 已规划 {formatChapterCount(plannedChapterCount || 0)}
               </span>
-              <span className="rounded-lg bg-zinc-100/80 px-2 py-1 dark:bg-zinc-800/80">
+              <span className="rounded-lg bg-[var(--theme-surface-soft)] px-2 py-1">
                 长期目标 {formatChapterCount(targetChapterCount || 0)}
               </span>
             </div>
@@ -96,13 +96,13 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                 type="button"
                 aria-disabled="true"
                 onClick={(event) => event.preventDefault()}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,250,240,0.98),rgba(255,246,219,0.93))] px-5 text-sm font-bold text-amber-800 opacity-50 shadow-[0_14px_28px_-22px_rgba(180,83,9,0.25),inset_0_1px_0_rgba(255,255,255,0.96)] transition-all hover:ring-1 hover:ring-amber-300 aria-disabled:cursor-not-allowed dark:border-amber-500/30 dark:bg-[linear-gradient(180deg,rgba(68,45,17,0.96),rgba(47,31,12,0.92))] dark:text-amber-200 dark:hover:ring-amber-500/40"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--theme-warning-border)]/80 bg-[var(--theme-warning-soft)] px-5 text-sm font-bold text-[var(--theme-warning-text)] opacity-50 shadow-[var(--theme-shadow-button)] transition-all hover:ring-1 hover:ring-[var(--theme-warning-border)] aria-disabled:cursor-not-allowed"
               >
                 <Edit3 className="h-4 w-4" />
                 <span>规划下一段</span>
               </button>
             </TooltipTrigger>
-            <TooltipContent className="max-w-[19rem] rounded-[1rem] border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(255,244,217,0.95))] px-3.5 py-2.5 text-[11px] font-semibold leading-5 text-amber-950 shadow-[0_20px_32px_-24px_rgba(180,83,9,0.3)] [--tooltip-bg:rgba(255,250,240,0.98)] [--tooltip-border:rgba(253,230,138,0.95)] [--tooltip-fg:rgba(120,53,15,0.96)] [--tooltip-shadow:0_20px_34px_-24px_rgba(180,83,9,0.28)] dark:border-amber-400/30 dark:bg-[linear-gradient(180deg,rgba(69,45,18,0.98),rgba(50,32,13,0.95))] dark:text-amber-100 dark:[--tooltip-bg:rgba(64,42,17,0.98)] dark:[--tooltip-border:rgba(251,191,36,0.28)] dark:[--tooltip-fg:rgba(254,243,199,0.98)] dark:[--tooltip-shadow:0_20px_34px_-24px_rgba(0,0,0,0.55)]">
+            <TooltipContent className="max-w-[19rem] rounded-[1rem] border-[var(--theme-warning-border)]/80 bg-[var(--theme-warning-soft)] px-3.5 py-2.5 text-[11px] font-semibold leading-5 text-[var(--theme-warning-text)] shadow-[var(--theme-shadow-button)] [--tooltip-bg:var(--theme-warning-soft)] [--tooltip-border:var(--theme-warning-border)] [--tooltip-fg:var(--theme-warning-text)] [--tooltip-shadow:var(--theme-shadow-button)]">
               {extendBlockedReason}
             </TooltipContent>
           </Tooltip>
@@ -111,7 +111,7 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
             type="button"
             disabled={!work || outlineRefineBusy}
             onClick={openOutlineRefineConfirm}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,250,240,0.98),rgba(255,246,219,0.93))] px-5 text-sm font-bold text-amber-800 shadow-[0_14px_28px_-22px_rgba(180,83,9,0.25),inset_0_1px_0_rgba(255,255,255,0.96)] transition-all hover:-translate-y-0.5 hover:bg-[linear-gradient(180deg,rgba(255,251,243,1),rgba(255,241,204,0.97))] hover:shadow-[0_18px_32px_-20px_rgba(245,158,11,0.28),inset_0_1px_0_rgba(255,255,255,0.98)] hover:ring-1 hover:ring-amber-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-500/30 dark:bg-[linear-gradient(180deg,rgba(68,45,17,0.96),rgba(47,31,12,0.92))] dark:text-amber-200 dark:hover:bg-[linear-gradient(180deg,rgba(77,50,20,0.98),rgba(57,37,15,0.94))] dark:hover:ring-amber-500/40"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--theme-warning-border)]/80 bg-[var(--theme-warning-soft)] px-5 text-sm font-bold text-[var(--theme-warning-text)] shadow-[var(--theme-shadow-button)] transition-all hover:-translate-y-0.5 hover:brightness-95 hover:ring-1 hover:ring-[var(--theme-warning-border)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Edit3 className="h-4 w-4" />
             <span>{outlineRefineBusy ? "规划中..." : "规划下一段"}</span>
@@ -131,8 +131,8 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                 className={cn(
                   "overflow-hidden rounded-xl border transition-all duration-300",
                   isOpen
-                    ? "border-emerald-300/80 bg-emerald-50/40 shadow-md ring-1 ring-emerald-300/50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:ring-emerald-500/20"
-                    : "border-[var(--theme-border)] bg-white/80 shadow-sm hover:border-[var(--theme-border)] hover:bg-zinc-50/80 hover:shadow dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:hover:border-[var(--theme-border)]",
+                    ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] shadow-md ring-1 ring-[var(--theme-brand-border)]/50"
+                    : "border-[var(--theme-border)] bg-[var(--theme-surface-soft)] shadow-sm hover:border-[var(--theme-border)] hover:bg-[var(--theme-surface-soft)] hover:shadow",
                 )}
               >
                 <button
@@ -145,18 +145,18 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                       className={cn(
                         "flex h-11 w-14 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold shadow-sm",
                         isOpen
-                          ? "border-emerald-400 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500 dark:text-zinc-50"
-                          : "border-[var(--theme-border)] bg-zinc-50 text-zinc-600 dark:border-[var(--theme-border)] dark:bg-zinc-900 dark:text-zinc-300",
+                          ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-500)] text-white"
+                          : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]",
                       )}
                     >
                       卷 {index + 1}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate text-[1rem] font-bold text-zinc-950 dark:text-white">{volume.name}</h3>
+                      <h3 className="truncate text-[1rem] font-bold text-[var(--theme-text-strong)]">{volume.name}</h3>
                       {formatted.range ? (
-                        <p className="mt-1 text-xs font-bold text-zinc-500 dark:text-zinc-400">{formatted.range}</p>
+                        <p className="mt-1 text-xs font-bold text-[var(--theme-text-muted)]">{formatted.range}</p>
                       ) : null}
-                      <p className="mt-1.5 inline-flex rounded-md bg-zinc-100/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:bg-zinc-800/80 dark:text-zinc-400">
+                      <p className="mt-1.5 inline-flex rounded-md bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
                         {volume.detailLevel === "macro" ? "宏观卷纲" : "可写卷"}
                       </p>
                     </div>
@@ -164,22 +164,22 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                   <div
                     className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all",
-                      isOpen ? "bg-emerald-100 dark:bg-emerald-500/20" : "bg-zinc-100 dark:bg-zinc-800",
+                      isOpen ? "bg-[var(--theme-brand-soft)]" : "bg-[var(--theme-surface-soft)]",
                     )}
                   >
                     <ChevronDown
                       className={cn(
-                        "h-4 w-4 text-zinc-500 transition-transform duration-300 dark:text-zinc-400",
-                        isOpen && "rotate-180 text-emerald-600 dark:text-emerald-400",
+                        "h-4 w-4 text-[var(--theme-text-muted)] transition-transform duration-300",
+                        isOpen && "rotate-180 text-[var(--theme-brand-text)]",
                       )}
                     />
                   </div>
                 </button>
 
                 {isOpen ? (
-                  <div className="border-t border-emerald-200/50 bg-white/50 p-4 dark:border-emerald-500/20 dark:bg-zinc-950/50">
+                  <div className="border-t border-[var(--theme-brand-border)] bg-[var(--theme-surface-soft)] p-4">
                     {formatted.rest ? (
-                      <p className="mb-4 rounded-xl border border-[var(--theme-border)] bg-white p-4 text-sm font-medium leading-7 text-zinc-600 shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-900/50 dark:text-zinc-300">
+                      <p className="mb-4 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-4 text-sm font-medium leading-7 text-[var(--theme-text-secondary)] shadow-inner">
                         {formatted.rest}
                       </p>
                     ) : null}
@@ -202,18 +202,18 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                           return (
                             <div
                               key={`${segment.range}-${segmentIndex}`}
-                              className="grid gap-4 rounded-xl border border-[var(--theme-border)] bg-zinc-50/80 p-4 shadow-sm dark:border-[var(--theme-border)] dark:bg-zinc-900/80 md:grid-cols-[minmax(0,1fr)_112px]"
+                              className="grid gap-4 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_112px]"
                             >
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-3">
-                                  <h4 className="text-base font-bold text-zinc-950 dark:text-white">{segment.title}</h4>
+                                  <h4 className="text-base font-bold text-[var(--theme-text-strong)]">{segment.title}</h4>
                                   {segment.range ? (
-                                    <span className="rounded-lg border border-[var(--theme-border)] bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-400">
+                                    <span className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
                                       {segment.range}
                                     </span>
                                   ) : null}
                                 </div>
-                                <p className="mt-2.5 text-sm font-medium leading-7 text-zinc-600 dark:text-zinc-300">
+                                <p className="mt-2.5 text-sm font-medium leading-7 text-[var(--theme-text-secondary)]">
                                   {segment.desc}
                                 </p>
                               </div>
@@ -224,12 +224,12 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                                       type="button"
                                       aria-disabled="true"
                                       onClick={(event) => event.preventDefault()}
-                                      className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-zinc-200/90 bg-zinc-100/90 px-4 text-sm font-bold text-zinc-400 shadow-none transition-all aria-disabled:cursor-not-allowed dark:border-zinc-800 dark:bg-zinc-900/85 dark:text-zinc-600"
+                                      className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-[var(--theme-border)]/90 bg-[var(--theme-surface-soft)]/90 px-4 text-sm font-bold text-[var(--theme-text-muted)] shadow-none transition-all aria-disabled:cursor-not-allowed"
                                     >
                                       进入章节
                                     </button>
                                   </TooltipTrigger>
-                                  <TooltipContent className="max-w-[19rem] rounded-[1rem] border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(255,244,217,0.95))] px-3.5 py-2.5 text-[11px] font-semibold leading-5 text-amber-950 shadow-[0_20px_32px_-24px_rgba(180,83,9,0.3)] [--tooltip-bg:rgba(255,250,240,0.98)] [--tooltip-border:rgba(253,230,138,0.95)] [--tooltip-fg:rgba(120,53,15,0.96)] [--tooltip-shadow:0_20px_34px_-24px_rgba(180,83,9,0.28)] dark:border-amber-400/30 dark:bg-[linear-gradient(180deg,rgba(69,45,18,0.98),rgba(50,32,13,0.95))] dark:text-amber-100 dark:[--tooltip-bg:rgba(64,42,17,0.98)] dark:[--tooltip-border:rgba(251,191,36,0.28)] dark:[--tooltip-fg:rgba(254,243,199,0.98)] dark:[--tooltip-shadow:0_20px_34px_-24px_rgba(0,0,0,0.55)]">
+                                  <TooltipContent className="max-w-[19rem] rounded-[1rem] border-[var(--theme-warning-border)]/80 bg-[var(--theme-warning-soft)] px-3.5 py-2.5 text-[11px] font-semibold leading-5 text-[var(--theme-warning-text)] shadow-[var(--theme-shadow-button)] [--tooltip-bg:var(--theme-warning-soft)] [--tooltip-border:var(--theme-warning-border)] [--tooltip-fg:var(--theme-warning-text)] [--tooltip-shadow:var(--theme-shadow-button)]">
                                     {blockedSegmentReason}
                                   </TooltipContent>
                                 </Tooltip>
@@ -237,7 +237,7 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                                 <button
                                   type="button"
                                   onClick={() => goToChapter(segmentTargetChapter)}
-                                  className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-white px-4 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-md hover:ring-1 hover:ring-emerald-300 active:scale-[0.98] dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/40"
+                                  className="inline-flex h-10 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-4 text-sm font-bold text-[var(--theme-text-secondary)] shadow-sm transition-all hover:bg-[var(--theme-brand-soft)] hover:text-[var(--theme-brand-text)] hover:shadow-md hover:ring-1 hover:ring-[var(--theme-brand-border)] active:scale-[0.98]"
                                 >
                                   进入章节
                                 </button>
@@ -247,7 +247,7 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                         })}
                       </div>
                     ) : volume.detailLevel === "macro" ? (
-                      <div className="rounded-xl border border-dashed border-[var(--theme-border)] bg-zinc-50/50 p-5 text-sm font-bold leading-7 text-zinc-500 dark:border-[var(--theme-border)] dark:bg-zinc-900/50 dark:text-zinc-400">
+                      <div className="rounded-xl border border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-5 text-sm font-bold leading-7 text-[var(--theme-text-muted)]">
                         这一卷目前只保留宏观方向。写完当前窗口约 70% 后，再展开后续章节规划。
                       </div>
                     ) : formatted.bullets.length ? (
@@ -255,14 +255,14 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
                         {formatted.bullets.map((bullet, bulletIndex) => (
                           <p
                             key={`${bullet}-${bulletIndex}`}
-                            className="rounded-xl border border-[var(--theme-border)] bg-zinc-50/80 p-4 text-sm font-medium leading-7 text-zinc-600 shadow-sm dark:border-[var(--theme-border)]/60 dark:bg-zinc-900/80 dark:text-zinc-300"
+                            className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-4 text-sm font-medium leading-7 text-[var(--theme-text-secondary)] shadow-sm"
                           >
                             {bullet}
                           </p>
                         ))}
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-dashed border-[var(--theme-border)] p-6 text-center text-sm font-bold text-zinc-500 dark:border-[var(--theme-border)] dark:text-zinc-400">
+                      <div className="rounded-xl border border-dashed border-[var(--theme-border)] p-6 text-center text-sm font-bold text-[var(--theme-text-muted)]">
                         暂无章节段落
                       </div>
                     )}
@@ -272,7 +272,7 @@ export function WorkVolumesPanel({ dashboard }: { dashboard: WorkDashboardContro
             );
           })
         ) : (
-          <div className="rounded-xl border border-dashed border-[var(--theme-border)] p-8 text-center text-sm font-bold uppercase tracking-wider text-zinc-500 dark:border-[var(--theme-border)] dark:text-zinc-400">
+          <div className="rounded-xl border border-dashed border-[var(--theme-border)] p-8 text-center text-sm font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
             暂无分卷结构数据
           </div>
         )}

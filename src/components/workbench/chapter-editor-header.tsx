@@ -40,23 +40,23 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
   const isShortStory = isShortStoryWork(work?.workType);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--theme-border)] bg-white/60 shadow-sm backdrop-blur-xl dark:border-[var(--theme-border)] dark:bg-zinc-950/60">
+    <header className="sticky top-0 z-50 border-b border-[var(--theme-border)] bg-[var(--theme-surface-soft)] shadow-sm backdrop-blur-xl/60">
       <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-2 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex min-h-12 items-center gap-2 sm:gap-4">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
             <Link
               href={workId ? `/dashboard/work/${workId}` : "/dashboard"}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-zinc-50 hover:shadow-md hover:ring-[var(--theme-border)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-zinc-900 dark:ring-[var(--theme-border)] dark:hover:bg-zinc-800 dark:hover:ring-[var(--theme-border)]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--theme-surface-solid)] shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-[var(--theme-surface-solid)] hover:shadow-md hover:ring-[var(--theme-border)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--theme-brand-border)]"
               title="返回作品面板"
             >
-              <ArrowLeft className="h-4 w-4 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100" />
+              <ArrowLeft className="h-4 w-4 text-[var(--theme-text-muted)] transition-colors hover:text-[var(--theme-text-strong)]" />
             </Link>
 
-            <div className="hidden h-8 w-px bg-zinc-200/60 dark:bg-zinc-800/60 sm:block" />
+            <div className="hidden h-8 w-px bg-[var(--theme-border)] sm:block" />
 
             <ChapterEditorMenu editor={editor} nextChapterLabel={nextChapterLabel} />
             {isShortStory ? (
-              <span className="hidden rounded-lg bg-emerald-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700 ring-1 ring-emerald-200/70 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20 sm:inline-flex">
+              <span className="hidden rounded-lg bg-[var(--theme-brand-soft)] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)] sm:inline-flex">
                 短篇正文
               </span>
             ) : null}
@@ -73,7 +73,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
               aiLabel={aiStageMessage}
               aiProgress={progress}
             />
-            <span className="max-w-[120px] truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            <span className="max-w-[120px] truncate text-[11px] font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
               {userDisplayName || "创作者"}
             </span>
           </div>
@@ -81,7 +81,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
           {isAdmin ? (
             <Link
               href="/dashboard/admin"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-inner ring-1 ring-emerald-200/50 transition-all hover:bg-emerald-100 hover:ring-emerald-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20 dark:hover:bg-emerald-500/20 dark:hover:ring-emerald-500/30 sm:w-auto sm:gap-2 sm:px-4 sm:text-xs sm:font-semibold"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] shadow-inner ring-1 ring-[var(--theme-brand-border)] transition-all hover:bg-[var(--theme-brand-soft)] hover:ring-[var(--theme-brand-border)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--theme-brand-border)]/20 sm:w-auto sm:gap-2 sm:px-4 sm:text-xs sm:font-semibold"
               title="管理员"
             >
               <ShieldCheck className="h-4 w-4" />
@@ -96,7 +96,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
             progress={progress}
             onClick={handleAiActionClick}
           />
-          <ThemeToggle className="h-10 w-10 shrink-0 rounded-xl bg-white shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-zinc-50 hover:shadow-md hover:ring-[var(--theme-border)] dark:bg-zinc-900 dark:ring-[var(--theme-border)] dark:hover:bg-zinc-800 dark:hover:ring-[var(--theme-border)]" />
+          <ThemeToggle className="h-10 w-10 shrink-0 rounded-xl bg-[var(--theme-surface-solid)] shadow-sm ring-1 ring-[var(--theme-border)] transition-all hover:bg-[var(--theme-surface-solid)] hover:shadow-md hover:ring-[var(--theme-border)]" />
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
@@ -110,7 +110,7 @@ export function ChapterEditorHeader({ editor }: { editor: WorkChapterEditorContr
             aiLabel={aiStageMessage}
             aiProgress={progress}
           />
-          <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+          <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-wider text-[var(--theme-text-muted)]">
             {userDisplayName || "创作者"}
           </span>
         </div>

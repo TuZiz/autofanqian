@@ -17,7 +17,7 @@ export function CreateFormError({ message }: { message: string }) {
       role="alert"
       aria-live="assertive"
       tabIndex={-1}
-      className="flex items-start gap-2 rounded-xl border border-red-200/70 bg-white px-3 py-2 text-[13px] leading-5 text-red-500 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+      className="flex items-start gap-2 rounded-xl border border-[var(--theme-danger-border)] bg-[var(--theme-surface-solid)] px-3 py-2 text-[13px] leading-5 text-[var(--theme-danger-text)] shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
     >
       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
       <span className="min-w-0">{message}</span>

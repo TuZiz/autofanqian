@@ -106,6 +106,10 @@ function buildWorkWhere({ isAdmin, query, userId }: ListWorksParams) {
     and.push({ workType: { not: "short_story" } });
   }
 
+  if (query.type === "imported") {
+    and.push({ idea: { startsWith: "导入作品：" } });
+  }
+
   return { AND: and };
 }
 
@@ -225,6 +229,10 @@ function buildWorkIdPageSql({ isAdmin, query, userId }: ListWorksParams, skip: n
     where.push(Prisma.sql`w."workType" <> 'short_story'::"WorkType"`);
   }
 
+  if (query.type === "imported") {
+    where.push(Prisma.sql`w."idea" LIKE '导入作品：%'`);
+  }
+
   const sortDirection =
     query.sort === "word_asc" || query.sort === "progress_asc"
       ? Prisma.sql`ASC`
@@ -297,11 +305,15 @@ const workListSelect = {
   workType: true,
   title: true,
   tag: true,
+  synopsis: true,
+  tags: true,
   words: true,
   targetChapters: true,
   plannedUntilChapter: true,
   genreLabel: true,
   genreId: true,
+  platformLabel: true,
+  platformId: true,
   updatedAt: true,
   createdAt: true,
   user: {
@@ -346,7 +358,10 @@ function summarizeWork(work: WorkListRow) {
     workType: work.workType,
     title: work.title,
     tag: work.tag,
+    synopsis: work.synopsis,
+    tags: work.tags,
     genreLabel: work.genreLabel || work.genreId,
+    platformLabel: work.platformLabel || work.platformId,
     words: work.words,
     targetChapters: work.targetChapters,
     plannedUntilChapter: work.plannedUntilChapter,
@@ -456,6 +471,10 @@ export async function listWorksForUser(params: ListWorksParams) {
           workType: activeWork.workType,
           title: activeWork.title,
           tag: activeWork.tag,
+          synopsis: activeWork.synopsis,
+          tags: activeWork.tags,
+          genreLabel: activeWork.genreLabel || activeWork.genreId,
+          platformLabel: activeWork.platformLabel || activeWork.platformId,
           words: activeWork.words,
           targetChapters: activeWork.targetChapters,
           plannedUntilChapter: activeWork.plannedUntilChapter,

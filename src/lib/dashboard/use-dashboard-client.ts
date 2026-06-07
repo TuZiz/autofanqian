@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
 
 import type {
+  DashboardAiStatus,
   DashboardFilters,
   DashboardOverview,
   DashboardWork,
@@ -36,6 +37,18 @@ function buildWorksUrl(nextFilters: DashboardFilters) {
   return query ? `/api/works?${query}` : "/api/works";
 }
 
+function buildAiStatusUrl(activeWork: DashboardOverview["activeWork"] | null) {
+  const params = new URLSearchParams();
+
+  if (activeWork) {
+    params.set("workId", activeWork.id);
+    params.set("chapterIndex", String(Math.max(1, activeWork.chapter.index)));
+  }
+
+  const query = params.toString();
+  return query ? `/api/dashboard/ai-status?${query}` : "/api/dashboard/ai-status";
+}
+
 function normalizeDeleteConfirmationValue(value: string) {
   const normalized = value.trim().replace(/[\s\u3000]+/g, " ");
   if (normalized.startsWith("\u300a") && normalized.endsWith("\u300b") && normalized.length > 2) {
@@ -52,11 +65,15 @@ export function useDashboardClient() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [overviewError, setOverviewError] = useState("");
+  const [aiStatus, setAiStatus] = useState<DashboardAiStatus | null>(null);
+  const [aiStatusError, setAiStatusError] = useState("");
+  const [aiStatusLoading, setAiStatusLoading] = useState(false);
   const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
   const [deleteTarget, setDeleteTarget] = useState<null | { id: string; title: string }>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [isFilterPending, startFilterTransition] = useTransition();
 
   const legacyDeleteConfirmed = useMemo(() => {
     const normalized = deleteConfirmInput.trim().toLowerCase();
@@ -80,6 +97,7 @@ export function useDashboardClient() {
 
   const bootstrapReadyRef = useRef(false);
   const overviewRequestIdRef = useRef(0);
+  const aiStatusRequestIdRef = useRef(0);
 
   const loadOverview = useCallback(async (nextFilters: DashboardFilters) => {
     const requestId = overviewRequestIdRef.current + 1;
@@ -88,16 +106,39 @@ export function useDashboardClient() {
     setOverviewError("");
 
     const response = await apiRequest<DashboardOverview>(buildWorksUrl(nextFilters));
-    if (overviewRequestIdRef.current !== requestId) return;
+    if (overviewRequestIdRef.current !== requestId) return null;
 
     if (response.success && response.data) {
       setOverview(response.data);
+      setOverviewLoading(false);
+      return response.data;
     } else {
       setOverview(null);
       setOverviewError(response.message || "作品列表加载失败");
     }
 
     setOverviewLoading(false);
+    return null;
+  }, []);
+
+  const loadAiStatus = useCallback(async (activeWork: DashboardOverview["activeWork"] | null) => {
+    const requestId = aiStatusRequestIdRef.current + 1;
+    aiStatusRequestIdRef.current = requestId;
+    setAiStatusLoading(true);
+    setAiStatusError("");
+
+    const response = await apiRequest<DashboardAiStatus>(buildAiStatusUrl(activeWork));
+    if (aiStatusRequestIdRef.current !== requestId) return null;
+
+    if (response.success && response.data) {
+      setAiStatus(response.data);
+      setAiStatusLoading(false);
+      return response.data;
+    }
+
+    setAiStatusError(response.message || "AI 状态加载失败");
+    setAiStatusLoading(false);
+    return null;
   }, []);
 
   useEffect(() => {
@@ -114,7 +155,8 @@ export function useDashboardClient() {
         }
 
         setUser(sessionResponse.data.user);
-        await loadOverview(DEFAULT_FILTERS);
+        const nextOverview = await loadOverview(DEFAULT_FILTERS);
+        await loadAiStatus(nextOverview?.activeWork ?? null);
         if (cancelled) return;
         setLoading(false);
         bootstrapReadyRef.current = true;
@@ -129,40 +171,60 @@ export function useDashboardClient() {
     return () => {
       cancelled = true;
     };
-  }, [loadOverview]);
+  }, [loadAiStatus, loadOverview]);
 
   useEffect(() => {
     if (!bootstrapReadyRef.current) return;
-    void loadOverview(filters);
-  }, [filters, loadOverview]);
 
-  async function refreshOverview() {
-    await loadOverview(filters);
+    async function reloadOverview() {
+      const nextOverview = await loadOverview(filters);
+      void loadAiStatus(nextOverview?.activeWork ?? null);
+    }
+
+    void reloadOverview();
+  }, [filters, loadAiStatus, loadOverview]);
+
+  useEffect(() => {
+    if (!bootstrapReadyRef.current || loading) return;
+
+    const activeWork = overview?.activeWork ?? null;
+    const intervalId = window.setInterval(() => {
+      void loadAiStatus(activeWork);
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadAiStatus, loading, overview?.activeWork]);
+
+  const refreshOverview = useCallback(async () => {
+    const nextOverview = await loadOverview(filters);
+    void loadAiStatus(nextOverview?.activeWork ?? null);
     return true;
-  }
+  }, [filters, loadAiStatus, loadOverview]);
 
-  function updateFilters(next: Partial<DashboardFilters>) {
-    setFilters((current) => ({
-      ...current,
-      ...next,
-      page: next.page ?? 1,
-    }));
-  }
+  const updateFilters = useCallback((next: Partial<DashboardFilters>) => {
+    startFilterTransition(() => {
+      setFilters((current) => ({
+        ...current,
+        ...next,
+        page: next.page ?? 1,
+      }));
+    });
+  }, []);
 
-  function openDeleteDialog(work: DashboardWork) {
+  const openDeleteDialog = useCallback((work: DashboardWork) => {
     setDeleteTarget({ id: work.id, title: work.title });
     setDeleteConfirmInput("");
     setDeleteError("");
-  }
+  }, []);
 
-  function closeDeleteDialog() {
+  const closeDeleteDialog = useCallback(() => {
     if (deleteBusy) return;
     setDeleteTarget(null);
     setDeleteConfirmInput("");
     setDeleteError("");
-  }
+  }, [deleteBusy]);
 
-  async function handleConfirmDelete() {
+  const handleConfirmDelete = useCallback(async () => {
     if (!deleteTarget || deleteBusy || !deleteConfirmed) return;
 
     setDeleteBusy(true);
@@ -178,15 +240,16 @@ export function useDashboardClient() {
       setDeleteTarget(null);
       setDeleteConfirmInput("");
       setDeleteBusy(false);
-      await loadOverview(filters);
+      const nextOverview = await loadOverview(filters);
+      void loadAiStatus(nextOverview?.activeWork ?? null);
       return;
     }
 
     setDeleteError(response.message || "删除失败，请稍后再试。");
     setDeleteBusy(false);
-  }
+  }, [deleteBusy, deleteConfirmed, deleteTarget, filters, loadAiStatus, loadOverview]);
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     if (logoutBusy) return;
 
     setLogoutBusy(true);
@@ -199,17 +262,20 @@ export function useDashboardClient() {
     } finally {
       setLogoutBusy(false);
     }
-  }
+  }, [logoutBusy]);
 
-  function updateUser(nextUser: SessionUser) {
+  const updateUser = useCallback((nextUser: SessionUser) => {
     setUser((current) => ({
       ...(current ?? nextUser),
       ...nextUser,
     }));
-  }
+  }, []);
 
   return {
     closeDeleteDialog,
+    aiStatus,
+    aiStatusError,
+    aiStatusLoading,
     deleteBusy,
     deleteConfirmInput,
     deleteConfirmed,
@@ -218,6 +284,7 @@ export function useDashboardClient() {
     filters,
     handleConfirmDelete,
     handleLogout,
+    isFilterPending,
     loading,
     logoutBusy,
     openDeleteDialog,

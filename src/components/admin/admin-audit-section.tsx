@@ -2,100 +2,97 @@
 
 import { FileClock, Loader2, RefreshCw } from "lucide-react";
 
+import { Button, SectionCard } from "@/components/design-system";
+import { AdminEmptyStateCard, AdminStatusPill } from "@/components/admin/admin-console-primitives";
 import type { DashboardAdminController } from "@/lib/admin/use-dashboard-admin";
 
 export function AdminAuditSection({ admin }: { admin: DashboardAdminController }) {
   return (
-    <section className="mb-4 overflow-hidden rounded-lg border border-stone-200 bg-white/95 shadow-sm backdrop-blur dark:border-white/10 dark:bg-stone-950">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-100 px-4 py-3 dark:border-white/10">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-stone-100 text-stone-700 ring-1 ring-stone-200 dark:bg-white/10 dark:text-stone-200 dark:ring-white/10">
-            <FileClock className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-base font-bold text-stone-950 dark:text-stone-50">
-              后台审计日志
-            </h2>
-            <p className="mt-1 text-sm font-semibold leading-6 text-stone-500 dark:text-stone-400">
-              最近 20 条管理员操作，密钥、密码和 token 字段会自动隐藏。
-            </p>
+    <SectionCard
+      icon={FileClock}
+      title="后台审计日志"
+      description="最近 20 条管理员操作会在这里集中展示，密钥、密码和 token 字段保持脱敏。"
+      actions={
+        <Button
+          type="button"
+          icon={RefreshCw}
+          busy={admin.auditLogsLoading}
+          onClick={() => void admin.handleRefreshAuditLogs()}
+          className="min-h-9 px-3"
+        >
+          刷新
+        </Button>
+      }
+    >
+      {admin.auditLogsLoading && !admin.auditLogs.length ? (
+        <AdminEmptyStateCard
+          title="正在加载审计日志"
+          description="列表就绪后会按时间、管理员、动作、目标和来源五列展示。"
+        />
+      ) : admin.auditLogs.length ? (
+        <div className="overflow-hidden rounded-[22px] border border-[var(--theme-border)] bg-[rgba(255,255,255,0.92)]">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="border-b border-[var(--theme-divider)] bg-[var(--theme-surface-soft)] text-left text-[11px] font-black uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
+                <tr>
+                  <th className="px-4 py-3">时间</th>
+                  <th className="px-4 py-3">管理员</th>
+                  <th className="px-4 py-3">动作</th>
+                  <th className="px-4 py-3">目标</th>
+                  <th className="px-4 py-3">来源</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--theme-divider)]">
+                {admin.auditLogs.map((log) => (
+                  <tr key={log.id} className="align-top hover:bg-[var(--theme-surface-hover)]">
+                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-[var(--theme-text-muted)]">
+                      {formatDateTime(log.createdAt)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-black text-[var(--theme-text-strong)]">{log.adminEmail}</div>
+                      <div className="mt-1 text-xs font-medium text-[var(--theme-text-muted)]">
+                        {log.adminUserId}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <AdminStatusPill tone="neutral">{actionLabel(log.action)}</AdminStatusPill>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-[var(--theme-text-secondary)]">{log.targetType}</div>
+                      {log.targetId ? (
+                        <div className="mt-1 max-w-[18rem] truncate text-xs font-medium text-[var(--theme-text-muted)]">
+                          {log.targetId}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-xs font-medium leading-6 text-[var(--theme-text-muted)]">
+                      <div>{log.ip || "未知 IP"}</div>
+                      <div className="mt-1 max-w-[18rem] truncate">{log.userAgent || "未知 UA"}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => void admin.handleRefreshAuditLogs()}
-          disabled={admin.auditLogsLoading}
-          className="theme-button-secondary inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {admin.auditLogsLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          刷新
-        </button>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-stone-100 text-sm dark:divide-white/10">
-          <thead className="bg-stone-50/80 text-left text-xs font-semibold uppercase tracking-[0.12em] text-stone-500 dark:bg-white/[0.03] dark:text-stone-400">
-            <tr>
-              <th className="px-4 py-3">时间</th>
-              <th className="px-4 py-3">管理员</th>
-              <th className="px-4 py-3">动作</th>
-              <th className="px-4 py-3">目标</th>
-              <th className="px-4 py-3">来源</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-100 dark:divide-white/10">
-            {admin.auditLogsLoading ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm font-semibold text-stone-500 dark:text-stone-400">
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    正在加载审计日志...
-                  </span>
-                </td>
-              </tr>
-            ) : admin.auditLogs.length ? (
-              admin.auditLogs.map((log) => (
-                <tr key={log.id} className="align-top">
-                  <td className="whitespace-nowrap px-4 py-3 font-semibold text-stone-500 dark:text-stone-400">
-                    {formatDateTime(log.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 font-bold text-stone-700 dark:text-stone-200">
-                    {log.adminEmail}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-md bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700 ring-1 ring-stone-200 dark:bg-white/[0.06] dark:text-stone-200 dark:ring-white/10">
-                      {actionLabel(log.action)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-stone-600 dark:text-stone-300">
-                    <div>{log.targetType}</div>
-                    {log.targetId ? (
-                      <div className="mt-1 max-w-[18rem] truncate text-xs text-stone-500 dark:text-stone-400">
-                        {log.targetId}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3 text-xs font-semibold leading-5 text-stone-500 dark:text-stone-400">
-                    <div>{log.ip || "未知 IP"}</div>
-                    <div className="mt-1 max-w-[18rem] truncate">{log.userAgent || "未知 UA"}</div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm font-semibold text-stone-500 dark:text-stone-400">
-                  暂无审计日志。
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
+      ) : (
+        <AdminEmptyStateCard
+          icon={FileClock}
+          title="暂无审计日志"
+          description="当管理员执行配置保存、模板更新、用户管理等操作后，这里会自动沉淀对应记录。"
+          action={
+            <Button
+              type="button"
+              icon={admin.auditLogsLoading ? Loader2 : RefreshCw}
+              busy={admin.auditLogsLoading}
+              onClick={() => void admin.handleRefreshAuditLogs()}
+            >
+              手动刷新
+            </Button>
+          }
+        />
+      )}
+    </SectionCard>
   );
 }
 

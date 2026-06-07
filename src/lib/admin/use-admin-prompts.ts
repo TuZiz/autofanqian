@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { apiRequest } from "@/lib/client/auth-api";
 import type { PromptTemplateCategory } from "@/shared/schemas/prompt-template";
+import type { SessionUser } from "./dashboard-admin-types";
 
 export type AdminPromptTemplate = {
   id: string;
@@ -43,6 +44,7 @@ export function useAdminPrompts() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [user, setUser] = useState<SessionUser | null>(null);
 
   const selected = useMemo(
     () => templates.find((item) => item.id === selectedId) ?? null,
@@ -83,8 +85,31 @@ export function useAdminPrompts() {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0);
-    return () => window.clearTimeout(timer);
+    let cancelled = false;
+
+    async function bootstrap() {
+      const session = await apiRequest<{ user: SessionUser }>("/api/auth/session");
+      if (cancelled) return;
+
+      if (!session.success || !session.data?.user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      if (!session.data.user.isAdmin) {
+        window.location.href = "/dashboard";
+        return;
+      }
+
+      setUser(session.data.user);
+      await load();
+    }
+
+    const timer = window.setTimeout(() => void bootstrap(), 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [load]);
 
   function selectTemplate(template: AdminPromptTemplate) {
@@ -185,6 +210,7 @@ export function useAdminPrompts() {
     setSelectedId,
     startCreate,
     templates,
+    user,
   };
 }
 

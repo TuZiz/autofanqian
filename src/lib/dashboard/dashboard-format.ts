@@ -24,11 +24,19 @@ export function formatRelativeTime(value?: string) {
 export function formatWordStat(value: number) {
   const safeValue = Math.max(0, Math.round(value || 0));
 
+  if (safeValue >= 10000) {
+    const compact = safeValue / 10000;
+    return {
+      value: compact >= 100 ? String(Math.round(compact)) : compact.toFixed(1).replace(/\.0$/, ""),
+      unit: "万字",
+    };
+  }
+
   if (safeValue >= 1000) {
     const compact = safeValue / 1000;
     return {
       value: compact >= 100 ? String(Math.round(compact)) : compact.toFixed(1).replace(/\.0$/, ""),
-      unit: "k",
+      unit: "k字",
     };
   }
 
@@ -40,9 +48,9 @@ export function formatWordStat(value: number) {
 
 export function getWorkAccentGradient(key: string) {
   const gradients = [
-    "from-stone-700 to-emerald-600",
-    "from-emerald-500 to-teal-500",
-    "from-amber-500 to-orange-500",
+    "from-[#0ea5e9] to-[#0284c7]",
+    "from-[#06b6d4] to-[#2563eb]",
+    "from-[#38bdf8] to-[#0369a1]",
   ] as const;
 
   let hash = 0;

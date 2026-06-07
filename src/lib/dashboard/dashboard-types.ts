@@ -19,9 +19,15 @@ export type DashboardOverview = {
   };
   activeWork: null | {
     id: string;
+    coverImageUrl?: string | null;
+    coverUrl?: string | null;
     workType: WorkTypeValue;
     title: string;
     tag: string;
+    synopsis: string;
+    tags: string[];
+    genreLabel: string;
+    platformLabel: string | null;
     words: string | null;
     targetChapters?: number | null;
     plannedUntilChapter?: number | null;
@@ -37,10 +43,15 @@ export type DashboardOverview = {
   };
   works: Array<{
     id: string;
+    coverImageUrl?: string | null;
+    coverUrl?: string | null;
     workType: WorkTypeValue;
     title: string;
     tag: string;
+    synopsis: string;
+    tags: string[];
     genreLabel: string;
+    platformLabel: string | null;
     words: string | null;
     targetChapters?: number | null;
     plannedUntilChapter?: number | null;
@@ -69,6 +80,48 @@ export type DashboardOverview = {
 };
 
 export type DashboardWork = DashboardOverview["works"][number];
+
+export type DashboardAiStatusTone =
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger"
+  | "ai"
+  | "info";
+
+export type DashboardAiStatus = {
+  service: {
+    state: "available" | "degraded" | "unavailable" | "unknown";
+    tone: DashboardAiStatusTone;
+    title: string;
+    description: string;
+  };
+  context: {
+    state: "ready" | "partial" | "empty" | "none";
+    tone: DashboardAiStatusTone;
+    title: string;
+    description: string;
+  };
+  queue: {
+    state: "idle" | "running" | "failed" | "done";
+    tone: DashboardAiStatusTone;
+    title: string;
+    description: string;
+  };
+  readiness: {
+    tone: DashboardAiStatusTone;
+    title: string;
+    description: string;
+  };
+  performance: {
+    recentCount: number;
+    successCount: number;
+    failedCount: number;
+    successRate: number;
+    recentOutcomes: Array<"success" | "failed">;
+  };
+  updatedAt: string;
+};
 
 export type DashboardSortKey =
   | "updated_desc"

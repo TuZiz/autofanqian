@@ -33,7 +33,7 @@ export const routeGroups: AiModelRouteGroup[] = [
     title: "创作入口",
     description: "创意、卖点、标题和受众分析。",
     accentClass:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200",
+      "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
     routes: [
       {
         key: "ideaGenerate",
@@ -55,7 +55,7 @@ export const routeGroups: AiModelRouteGroup[] = [
     title: "大纲规划",
     description: "作品结构、分卷布局和后续扩展规划。",
     accentClass:
-      "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200",
+      "border-[var(--theme-info-border)] bg-[var(--theme-info-soft)] text-[var(--theme-info-text)]",
     routes: [
       {
         key: "outlineGenerate",
@@ -70,7 +70,7 @@ export const routeGroups: AiModelRouteGroup[] = [
     title: "正文生产",
     description: "正文生成、润色和重写。",
     accentClass:
-      "border-stone-300 bg-stone-100 text-stone-800 dark:border-white/15 dark:bg-white/10 dark:text-stone-100",
+      "border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] text-[var(--theme-text-strong)]",
     routes: [
       {
         key: "chapterGenerate",
@@ -93,7 +93,7 @@ export const routeGroups: AiModelRouteGroup[] = [
     title: "章节辅助",
     description: "摘要、章节纲要和细节设定抽取。",
     accentClass:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-200",
+      "border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)]",
     routes: [
       {
         key: "chapterSummary",
@@ -122,7 +122,7 @@ export const routeGroups: AiModelRouteGroup[] = [
     title: "二次生成",
     description: "已有内容的重新生成和统一优化。",
     accentClass:
-      "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-300/20 dark:bg-violet-300/10 dark:text-violet-200",
+      "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
     routes: [
       {
         key: "regenerateAll",
@@ -137,7 +137,7 @@ export const routeGroups: AiModelRouteGroup[] = [
     title: "管理工具",
     description: "管理员专用的模板学习能力。",
     accentClass:
-      "border-red-200 bg-red-50 text-red-700 dark:border-red-300/20 dark:bg-red-300/10 dark:text-red-200",
+      "border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)]",
     routes: [
       {
         key: "templatesLearn",

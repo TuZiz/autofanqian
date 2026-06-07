@@ -1,30 +1,27 @@
 "use client";
 
-import Link from "next/link";
 import {
-  AlertCircle,
+  Activity,
   Bot,
-  CheckCircle2,
-  Clock3,
-  CreditCard,
+  BrainCircuit,
   DatabaseZap,
-  Eye,
-  FileText,
-  Loader2,
+  Gauge,
+  LayoutTemplate,
+  Shield,
+  SlidersHorizontal,
   Users,
-  type LucideIcon,
+  Workflow,
 } from "lucide-react";
 
-import { AppCard } from "@/components/app-ui";
+import { AppShell, SectionCard } from "@/components/design-system";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
+import { formatNumber } from "@/lib/admin/dashboard-admin-format";
 import type { DashboardAdminController } from "@/lib/admin/use-dashboard-admin";
 
-import { AdminAuditSection } from "./admin-audit-section";
-import { AdminConfigSection } from "./admin-config-section";
-import { AdminPlanningSection } from "./admin-planning-section";
-import { AdminStatsSection } from "./admin-stats-section";
-import { AdminTemplateSection } from "./admin-template-section";
+import { AdminAuditCompact } from "./admin-audit-compact";
+import { AdminModuleCard, AdminStatCard, AdminStatusPill } from "./admin-console-primitives";
 import { AdminVersionPopover } from "./admin-version-popover";
+import { AdminAutoSaveStatus } from "./admin-workspace-shell";
 
 type DashboardAdminViewProps = {
   admin: DashboardAdminController;
@@ -34,167 +31,182 @@ export function DashboardAdminView({ admin }: DashboardAdminViewProps) {
   const activeGenres = admin.config?.genres.filter((genre) => genre.active).length ?? 0;
   const totalGenres = admin.config?.genres.length ?? 0;
   const activePlatforms = admin.config?.platforms.filter((item) => item.active).length ?? 0;
+  const activeDnaStyles = admin.config?.dnaStyles.filter((item) => item.active).length ?? 0;
+  const activeWordOptions = admin.config?.wordOptions.filter((item) => item.active).length ?? 0;
+  const enabledEntries = activeGenres + activePlatforms + activeDnaStyles + activeWordOptions;
   const canUpdateSystem = Boolean(admin.user?.isRootAdmin || admin.user?.role === "super_admin");
-  const totalOptions =
-    (admin.config?.platforms.length ?? 0) +
-    (admin.config?.dnaStyles.length ?? 0) +
-    (admin.config?.wordOptions.length ?? 0);
+  const todaySuccessRate = getRate(admin.aiStats?.successCalls ?? 0, admin.aiStats?.totalCalls ?? 0);
+  const leadModel = admin.aiStats?.allTime.byModel[0]?.modelUsed ?? "暂无调用";
+  const leadRoute = admin.aiStats?.byRoute[0]?.routeLabel ?? admin.aiStats?.byRoute[0]?.routeId ?? "尚未产生";
 
   return (
-    <main className="app-work-surface relative min-h-dvh overflow-x-hidden pb-6 font-sans transition-[background-color,color]">
-      <div className="pointer-events-none fixed inset-0 theme-app-surface" />
-
-      <DashboardTopbar
-        className="relative z-40"
-        title="管理员控制台"
-        userEmail={admin.user?.email ?? ""}
-        isAdmin={admin.user?.isAdmin}
-        showBackToDashboard
-        showAdminLink={false}
-        logoutLabel="退出"
-        maxWidthClassName="max-w-[1320px]"
-      />
-
-      <div className="relative z-10 mx-auto max-w-[1320px] px-4 pt-4 sm:px-5 lg:px-6">
-        <AppCard className="mb-3 overflow-hidden bg-[var(--theme-surface-strong)]">
-          <div className="grid gap-4 border-b border-stone-100 p-4 dark:border-white/8 xl:grid-cols-[minmax(0,1fr)_minmax(480px,0.72fr)] xl:items-center">
-            <div className="min-w-0 text-stone-900 dark:text-stone-100">
-              <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
-                管理控制台
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-[var(--theme-text-strong)]">总览与配置</h1>
-                <AdminVersionPopover canUpdate={canUpdateSystem} />
-                <AdminAutoSaveStatus admin={admin} />
-              </div>
-              <p className="mt-1 max-w-3xl truncate text-sm font-semibold text-[var(--theme-text-secondary)]">
-                核心数据、创作入口参数、AI 模板学习和后台入口集中管理。重要状态保留在首屏，保存动作交给自动保存。
+    <AppShell
+      actions={
+        <DashboardTopbar
+          title="管理员控制台"
+          userEmail={admin.user?.email ?? ""}
+          isAdmin={admin.user?.isAdmin}
+          showBackToDashboard
+          showAdminLink={false}
+          logoutLabel="退出登录"
+          maxWidthClassName="max-w-[1380px]"
+        />
+      }
+      maxWidthClassName="max-w-[1380px]"
+    >
+      <div className="space-y-4">
+        <header className="rounded-[18px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-4 py-4 shadow-[var(--theme-shadow-card)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
+                宸යා工作台 / 管理总览
               </p>
+              <div className="mt-2 flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] text-[var(--theme-brand-600)] shadow-[var(--theme-shadow-button)]">
+                  <Gauge className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-[20px] font-black tracking-[-0.03em] text-[var(--theme-text-strong)] sm:text-[22px]">
+                    管理后台
+                  </h1>
+                  <p className="mt-1 max-w-3xl text-[13px] font-medium leading-6 text-[var(--theme-text-secondary)] sm:text-sm">
+                    这里放总量、入口和最近动作。需要细调时，再进各自的工作页。
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              <AdminSummary label="类型卡片" value={`${activeGenres}/${totalGenres}`} detail="启用 / 全部" />
-              <AdminSummary label="目标平台" value={`${activePlatforms}`} detail="当前启用平台" />
-              <AdminSummary label="参数选项" value={`${totalOptions}`} detail="平台 / DNA / 字数" />
+            <div className="flex flex-wrap items-center gap-2">
+              <AdminVersionPopover canUpdate={canUpdateSystem} />
+              <AdminAutoSaveStatus
+                state={admin.configSaveState}
+                lastSavedAt={admin.configLastSavedAt}
+                error={admin.configSaveError}
+              />
+              <AdminStatusPill tone="brand">已启用 {enabledEntries} 个入口</AdminStatusPill>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-            <AdminLink href="/dashboard/admin/users" icon={Users}>
-              用户管理
-            </AdminLink>
-            <AdminLink href="/dashboard/admin/ai-model" icon={Bot}>
-              AI 模型配置
-            </AdminLink>
-            <AdminLink href="/dashboard/admin/prompts" icon={FileText}>
-              提示词模板
-            </AdminLink>
-            <AdminLink href="/dashboard/admin/jobs" icon={DatabaseZap}>
-              后台任务
-            </AdminLink>
-            <AdminLink href="/dashboard/admin/payments" icon={CreditCard}>
-              支付设置
-            </AdminLink>
-            <AdminLink href="/dashboard/create" icon={Eye}>
-              预览创作页
-            </AdminLink>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <AdminStatusPill tone="neutral">类型 {activeGenres}/{totalGenres}</AdminStatusPill>
+            <AdminStatusPill tone="neutral">平台 {activePlatforms}</AdminStatusPill>
+            <AdminStatusPill tone="neutral">DNA {activeDnaStyles}</AdminStatusPill>
+            <AdminStatusPill tone="neutral">字数 {activeWordOptions}</AdminStatusPill>
           </div>
-        </AppCard>
+        </header>
 
-        <AdminStatsSection admin={admin} />
-        <AdminAuditSection admin={admin} />
-        <AdminPlanningSection admin={admin} />
-        <AdminConfigSection admin={admin} />
-        <AdminTemplateSection admin={admin} />
+        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <AdminStatCard
+            description="今天的 AI 调用总量与成功率。"
+            icon={DatabaseZap}
+            label="今日调用"
+            tone="brand"
+            trend={`成功率 ${todaySuccessRate}`}
+            value={formatNumber(admin.aiStats?.totalCalls ?? 0)}
+          />
+          <AdminStatCard
+            description="今天的 Token 消耗，便于看成本波动。"
+            icon={Bot}
+            label="今日 Token"
+            tone="ai"
+            trend={`累计 ${formatNumber(admin.aiStats?.allTime.tokens.total ?? 0)}`}
+            value={formatNumber(admin.aiStats?.tokens.total ?? 0)}
+          />
+          <AdminStatCard
+            description="当前启用的创作入口总数。"
+            icon={Workflow}
+            label="启用入口"
+            tone="success"
+            trend={`${activeGenres} 类型 / ${activePlatforms} 平台`}
+            value={formatNumber(enabledEntries)}
+          />
+          <AdminStatCard
+            description="累计命中最多的模型。"
+            icon={Shield}
+            label="主力模型"
+            tone="warning"
+            trend={`累计 ${formatNumber(admin.aiStats?.allTime.totalCalls ?? 0)} 次调用`}
+            value={leadModel}
+          />
+          <AdminStatCard
+            description="今天排在最前面的路由。"
+            icon={Activity}
+            label="主力路由"
+            tone="brand"
+            trend="按今日调用排序"
+            value={leadRoute}
+          />
+        </section>
+
+        <SectionCard
+          icon={LayoutTemplate}
+          title="管理入口"
+          description="点开卡片直接进入对应工作页。"
+          variant="elevated"
+        >
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <AdminModuleCard
+              href="/dashboard/admin/monitor"
+              icon={Activity}
+              title="实时 AI 监控"
+              description="查看今日调用、Token 和路由排行。"
+              detail="调用 / Token / 排行"
+              status="监控面板"
+              tone="ai"
+            />
+            <AdminModuleCard
+              href="/dashboard/admin/entry-config"
+              icon={LayoutTemplate}
+              title="创作入口配置"
+              description="管理类型卡片、平台、DNA 和字数。"
+              detail="类型 / 平台 / DNA / 字数"
+              status="内容配置"
+              tone="brand"
+            />
+            <AdminModuleCard
+              href="/dashboard/admin/rules"
+              icon={SlidersHorizontal}
+              title="规则参数配置"
+              description="控制规划窗口、硬上限和章节长度。"
+              detail="阈值 / 上限 / 预设"
+              status="规则引擎"
+            />
+            <AdminModuleCard
+              href="/dashboard/admin/templates"
+              icon={BrainCircuit}
+              title="预设模板库"
+              description="维护模板版本与 AI 学习入口。"
+              detail="模板 / 版本 / 学习"
+              status="内容中枢"
+              tone="success"
+            />
+            <AdminModuleCard
+              href="/dashboard/admin/logs"
+              icon={Gauge}
+              title="后台审计日志"
+              description="查看管理员操作记录，支持搜索和详情。"
+              detail="操作 / 审计 / 追踪"
+              status="安全审计"
+              tone="warning"
+            />
+            <AdminModuleCard
+              href="/dashboard/admin/users"
+              icon={Users}
+              title="用户管理"
+              description="账号、权限、套餐和密码重置都在这里。"
+              detail="账号 / 权限 / 套餐"
+              status="核心入口"
+            />
+          </div>
+        </SectionCard>
+
+        <AdminAuditCompact admin={admin} />
       </div>
-    </main>
+    </AppShell>
   );
 }
 
-function AdminSummary({
-  detail,
-  label,
-  value,
-}: {
-  detail: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-stone-100 bg-stone-50/70 px-3 py-2.5 dark:border-white/8 dark:bg-white/4">
-      <div className="min-w-0">
-        <div className="truncate text-xs font-bold text-stone-500 dark:text-stone-400">{label}</div>
-        <div className="mt-0.5 truncate text-[11px] font-bold text-stone-500 dark:text-stone-400">{detail}</div>
-      </div>
-      <div className="shrink-0 text-2xl font-extrabold text-stone-900 dark:text-stone-100">{value}</div>
-    </div>
-  );
-}
-
-function AdminLink({
-  children,
-  href,
-  icon: Icon,
-}: {
-  children: React.ReactNode;
-  href: string;
-  icon: LucideIcon;
-}) {
-  return (
-    <Link
-      href={href}
-      className="theme-button-secondary inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold active:scale-95"
-    >
-      <Icon className="h-4 w-4" />
-      {children}
-    </Link>
-  );
-}
-
-function AdminAutoSaveStatus({ admin }: { admin: DashboardAdminController }) {
-  const stateMeta = {
-    idle: {
-      icon: Clock3,
-      text: "等待配置加载",
-      className: "text-stone-500",
-    },
-    dirty: {
-      icon: Clock3,
-      text: "待自动保存",
-      className: "text-amber-700 dark:text-amber-200",
-    },
-    saving: {
-      icon: Loader2,
-      text: "自动保存中",
-      className: "text-sky-700 dark:text-sky-200",
-    },
-    saved: {
-      icon: CheckCircle2,
-      text: "已自动保存",
-      className: "text-emerald-700 dark:text-emerald-200",
-    },
-    error: {
-      icon: AlertCircle,
-      text: admin.configSaveError || "自动保存失败",
-      className: "text-red-700 dark:text-red-200",
-    },
-  }[admin.configSaveState];
-  const Icon = stateMeta.icon;
-
-  return (
-    <div
-      className={`inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-stone-200 bg-white px-2.5 text-xs font-semibold shadow-sm dark:border-white/8 dark:bg-white/4 ${stateMeta.className}`}
-    >
-      <Icon className={admin.configSaveState === "saving" ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
-      <span className="truncate">{stateMeta.text}</span>
-      {admin.configLastSavedAt ? (
-        <span className="hidden text-[11px] font-bold text-stone-500 sm:inline">
-          {admin.configLastSavedAt.toLocaleTimeString("zh-CN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
-      ) : null}
-    </div>
-  );
+function getRate(success: number, total: number) {
+  if (!total) return "0%";
+  return `${Math.round((success / total) * 100)}%`;
 }

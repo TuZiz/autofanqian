@@ -18,7 +18,7 @@ export function ImportPreviewPanel({
   if (!preview) {
     return (
       <section className="flex min-h-[28rem] flex-col justify-center rounded-lg border border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-6 py-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--theme-surface-solid)] text-[var(--theme-text-muted)]">
           <FileText className="h-5 w-5" />
         </div>
         <h2 className="mt-4 text-base font-bold text-[var(--theme-text-strong)]">
@@ -49,8 +49,8 @@ export function ImportPreviewPanel({
             className={cn(
               "rounded-lg px-2.5 py-1 text-xs font-bold",
               singleLongImportWarning || shortStoryMergeWarning
-                ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20"
-                : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-400/20",
+                ? "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] ring-1 ring-[var(--theme-warning-border)]"
+                : "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]",
             )}
           >
             {singleLongImportWarning ? "需确认" : shortStoryMergeWarning ? "会合并" : "可导入"}
@@ -65,7 +65,7 @@ export function ImportPreviewPanel({
 
       {shortStoryMergeWarning ? (
         <div className="border-b border-[var(--theme-border)] p-4">
-          <div className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-400/10 dark:text-amber-100 dark:ring-amber-400/20">
+          <div className="flex gap-2 rounded-lg bg-[var(--theme-warning-soft)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--theme-warning-text)] ring-1 ring-[var(--theme-warning-border)]">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               当前选择短篇小说，确认导入时会把以上章节合并为 1 个完整短篇正文，不会丢失内容。
@@ -80,7 +80,7 @@ export function ImportPreviewPanel({
             {highSignalWarnings.map((warning) => (
               <div
                 key={warning}
-                className="flex gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800 ring-1 ring-amber-200/80 dark:bg-amber-400/10 dark:text-amber-100 dark:ring-amber-400/20"
+                className="flex gap-2 rounded-lg bg-[var(--theme-warning-soft)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--theme-warning-text)] ring-1 ring-[var(--theme-warning-border)]"
               >
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>{warning}</span>
@@ -106,7 +106,7 @@ export function ImportPreviewPanel({
                     {chapter.title}
                   </h3>
                 </div>
-                <span className="shrink-0 rounded-md bg-zinc-100 px-2 py-1 text-[11px] font-bold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+                <span className="shrink-0 rounded-md bg-[var(--theme-surface-solid)] px-2 py-1 text-[11px] font-bold text-[var(--theme-text-secondary)]">
                   {chapter.wordCount.toLocaleString("zh-CN")} 字
                 </span>
               </div>

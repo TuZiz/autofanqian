@@ -1,0 +1,2 @@
+ALTER TABLE "GenerationJob"
+  ADD COLUMN IF NOT EXISTS "resultJson" JSONB;

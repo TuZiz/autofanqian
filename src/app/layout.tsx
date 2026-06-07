@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 
 import "./globals.css";
+import { GlobalCommandMenu } from "@/components/design-system/command-menu";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import {
   THEME_INIT_SCRIPT,
@@ -39,6 +40,7 @@ export default async function RootLayout({
       <body className="theme-page transition-[background-color,color] duration-300">
         <ThemeProvider initialTheme={initialTheme}>
           {children}
+          <GlobalCommandMenu />
         </ThemeProvider>
       </body>
     </html>

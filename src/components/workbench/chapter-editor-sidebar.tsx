@@ -12,7 +12,7 @@ import {
   Settings2,
   Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { aiZhCN, getAiMetaCopy } from "@/lib/copy/ai-zh-cn";
 import type { WorkChapterEditorController } from "@/lib/workbench/use-work-chapter-editor";
@@ -79,6 +79,7 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
   } = editor;
   const isShortStory = isShortStoryWork(work?.workType);
   const currentChapterLabel = isShortStory ? `场景 ${chapterIndex}` : formatChapterLabel(chapterIndex);
+  const [activeTab, setActiveTab] = useState<"ai" | "summary" | "outline" | "details" | "consistency" | "history">("ai");
   const [expandedSections, setExpandedSections] = useState<Record<SidebarSectionKey, boolean>>({
     target: false,
     summary: false,
@@ -94,9 +95,45 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
     }));
   };
 
+  const tabs = useMemo(
+    () => [
+      { id: "ai" as const, label: "AI 助手" },
+      { id: "summary" as const, label: "摘要" },
+      { id: "outline" as const, label: isShortStory ? "段落" : "大纲" },
+      { id: "details" as const, label: "细节" },
+      { id: "consistency" as const, label: "一致性" },
+      { id: "history" as const, label: "历史" },
+    ],
+    [isShortStory],
+  );
+
   return (
     <aside className="min-w-0 lg:h-full lg:min-h-0 lg:self-stretch">
-      <div className="app-compact-panel flex h-full min-h-0 max-h-full flex-col overflow-hidden">
+      <div className="flex h-full min-h-0 max-h-full flex-col overflow-hidden rounded-[24px] border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] shadow-[var(--theme-shadow-card)]">
+        <div className="border-b border-[var(--theme-divider)] p-3">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
+            AI Copilot
+          </p>
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                aria-pressed={activeTab === tab.id}
+                className={cn(
+                  "min-h-9 rounded-2xl px-2 text-[11px] font-black transition",
+                  activeTab === tab.id
+                    ? "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]"
+                    : "bg-[var(--theme-surface-solid)] text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)] hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-2.5 sm:p-3">
           <section className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-3 shadow-sm">
             <div className="flex items-start justify-between gap-4">
@@ -112,8 +149,8 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
                 className={cn(
                   "shrink-0 rounded-xl px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest shadow-sm",
                   currentChapterEdited
-                    ? "bg-emerald-50 text-emerald-700 ring-emerald-200/70 dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-emerald-300/20"
-                    : "bg-amber-50 text-amber-700 ring-amber-200/70 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-300/20",
+                    ? "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-[var(--theme-brand-border)]"
+                    : "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] ring-[var(--theme-warning-border)]/70",
                 )}
               >
                 {currentChapterEdited ? "已写" : "待写"}
@@ -124,8 +161,11 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
             </p>
           </section>
 
-          {isShortStory ? <ShortStoryActionPanel editor={editor} /> : null}
+          {activeTab === "ai" ? (
+            <>{isShortStory ? <ShortStoryActionPanel editor={editor} /> : null}</>
+          ) : null}
 
+          {activeTab === "ai" ? (
           <section className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-3">
             <div className="flex items-start gap-2">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[var(--theme-text-muted)]" />
@@ -153,13 +193,17 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
               ))}
             </div>
           </section>
+          ) : null}
 
+          {activeTab === "consistency" ? (
           <ChapterConsistencyPanel
             editor={editor}
             expanded={expandedSections.consistency}
             onToggle={() => toggleSection("consistency")}
           />
+          ) : null}
 
+          {activeTab === "ai" || activeTab === "outline" ? (
           <CollapsiblePanel
             action={
               <button
@@ -207,7 +251,9 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
               ))}
             </div>
           </CollapsiblePanel>
+          ) : null}
 
+          {activeTab === "summary" ? (
           <MetaTextareaCard
             actionIcon={Sparkles}
             actionLabel={
@@ -229,7 +275,9 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
             title={isShortStory ? "场景摘要" : "章节摘要"}
             value={chapterSummary}
           />
+          ) : null}
 
+          {activeTab === "outline" ? (
           <MetaTextareaCard
             actionIcon={ListChecks}
             actionLabel={
@@ -251,7 +299,9 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
             title={isShortStory ? "段落提示" : "章节大纲"}
             value={chapterOutlineText}
           />
+          ) : null}
 
+          {activeTab === "details" ? (
           <CollapsiblePanel
             action={
               <>
@@ -304,6 +354,31 @@ export function ChapterEditorSidebar({ editor }: { editor: WorkChapterEditorCont
               className="w-full resize-y rounded-lg bg-[var(--theme-surface-overlay)] px-3 py-3 text-sm leading-7 text-[var(--theme-text-primary)] outline-none ring-1 ring-[var(--theme-border)] transition focus:bg-[var(--theme-surface-solid)] focus:ring-[var(--theme-brand-border)] disabled:cursor-not-allowed disabled:opacity-60"
             />
           </CollapsiblePanel>
+          ) : null}
+
+          {activeTab === "history" ? (
+            <section className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-3">
+              <div className="flex items-start gap-2">
+                <Settings2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--theme-text-muted)]" />
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-[var(--theme-text-strong)]">
+                    历史版本
+                  </h3>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--theme-text-secondary)]">
+                    AI 改写应用前会保留版本，可在弹窗中查看和恢复。
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => editor.setRevisionDialogOpen(true)}
+                disabled={!work}
+                className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-xl bg-[var(--theme-surface-solid)] px-3 text-xs font-black text-[var(--theme-text-secondary)] ring-1 ring-[var(--theme-border)] transition hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                打开历史版本
+              </button>
+            </section>
+          ) : null}
         </div>
 
         <div className="shrink-0 border-t border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-2">

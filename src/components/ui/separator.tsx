@@ -1,6 +1,5 @@
 "use client";
 
-import { Separator as HeroSeparator } from "@heroui/react";
 import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
@@ -9,14 +8,15 @@ function Separator({
   className,
   orientation = "horizontal",
   ...props
-}: ComponentProps<typeof HeroSeparator> & {
+}: ComponentProps<"div"> & {
   orientation?: "horizontal" | "vertical";
 }) {
   return (
-    <HeroSeparator
-      orientation={orientation}
+    <div
+      role="separator"
+      aria-orientation={orientation}
       className={cn(
-        "shrink-0 bg-border",
+        "shrink-0 bg-[var(--theme-divider)]",
         orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
         className,
       )}

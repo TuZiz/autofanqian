@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ArrowRight, Sparkles } from "lucide-react";
 
@@ -14,7 +14,7 @@ export function SubmitOutlineButton({
   create: DashboardCreateController;
   sidebar?: boolean;
 }) {
-  const disabled = create.submitBusy;
+  const disabled = create.submitBusy || !create.canSubmitOutline;
   const title = create.submitBusy
     ? "正在生成大纲"
     : create.canSubmitOutline
@@ -28,12 +28,12 @@ export function SubmitOutlineButton({
       disabled={disabled}
       title={title}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-full text-sm font-extrabold transition-all active:scale-[0.98] disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 rounded-full text-sm font-black transition active:scale-[0.98] disabled:cursor-not-allowed",
         sidebar ? "h-11 w-full" : "h-10 px-4",
         compact ? "hidden min-[480px]:flex" : "flex flex-[1.5]",
         create.canSubmitOutline
-          ? "create-accent text-white shadow-[0_16px_28px_-20px_rgba(20,32,29,0.86)] hover:-translate-y-0.5"
-          : "border border-slate-200 bg-slate-100/80 text-slate-400 shadow-none hover:border-slate-300",
+          ? "theme-brand-gradient-bg text-white shadow-[var(--theme-shadow-button)] hover:-translate-y-0.5"
+          : "border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] shadow-none",
       )}
     >
       {create.submitBusy ? (
@@ -51,4 +51,3 @@ export function SubmitOutlineButton({
     </button>
   );
 }
-

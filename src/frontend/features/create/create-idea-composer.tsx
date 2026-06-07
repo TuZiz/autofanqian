@@ -50,18 +50,18 @@ export function CreateIdeaComposer({
   return (
     <section
       id="create-idea-section"
-      className="rounded-[20px] border border-slate-200/70 bg-white/94 p-4 shadow-[0_18px_44px_-36px_rgba(20,32,29,0.38)] sm:p-5"
+      className="rounded-[8px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-3 shadow-[0_18px_44px_-36px_rgba(20,32,29,0.38)] sm:p-4"
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-2.5 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
             02
           </div>
-          <h2 className="mt-1 text-sm font-extrabold tracking-tight text-slate-950">
+          <h2 className="mt-0.5 text-sm font-extrabold tracking-tight text-[var(--theme-text-strong)]">
             故事创意
           </h2>
         </div>
-        <span className="max-w-[45%] truncate rounded-full border border-slate-200/80 create-tint px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+        <span className="max-w-[45%] truncate rounded-[4px] border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--theme-text-muted)]">
           {helperTitle}
         </span>
       </div>
@@ -73,7 +73,7 @@ export function CreateIdeaComposer({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={aiProgressPercent}
-          className="mb-3 rounded-2xl border border-slate-200 create-tint px-3 py-2.5"
+          className="mb-3 rounded-[6px] border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3 py-2.5"
         >
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
@@ -82,18 +82,18 @@ export function CreateIdeaComposer({
               </span>
               <span
                 key={aiThinkingCopyIndex}
-                className="truncate text-sm font-semibold text-slate-900 animate-[ai-copy-swap_220ms_ease-out]"
+                className="truncate text-sm font-semibold text-[var(--theme-text-strong)] animate-[ai-copy-swap_220ms_ease-out]"
               >
                 {aiThinkingCopy || "正在分析创意"}
               </span>
             </div>
-            <span className="shrink-0 text-xs font-bold text-slate-700">
+            <span className="shrink-0 text-xs font-bold text-[var(--theme-text-secondary)]">
               {aiProgressPercent}%
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/90">
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--theme-surface-solid)]">
             <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,var(--create-accent),#79a89b)] transition-[width] duration-300 ease-linear"
+              className="h-full rounded-full bg-[linear-gradient(90deg,var(--create-accent),var(--theme-brand-400))] transition-[width] duration-300 ease-linear"
               style={{ width: `${aiProgressValue}%` }}
             />
           </div>
@@ -101,13 +101,13 @@ export function CreateIdeaComposer({
       )}
 
       {inlineIdeaError && (
-        <p className="mb-2.5 flex items-start gap-1.5 text-[12px] leading-5 text-red-500">
+        <p className="mb-2.5 flex items-start gap-1.5 text-[12px] leading-5 text-[var(--theme-danger-text)]">
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           {inlineIdeaError}
         </p>
       )}
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mb-2.5 flex flex-wrap items-center gap-2">
         {isCustomGenre && (
           <button
             type="button"
@@ -118,7 +118,7 @@ export function CreateIdeaComposer({
                 ? "根据当前设定生成完整简介"
                 : "请先补充题材、标签和故事创意"
             }
-            className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 create-tint px-3 text-xs font-bold text-slate-700 transition-all hover:bg-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+            className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3 text-xs font-bold text-[var(--theme-text-secondary)] transition-all hover:bg-[var(--theme-surface-solid)] disabled:cursor-not-allowed disabled:border-[var(--theme-border)] disabled:bg-[var(--theme-surface-soft)] disabled:text-[var(--theme-text-muted)]"
           >
             {aiBusy ? (
               <Sparkles className="h-3.5 w-3.5 animate-pulse" />
@@ -137,7 +137,7 @@ export function CreateIdeaComposer({
           type="button"
           onClick={() => void handleAnalyzeIdea(idea)}
           disabled={analyzeBlockedByAiThinking || analysisBusy || !canAnalyzeIdea}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-200 create-tint px-3 text-xs font-bold text-slate-700 transition-all hover:bg-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400"
+          className="inline-flex h-8 items-center gap-1.5 rounded-[4px] border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3 text-xs font-bold text-[var(--theme-text-secondary)] transition-all hover:bg-[var(--theme-surface-solid)] disabled:cursor-not-allowed disabled:border-[var(--theme-border)] disabled:bg-[var(--theme-surface-soft)] disabled:text-[var(--theme-text-muted)]"
         >
           <Wand2
             className={cn(
@@ -157,8 +157,8 @@ export function CreateIdeaComposer({
 
       <div
         className={cn(
-          "overflow-hidden rounded-2xl border border-slate-200/80 create-tint transition-all focus-within:border-[var(--create-accent)] focus-within:bg-white focus-within:ring-4 focus-within:ring-[var(--create-focus)]",
-          hasIdeaError && "border-red-300 focus-within:border-red-300 focus-within:ring-red-500/15",
+          "overflow-hidden rounded-[6px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] transition-all focus-within:border-[var(--create-accent)] focus-within:ring-4 focus-within:ring-[var(--create-focus)]",
+          hasIdeaError && "border-[var(--theme-danger-border)] focus-within:border-[var(--theme-danger-border)] focus-within:ring-[var(--theme-danger-text)]/15",
         )}
       >
         <textarea
@@ -168,14 +168,14 @@ export function CreateIdeaComposer({
             updateIdea(event.target.value);
             setIdeaAnalysis(null);
           }}
-          rows={5}
+          rows={4}
           aria-invalid={hasIdeaError}
           aria-describedby={hasIdeaError ? "create-form-error" : undefined}
-          className="min-h-[150px] w-full resize-y bg-transparent px-3.5 py-3 text-[14px] font-medium leading-6 text-slate-900 outline-none placeholder:text-slate-400"
+          className="min-h-[124px] w-full resize-y bg-transparent px-3.5 py-3 text-[14px] font-medium leading-6 text-[var(--theme-text-strong)] outline-none placeholder:text-[var(--theme-text-muted)]"
           placeholder={placeholder}
         />
-        <div className="flex items-center justify-between gap-3 border-t border-slate-200/70 bg-white/70 px-3.5 py-2">
-          <p className="min-w-0 truncate text-xs font-medium text-slate-500">
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3.5 py-2">
+          <p className="min-w-0 truncate text-xs font-medium text-[var(--theme-text-muted)]">
             {submitBlockedReason ||
               `建议至少 ${MIN_IDEA_LENGTH_FOR_OUTLINE} 字后生成大纲`}
           </p>
@@ -184,7 +184,7 @@ export function CreateIdeaComposer({
               "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold",
               wordCount >= MIN_IDEA_LENGTH_FOR_OUTLINE
                 ? "create-accent text-white"
-                : "bg-slate-100 text-slate-500",
+                : "bg-[var(--theme-surface-soft)] text-[var(--theme-text-muted)]",
             )}
           >
             {wordCount} / 2000
@@ -196,24 +196,24 @@ export function CreateIdeaComposer({
         <button
           type="button"
           onClick={() => setAnalysisOpen(!analysisPanelVisible)}
-          className="inline-flex h-8 items-center gap-2 rounded-full border border-slate-200/80 create-tint px-3 text-xs font-bold text-slate-600 transition-all hover:border-slate-300 hover:bg-white hover:text-slate-900"
+          className="inline-flex h-8 items-center gap-2 rounded-[4px] border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3 text-xs font-bold text-[var(--theme-text-secondary)] transition-all hover:border-[var(--theme-border-strong)] hover:bg-[var(--theme-surface-solid)] hover:text-[var(--theme-text-strong)]"
         >
-          <Wand2 className="h-3.5 w-3.5 text-slate-500" />
+          <Wand2 className="h-3.5 w-3.5 text-[var(--theme-text-muted)]" />
           创意分析
           {ideaAnalysis ? (
-            <span className="ml-1 h-1.5 w-1.5 rounded-full bg-slate-500" />
+            <span className="ml-1 h-1.5 w-1.5 rounded-full bg-[var(--theme-brand-500)]" />
           ) : null}
           {analysisPanelVisible ? (
-            <ChevronUp className="ml-1 h-3.5 w-3.5 text-slate-400" />
+            <ChevronUp className="ml-1 h-3.5 w-3.5 text-[var(--theme-text-muted)]" />
           ) : (
-            <ChevronDown className="ml-1 h-3.5 w-3.5 text-slate-400" />
+            <ChevronDown className="ml-1 h-3.5 w-3.5 text-[var(--theme-text-muted)]" />
           )}
         </button>
 
         {analysisPanelVisible && (analysisBusy || ideaAnalysis) && (
-          <div className="mt-3 rounded-2xl border border-slate-200/70 bg-white p-3 shadow-[0_12px_28px_-24px_rgba(20,32,29,0.32)]">
+          <div className="mt-3 rounded-[6px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-3 shadow-[0_12px_28px_-24px_rgba(20,32,29,0.32)]">
             {analysisBusy ? (
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--theme-text-secondary)]">
                 <Sparkles className="h-4 w-4 animate-pulse" />
                 正在分析创意亮点、卖点与目标读者...
               </div>
@@ -226,5 +226,3 @@ export function CreateIdeaComposer({
     </section>
   );
 }
-
-

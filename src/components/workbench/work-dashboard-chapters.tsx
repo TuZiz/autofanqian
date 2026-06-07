@@ -29,6 +29,8 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
         chapter.index,
         chapter.title ?? "",
         isShortStory ? `场景${chapter.index}` : `第${chapter.index}章`,
+        isShortStory ? `节点${chapter.index}` : "",
+        isShortStory ? `节点 ${chapter.index}` : "",
       ]
         .join(" ")
         .toLowerCase()
@@ -70,7 +72,7 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
                   : "请先规划下一段后再新增章节"
           }
           onClick={() => void dashboard.handleAddChapter()}
-          className="inline-flex h-9.5 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-3.5 text-sm font-bold text-white shadow-[0_14px_30px_-18px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)] transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-[0_18px_32px_-18px_rgba(16,185,129,0.18),inset_0_1px_0_rgba(255,255,255,0.12)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+          className="theme-brand-gradient-bg inline-flex h-9.5 items-center justify-center gap-2 rounded-xl px-3.5 text-sm font-bold text-white shadow-[var(--theme-shadow-button)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
           {dashboard.addChapterBusy ? "新增中..." : isShortStory ? "新增场景" : "新增章节"}
@@ -79,12 +81,12 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
 
       <p className="mt-2 max-w-2xl text-[13px] font-semibold leading-6 text-[var(--theme-text-muted)]">
         {isShortStory
-          ? "底层仍以正文文档保存，创作时可按 beats 跳转，但这里以短篇正文为主。"
+          ? "底层仍以正文文档保存，创作时可按结构节点跳转，但这里以短篇正文为主。"
           : "快速查看全部章节，筛出未写内容，或直接跳转到对应写作页。"}
       </p>
 
       {dashboard.addChapterError ? (
-        <div className="mt-3 rounded-xl border border-red-200/70 bg-red-50/85 px-4 py-3 text-sm font-bold text-red-600 shadow-sm dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-300">
+        <div className="mt-3 rounded-xl border border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] px-4 py-3 text-sm font-bold text-[var(--theme-danger-text)] shadow-sm">
           {dashboard.addChapterError}
         </div>
       ) : null}
@@ -96,16 +98,16 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={isShortStory ? "搜索场景标题或序号..." : "搜索章节标题或序号..."}
-            className="h-9.5 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] pl-9 pr-3 text-sm font-bold text-[var(--theme-text-primary)] outline-none shadow-sm transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-emerald-500/15"
+            className="h-9.5 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] pl-9 pr-3 text-sm font-bold text-[var(--theme-text-primary)] outline-none shadow-sm transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-[var(--theme-brand-border)]"
           />
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-[var(--theme-brand-600)]" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)] transition-colors group-focus-within:text-[var(--theme-brand-600)]" />
         </label>
 
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value as typeof status)}
           aria-label={isShortStory ? "按状态筛选场景" : "按状态筛选章节"}
-          className="h-9.5 appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-bold text-[var(--theme-text-primary)] outline-none shadow-sm transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-emerald-500/15"
+          className="h-9.5 appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-bold text-[var(--theme-text-primary)] outline-none shadow-sm transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-[var(--theme-brand-border)]"
         >
           <option value="all">{isShortStory ? "全部场景" : "全部章节"}</option>
           <option value="written">已写</option>
@@ -116,7 +118,7 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
       <div className="mt-4 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-inner">
         <div className="max-h-[calc(100dvh-22rem)] overflow-auto">
           <table className="w-full table-fixed text-left text-sm">
-            <thead className="sticky top-0 z-10 border-b border-[var(--theme-border)] bg-stone-50/95 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)] backdrop-blur dark:bg-stone-950/95">
+            <thead className="sticky top-0 z-10 border-b border-[var(--theme-border)] bg-[var(--theme-surface-solid)]/95 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)] backdrop-blur">
               <tr>
                 <th className="w-[38%] px-4 py-2.5 font-bold">{isShortStory ? "正文段落" : "章节"}</th>
                 <th className="w-[15%] px-3 py-2.5 font-bold">状态</th>
@@ -128,11 +130,11 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
             <tbody className="divide-y divide-[var(--theme-border)]">
               {filtered.length ? (
                 filtered.map((chapter) => (
-                  <tr key={chapter.id} className="transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-800/30">
+                  <tr key={chapter.id} className="transition-colors hover:bg-[var(--theme-surface-soft)]/80/30">
                     <td className="px-4 py-3">
                       <div className="flex min-w-0 items-center gap-2.5">
                         <span className="inline-flex h-8 min-w-[62px] shrink-0 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] px-2 text-[11px] font-black text-[var(--theme-text-muted)] shadow-sm">
-                          {isShortStory ? (chapter.index === 1 ? "正文" : `Beat ${chapter.index}`) : `第${chapter.index}章`}
+                          {isShortStory ? (chapter.index === 1 ? "正文" : `节点 ${chapter.index}`) : `第${chapter.index}章`}
                         </span>
                         <span className="truncate text-sm font-bold text-[var(--theme-text-strong)]">
                           {chapter.title || (isShortStory ? "短篇正文" : "未命名章节")}
@@ -143,7 +145,7 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
                       <span
                         className={
                           chapter.wordCount > 0
-                            ? "inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700 shadow-sm dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200"
+                            ? "inline-flex rounded-lg border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--theme-brand-text)] shadow-sm/20"
                             : "inline-flex rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--theme-text-muted)] shadow-sm"
                         }
                       >
@@ -160,7 +162,7 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
                       <button
                         type="button"
                         onClick={() => dashboard.goToChapter(chapter.index)}
-                        className="inline-flex h-8.5 items-center justify-center gap-1.5 rounded-xl border border-[var(--theme-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,247,250,0.92))] px-3 text-[11px] font-black text-[var(--theme-text-secondary)] shadow-[0_12px_24px_-20px_rgba(15,23,42,0.35),inset_0_1px_0_rgba(255,255,255,0.96)] transition-all hover:-translate-y-0.5 hover:text-[var(--theme-text-strong)] hover:shadow-[0_16px_28px_-18px_rgba(16,185,129,0.18),inset_0_1px_0_rgba(255,255,255,0.98)] active:scale-[0.98] dark:border-[var(--theme-border)] dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(18,18,20,0.92))] dark:text-zinc-300"
+                        className="inline-flex h-8.5 items-center justify-center gap-1.5 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-[11px] font-black text-[var(--theme-text-secondary)] shadow-[var(--theme-shadow-button)] transition-all hover:-translate-y-0.5 hover:text-[var(--theme-text-strong)] hover:shadow-[var(--theme-shadow-card)] active:scale-[0.98]"
                       >
                         <BookOpen className="h-3.5 w-3.5" />
                         打开
@@ -171,7 +173,7 @@ export function WorkDashboardChaptersPanel({ dashboard }: { dashboard: WorkDashb
               ) : (
                 <tr>
                   <td colSpan={5} className="px-6 py-10 text-center text-sm font-bold uppercase tracking-widest text-[var(--theme-text-muted)]">
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-100/80 text-zinc-400 shadow-inner ring-1 ring-[var(--theme-border)] dark:bg-zinc-800/80 dark:text-zinc-500 dark:ring-[var(--theme-border)]">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-[var(--theme-surface-soft)] text-[var(--theme-text-muted)] shadow-inner ring-1 ring-[var(--theme-border)]">
                       <FileText className="h-6 w-6" />
                     </div>
                     {isShortStory ? "没有匹配的场景" : "没有匹配的章节"}

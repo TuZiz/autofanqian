@@ -33,21 +33,21 @@ export function PrimaryAiButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "relative flex h-10 max-w-[8rem] shrink-0 items-center justify-center gap-2 overflow-hidden rounded-xl px-4 text-sm font-bold shadow-md transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/20 sm:max-w-[14rem]",
+        "relative flex h-10 max-w-[8rem] shrink-0 items-center justify-center gap-2 overflow-hidden rounded-xl px-4 text-sm font-bold shadow-md transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--theme-brand-border)] sm:max-w-[14rem]",
         busy
-          ? "cursor-default border border-emerald-200/80 bg-[linear-gradient(180deg,rgba(247,252,249,0.98),rgba(240,249,244,0.94))] text-emerald-800 shadow-sm ring-0 hover:bg-[linear-gradient(180deg,rgba(247,252,249,0.98),rgba(240,249,244,0.94))] disabled:opacity-100 dark:border-emerald-500/20 dark:bg-[linear-gradient(180deg,rgba(18,40,31,0.55),rgba(15,28,23,0.7))] dark:text-emerald-200 dark:hover:bg-[linear-gradient(180deg,rgba(18,40,31,0.55),rgba(15,28,23,0.7))]"
-          : "bg-zinc-950 text-white hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200",
+          ? "cursor-default border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] shadow-sm ring-0 hover:bg-[var(--theme-brand-soft)] disabled:opacity-100"
+          : "theme-brand-gradient-bg text-white hover:-translate-y-0.5 hover:brightness-105 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60",
       )}
     >
       {busy ? (
-        <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.14)] dark:bg-emerald-400 dark:shadow-[0_0_0_4px_rgba(52,211,153,0.12)]" />
+        <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--theme-brand-500)] shadow-[0_0_0_4px_rgba(14,165,233,0.14)]" />
       ) : (
         <Sparkles className="relative h-4 w-4 shrink-0" />
       )}
       {busy ? (
-        <span className="pointer-events-none absolute inset-x-2 bottom-1 h-0.5 overflow-hidden rounded-full bg-emerald-100/90 dark:bg-emerald-500/10">
+        <span className="pointer-events-none absolute inset-x-2 bottom-1 h-0.5 overflow-hidden rounded-full bg-[var(--theme-brand-soft)]">
           <span
-            className="block h-full rounded-full bg-[linear-gradient(90deg,rgba(16,185,129,0.82),rgba(5,150,105,0.98))] transition-[width] duration-300 ease-out"
+            className="theme-brand-gradient-bg block h-full rounded-full transition-[width] duration-300 ease-out"
             style={{ width: `${Math.max(8, progress)}%` }}
           />
         </span>
@@ -59,7 +59,7 @@ export function PrimaryAiButton({
         {compactLabel}
       </span>
       {busy ? (
-        <span className="relative hidden rounded-lg border border-emerald-200/80 bg-white/80 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300 sm:block">
+        <span className="relative hidden rounded-lg border border-[var(--theme-brand-border)] bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--theme-brand-text)] sm:block">
           {progress}%
         </span>
       ) : null}
@@ -88,7 +88,7 @@ export function SaveStatusPill({
 }) {
   if (error) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-red-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-red-700 shadow-sm dark:bg-red-500/10 dark:text-red-300">
+      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-[var(--theme-danger-soft)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--theme-danger-text)] shadow-sm">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">有错误</span>
       </span>
@@ -97,10 +97,10 @@ export function SaveStatusPill({
 
   if (aiBusy) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-emerald-200/80 bg-[linear-gradient(180deg,rgba(247,252,249,0.98),rgba(240,249,244,0.94))] px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:bg-[linear-gradient(180deg,rgba(18,40,31,0.55),rgba(15,28,23,0.7))] dark:text-emerald-200">
-        <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.14)] dark:bg-emerald-400 dark:shadow-[0_0_0_4px_rgba(52,211,153,0.12)]" />
+      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--theme-brand-text)] shadow-sm">
+        <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--theme-brand-500)] shadow-[0_0_0_4px_rgba(14,165,233,0.14)]" />
         <span className="truncate">{normalizeChapterCopy(aiLabel || `AI生成 ${aiProgress}%`)}</span>
-        <span className="rounded-lg border border-emerald-200/80 bg-white/80 px-2 py-0.5 text-[10px] font-extrabold tabular-nums text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+        <span className="rounded-lg border border-[var(--theme-brand-border)] bg-[var(--theme-surface-soft)] px-2 py-0.5 text-[10px] font-extrabold tabular-nums text-[var(--theme-brand-text)]">
           {aiProgress}%
         </span>
       </span>
@@ -109,7 +109,7 @@ export function SaveStatusPill({
 
   if (saving || metaSaving) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-amber-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-amber-700 shadow-sm dark:bg-amber-500/10 dark:text-amber-300">
+      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-[var(--theme-warning-soft)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--theme-warning-text)] shadow-sm">
         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
         <span className="truncate">保存中</span>
       </span>
@@ -118,7 +118,7 @@ export function SaveStatusPill({
 
   if (dirty) {
     return (
-      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-orange-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-orange-700 shadow-sm dark:bg-orange-500/10 dark:text-orange-300">
+      <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-[var(--theme-warning-soft)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--theme-warning-text)] shadow-sm">
         <Clock3 className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">未保存</span>
       </span>
@@ -126,7 +126,7 @@ export function SaveStatusPill({
   }
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700 shadow-sm dark:bg-emerald-500/10 dark:text-emerald-300">
+    <span className="inline-flex min-w-0 items-center gap-2 rounded-xl bg-[var(--theme-brand-soft)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--theme-brand-text)] shadow-sm">
       <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{normalizeChapterCopy(statusText)}</span>
     </span>

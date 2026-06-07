@@ -1,16 +1,5 @@
-"use client";
-
-import {
-  CardRoot,
-  CardHeader as HeroCardHeader,
-  CardTitle as HeroCardTitle,
-  CardDescription as HeroCardDescription,
-  CardContent as HeroCardContent,
-  CardFooter as HeroCardFooter,
-} from "@heroui/react";
-import type { ComponentProps, ReactNode } from "react";
-
 import { cn } from "@/lib/utils";
+import type { ComponentProps, ReactNode } from "react";
 
 function Card({
   className,
@@ -19,24 +8,29 @@ function Card({
   ...props
 }: ComponentProps<"div"> & { size?: "default" | "sm"; children?: ReactNode }) {
   return (
-    <CardRoot
+    <div
       data-size={size}
       className={cn(
-        "group/card flex flex-col gap-4 overflow-hidden rounded-xl bg-card py-4 text-sm text-card-foreground ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-4 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] py-4 text-sm text-[var(--theme-text-primary)] shadow-[var(--theme-shadow-card)]",
+        "data-[size=sm]:gap-3 data-[size=sm]:py-3",
         className,
       )}
       {...props}
     >
       {children}
-    </CardRoot>
+    </div>
   );
 }
 
 function CardHeader({ className, ...props }: ComponentProps<"div">) {
   return (
-    <HeroCardHeader
+    <div
       className={cn(
-        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-4 group-data-[size=sm]/card:px-3 has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-4 group-data-[size=sm]/card:[.border-b]:pb-3",
+        "group/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-4",
+        "group-data-[size=sm]/card:px-3",
+        "has-data-[slot=card-action]:grid-cols-[1fr_auto]",
+        "has-data-[slot=card-description]:grid-rows-[auto_auto]",
+        "[.border-b]:pb-4 group-data-[size=sm]/card:[.border-b]:pb-3",
         className,
       )}
       {...props}
@@ -46,9 +40,10 @@ function CardHeader({ className, ...props }: ComponentProps<"div">) {
 
 function CardTitle({ className, ...props }: ComponentProps<"div">) {
   return (
-    <HeroCardTitle
+    <div
       className={cn(
-        "text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        "text-base leading-snug font-semibold text-[var(--theme-text-strong)]",
+        "group-data-[size=sm]/card:text-sm",
         className,
       )}
       {...props}
@@ -58,8 +53,8 @@ function CardTitle({ className, ...props }: ComponentProps<"div">) {
 
 function CardDescription({ className, ...props }: ComponentProps<"div">) {
   return (
-    <HeroCardDescription
-      className={cn("text-sm text-muted-foreground", className)}
+    <div
+      className={cn("text-sm text-[var(--theme-text-secondary)]", className)}
       {...props}
     />
   );
@@ -79,7 +74,7 @@ function CardAction({ className, ...props }: ComponentProps<"div">) {
 
 function CardContent({ className, ...props }: ComponentProps<"div">) {
   return (
-    <HeroCardContent
+    <div
       className={cn("px-4 group-data-[size=sm]/card:px-3", className)}
       {...props}
     />
@@ -88,9 +83,10 @@ function CardContent({ className, ...props }: ComponentProps<"div">) {
 
 function CardFooter({ className, ...props }: ComponentProps<"div">) {
   return (
-    <HeroCardFooter
+    <div
       className={cn(
-        "flex items-center rounded-b-xl border-t bg-muted/50 p-4 group-data-[size=sm]/card:p-3",
+        "flex items-center rounded-b-xl border-t border-[var(--theme-divider)] bg-[var(--theme-surface-overlay)] p-4",
+        "group-data-[size=sm]/card:p-3",
         className,
       )}
       {...props}

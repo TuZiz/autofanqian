@@ -58,27 +58,27 @@ const accentStyles: Record<PublicMembershipPlan["accent"], {
 }> = {
   gray: {
     shell: "bg-[var(--theme-border)]",
-    icon: "bg-zinc-500/10 text-zinc-600 dark:text-zinc-300",
-    pill: "border-zinc-300/70 bg-zinc-500/10 text-zinc-700 dark:border-zinc-600/70 dark:text-zinc-200",
+    icon: "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)]",
+    pill: "border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)]",
     price: "text-[var(--theme-text-strong)]",
   },
   blue: {
-    shell: "bg-gradient-to-br from-sky-300/80 via-blue-400/70 to-[var(--theme-brand-600)]",
-    icon: "bg-sky-500/10 text-sky-600 dark:text-sky-300",
-    pill: "border-sky-300/70 bg-sky-500/10 text-sky-700 dark:border-sky-500/50 dark:text-sky-200",
-    price: "text-sky-700 dark:text-sky-200",
+    shell: "bg-gradient-to-br from-[#60a5fa]/80 via-[#2f80ed]/70 to-[#1f6ed4]",
+    icon: "bg-[var(--theme-info-soft)] text-[var(--theme-info-text)]",
+    pill: "border-[var(--theme-info-border)] bg-[var(--theme-info-soft)] text-[var(--theme-info-text)]",
+    price: "text-[var(--theme-info-text)]",
   },
   purple: {
-    shell: "bg-gradient-to-br from-fuchsia-400/90 via-violet-500/80 to-[var(--theme-brand-600)]",
-    icon: "bg-violet-500/10 text-violet-600 dark:text-violet-200",
-    pill: "border-violet-300/80 bg-violet-500/10 text-violet-700 dark:border-violet-400/50 dark:text-violet-200",
-    price: "text-violet-700 dark:text-violet-200",
+    shell: "bg-gradient-to-br from-[#38bdf8]/70 via-[#0ea5e9]/75 to-[#0284c7]",
+    icon: "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
+    pill: "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
+    price: "text-[var(--theme-brand-text)]",
   },
   amber: {
     shell: "bg-gradient-to-br from-amber-300/90 via-orange-400/80 to-amber-600/90",
-    icon: "bg-amber-500/10 text-amber-700 dark:text-amber-200",
-    pill: "border-amber-300/80 bg-amber-500/10 text-amber-800 dark:border-amber-400/50 dark:text-amber-200",
-    price: "text-amber-800 dark:text-amber-200",
+    icon: "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)]",
+    pill: "border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)]",
+    price: "text-[var(--theme-warning-text)]",
   },
 };
 
@@ -251,7 +251,7 @@ export function DashboardUpgradeModal({
     <Dialog isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-h-[calc(100dvh-1.5rem)] w-[calc(100vw-1rem)] overflow-y-auto p-0 sm:max-w-6xl lg:max-w-7xl">
         <div className="relative min-w-0 overflow-hidden rounded-xl bg-[var(--theme-surface-solid)]">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_32%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--theme-brand-soft),transparent_34%)]" />
           <div className="relative space-y-5 p-5 sm:p-6">
             <DialogHeader className="pr-10">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -280,7 +280,7 @@ export function DashboardUpgradeModal({
             </DialogHeader>
 
             {isAdmin ? (
-              <div className="rounded-2xl border border-amber-300/60 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-800 dark:border-amber-400/40 dark:text-amber-100">
+              <div className="rounded-2xl border border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] px-4 py-3 text-sm font-semibold text-[var(--theme-warning-text)]">
                 管理员账号默认不受会员限制；可在此页面发起测试支付，支付成功不会改变管理员使用限制。
               </div>
             ) : null}
@@ -402,11 +402,11 @@ function QuotaPreviewCard({
           <Icon className="h-5 w-5" />
         </div>
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-zinc-200/70 dark:bg-zinc-800">
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--theme-surface-overlay)]">
         <div
           className={cn(
             "h-full rounded-full transition-all duration-700",
-            unlimited ? "bg-gradient-to-r from-emerald-400 via-sky-400 to-violet-400" : "bg-[var(--theme-brand-600)]",
+            unlimited ? "bg-[var(--theme-brand-600)]" : "bg-[var(--theme-brand-600)]",
           )}
           style={{ width: `${percent}%` }}
         />
@@ -445,7 +445,7 @@ function PlanCard({
       className={cn(
         "group min-w-0 rounded-2xl p-[1px] transition-all duration-200 hover:-translate-y-1 hover:shadow-xl",
         accent.shell,
-        isCurrent && "shadow-[0_0_0_2px_var(--theme-brand-600)]",
+        isCurrent && "ring-1 ring-[var(--theme-brand-border)]",
       )}
     >
       <div className="flex h-full flex-col rounded-[calc(1rem-1px)] bg-[var(--theme-surface-solid)] p-4">

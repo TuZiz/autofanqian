@@ -1,295 +1,160 @@
-﻿"use client";
+"use client";
 
-import { useRouter } from "next/navigation";
-import { useState, type ReactElement } from "react";
-import {
-  Search,
-  Filter, FileText, User as UserIcon, Plus
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { Library, Plus } from "lucide-react";
 
+import { Button, EmptyState, LoadingSkeleton } from "@/components/design-system";
 import { DashboardWorkCard } from "@/components/dashboard/dashboard-work-card";
 import type { DashboardFilters } from "@/lib/dashboard/dashboard-types";
 import type { DashboardClientController } from "@/lib/dashboard/use-dashboard-client";
-import {
-  getWorkLibraryEmptyCopy,
-  hasActiveWorkLibraryFilter,
-} from "@/lib/dashboard/work-library-filter";
-import { cn } from "@/lib/utils";
-import type { WorkLibraryTypeFilter } from "@/shared/work-type";
+import { getWorkLibraryEmptyCopy } from "@/lib/dashboard/work-library-filter";
+
+import { DashboardWorksFilters } from "./dashboard-works-filters";
 
 type DashboardWorksSectionProps = {
+  activeWorkId: string | null;
   dashboard: DashboardClientController;
 };
 
-export function DashboardWorksSection({ dashboard }: DashboardWorksSectionProps) {
+export function DashboardWorksSection({ activeWorkId, dashboard }: DashboardWorksSectionProps) {
   const {
     deleteBusy,
     filters,
+    isFilterPending,
     openDeleteDialog,
     overview,
+    overviewError,
+    overviewLoading,
     updateFilters,
     user,
   } = dashboard;
-  const router = useRouter();
-
   const works = overview?.works ?? [];
   const totalWorks = overview?.pagination?.total ?? 0;
-  const hasFilters = hasActiveWorkLibraryFilter(filters);
-  const [filterExpanded, setFilterExpanded] = useState(false);
-
   const page = filters.page;
-  const pageCount = Math.ceil(totalWorks / filters.pageSize);
+  const pageCount = Math.max(1, Math.ceil(totalWorks / filters.pageSize));
 
   return (
-    <section className="flex flex-col gap-3">
-      {/* 工具栏区 */}
-      <div className="app-compact-panel flex flex-col gap-3 p-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-bold tracking-tight text-[var(--theme-text-strong)]">
-              我的作品宇宙
-            </h3>
-            <span className="rounded-md bg-[var(--theme-brand-soft)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]">
-              {totalWorks} 部
+    <section className="dashboard-library overflow-hidden rounded-[6px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-[var(--theme-shadow-card)] backdrop-blur-xl">
+      <div className="flex items-center justify-between border-b border-[var(--theme-divider)] px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] bg-[var(--theme-surface-overlay)] text-[var(--theme-brand-600)] ring-1 ring-[var(--theme-border)]">
+            <Library className="h-3 w-3" />
+          </div>
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 className="truncate text-sm font-extrabold text-[var(--theme-text-strong)]">
+              作品库
+            </h2>
+            <span className="shrink-0 rounded-[3px] bg-[var(--theme-surface-overlay)] px-2 py-0.5 text-[11px] font-bold text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]">
+              共 {totalWorks} 部
+            </span>
+            <span className="hidden">
+              管理你的所有作品
             </span>
           </div>
+        </div>
+      </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <TypeFilterTabs
-              value={filters.type}
-              onChange={(value) => updateFilters({ type: value })}
-            />
+      <div className="space-y-2 p-2.5">
+        <DashboardWorksFilters
+          filters={filters}
+          loading={overviewLoading || isFilterPending}
+          onChange={updateFilters}
+          totalWorks={totalWorks}
+        />
 
-            <div className="group relative flex h-9 w-full items-center overflow-hidden rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-sm transition-all focus-within:border-[var(--theme-brand-border)] focus-within:ring-2 focus-within:ring-emerald-500/15 sm:w-[240px]">
-              <div className="pl-3 text-zinc-400 group-focus-within:text-[var(--theme-brand-600)]">
-                <Search className="h-4 w-4" />
-              </div>
-              <input
-                type="text"
-                value={filters.q}
-                onChange={(e) => updateFilters({ q: e.target.value })}
-                placeholder="搜索标题、标签..."
-                className="h-full w-full bg-transparent px-2 text-sm font-bold text-[var(--theme-text-primary)] placeholder:text-[var(--theme-text-muted)] outline-none"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setFilterExpanded(!filterExpanded)}
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-bold shadow-sm transition-all active:scale-[0.98]",
-                filterExpanded || hasFilters
-                  ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-500 dark:border-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-                  : "border-[var(--theme-border)] bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white"
-              )}
-            >
-              <Filter className="h-4 w-4" />
-              {hasFilters ? "已过滤" : "筛选"}
-            </button>
-
-            <button
-              onClick={() => router.push("/dashboard/create")}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-white dark:text-zinc-950"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">新建</span>
-            </button>
+        {overviewError ? (
+          <div className="rounded-[4px] border border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] px-4 py-3 text-sm font-medium text-[var(--theme-danger-text)]">
+            {overviewError}
           </div>
+        ) : null}
+
+        <div className="overflow-hidden rounded-[4px] border border-[var(--theme-border)] bg-[var(--theme-card-secondary)]">
+          <div className="hidden min-w-0 border-b border-[var(--theme-divider)] px-3 py-2 text-[11px] font-bold text-[var(--theme-text-muted)] lg:grid lg:grid-cols-[minmax(200px,1.35fr)_104px_96px_72px_76px_minmax(136px,0.8fr)_176px] lg:items-center">
+            <span>作品信息</span>
+            <span>类型/标签</span>
+            <span>章节/场景</span>
+            <span>字数</span>
+            <span>更新时间</span>
+            <span>进度</span>
+            <span className="text-right">操作</span>
+          </div>
+          {overviewLoading || isFilterPending ? (
+            <div aria-label="作品库加载中" aria-live="polite">
+              <WorkCardSkeleton />
+              <WorkCardSkeleton />
+            </div>
+          ) : works.length > 0 ? (
+            works.map((work) => (
+              <DashboardWorkCard
+                key={work.id}
+                active={work.id === activeWorkId}
+                canDeleteWork={Boolean(user?.isAdmin || user?.id === work.owner?.id)}
+                deleteBusy={deleteBusy}
+                onDelete={() => openDeleteDialog(work)}
+                work={work}
+              />
+            ))
+          ) : (
+            <EmptyWorksState filters={filters} />
+          )}
         </div>
 
-        <AnimatePresence>
-          {filterExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-4 flex flex-wrap items-end gap-4 border-t border-[var(--theme-border)] pt-5 dark:border-[var(--theme-border)]">
-                <FilterSelectField
-                  label="类型"
-                  value={filters.genreId}
-                  onChange={(v) => updateFilters({ genreId: v })}
-                  options={[
-                    ["", "全部类型"],
-                    ["玄幻", "玄幻"],
-                    ["奇幻", "奇幻"],
-                    ["武侠", "武侠"],
-                    ["仙侠", "仙侠"],
-                    ["都市", "都市"],
-                    ["现实", "现实"],
-                    ["军事", "军事"],
-                    ["历史", "历史"],
-                    ["游戏", "游戏"],
-                    ["体育", "体育"],
-                    ["科幻", "科幻"],
-                    ["悬疑", "悬疑"],
-                    ["轻小说", "轻小说"],
-                    ["短篇", "短篇"],
-                  ]}
-                />
-                <FilterField
-                  label="状态标签"
-                  value={filters.tag}
-                  onChange={(v) => updateFilters({ tag: v })}
-                  placeholder="如：连载中、已完结"
-                />
-                <FilterField
-                  label="创建人"
-                  icon={<UserIcon className="h-4 w-4 text-zinc-400" />}
-                  value={filters.owner}
-                  onChange={(v) => updateFilters({ owner: v })}
-                  placeholder="输入作者邮箱或 ID"
-                />
-                <div className="ml-auto flex items-center gap-3">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">排序</span>
-                  <select
-                    value={filters.sort}
-                    onChange={(e) => updateFilters({ sort: e.target.value as DashboardFilters["sort"] })}
-                    className="h-10 rounded-xl border border-[var(--theme-border)] bg-white/80 px-4 text-sm font-bold text-zinc-700 shadow-sm outline-none transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-zinc-300 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
-                  >
-                    <option value="updated_desc">最近更新</option>
-                    <option value="created_desc">最新创建</option>
-                    <option value="word_desc">字数最多</option>
-                  </select>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {pageCount > 1 ? (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            total={totalWorks}
+            onPageChange={(nextPage) => updateFilters({ page: nextPage })}
+          />
+        ) : null}
       </div>
-
-      {/* 作品列表区 */}
-      <div className="flex flex-col gap-2.5">
-        {works.length > 0 ? (
-          works.map((work) => (
-            <DashboardWorkCard
-              key={work.id}
-              canDeleteWork={Boolean(user?.isAdmin || user?.id === work.owner?.id)}
-              deleteBusy={deleteBusy}
-              onDelete={() => openDeleteDialog(work)}
-              onWrite={(href) => router.push(href)}
-              work={work}
-            />
-          ))
-        ) : (
-          <EmptyWorksState filters={filters} onCreate={() => router.push("/dashboard/create")} />
-        )}
-      </div>
-
-      {pageCount > 1 && (
-        <PaginationBar
-          page={page}
-          pageCount={pageCount}
-          total={totalWorks}
-          onPageChange={(p) => updateFilters({ page: p })}
-        />
-      )}
     </section>
   );
 }
 
-function FilterField({
-  icon,
-  label,
-  onChange,
-  placeholder,
-  value,
-}: {
-  icon?: ReactElement;
-  label: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  value: string;
-}) {
+function WorkCardSkeleton() {
   return (
-    <label className="block min-w-[200px] flex-1">
-      <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-        {label}
-      </span>
-      <div className="flex h-12 w-full items-center rounded-xl border border-[var(--theme-border)] bg-white/80 px-4 shadow-sm transition-all focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-400/20 dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:focus-within:border-emerald-500 dark:focus-within:ring-emerald-500/20">
-        {icon && <div className="mr-3">{icon}</div>}
-        <input
-          value={value}
-          onChange={(event) => onChange(event.target.value.slice(0, 120))}
-          placeholder={placeholder}
-          className="h-full w-full bg-transparent text-sm font-bold text-zinc-900 placeholder:text-zinc-400 outline-none dark:text-white dark:placeholder:text-zinc-500"
-        />
+    <div className="border-b border-[var(--theme-divider)] bg-[var(--theme-surface-solid)] p-3 last:border-b-0">
+      <div className="flex gap-3">
+        <LoadingSkeleton className="h-12 w-10 shrink-0 rounded-[3px]" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <LoadingSkeleton className="h-4 w-12" />
+            <LoadingSkeleton className="h-4 w-14" />
+            <LoadingSkeleton className="h-4 w-10" />
+          </div>
+          <LoadingSkeleton className="h-4 w-2/3" />
+          <LoadingSkeleton className="h-3 w-full" />
+        </div>
       </div>
-    </label>
-  );
-}
-
-function TypeFilterTabs({
-  onChange,
-  value,
-}: {
-  onChange: (value: WorkLibraryTypeFilter) => void;
-  value: WorkLibraryTypeFilter;
-}) {
-  const options: Array<{ label: string; value: WorkLibraryTypeFilter }> = [
-    { label: "全部", value: "all" },
-    { label: "长篇", value: "long" },
-    { label: "短篇", value: "short" },
-  ];
-
-  return (
-    <div
-      className="flex h-9 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-0.5 shadow-sm"
-      aria-label="作品类型筛选"
-    >
-      {options.map((option) => {
-        const active = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            aria-pressed={active}
-            className={cn(
-              "inline-flex h-8 items-center rounded px-3 text-xs font-bold transition-all",
-              active
-                ? "bg-zinc-950 text-white shadow-sm dark:bg-white dark:text-zinc-950"
-                : "text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)] hover:text-[var(--theme-text-strong)]",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
     </div>
   );
 }
 
-function FilterSelectField({
-  label,
-  onChange,
-  options,
-  value,
+function EmptyWorksState({
+  filters,
 }: {
-  label: string;
-  onChange: (value: string) => void;
-  options: Array<[string, string]>;
-  value: string;
+  filters: DashboardFilters;
 }) {
+  const copy = getWorkLibraryEmptyCopy(filters);
+
   return (
-    <label className="block min-w-[200px] flex-1">
-      <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full appearance-none rounded-xl border border-[var(--theme-border)] bg-white/80 px-4 text-sm font-bold text-zinc-900 shadow-sm outline-none transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
-      >
-        {options.map(([optionValue, optionLabel]) => (
-          <option key={optionValue} value={optionValue}>
-            {optionLabel}
-          </option>
-        ))}
-      </select>
-    </label>
+    <EmptyState
+      icon={Library}
+      title={copy.title}
+      description={copy.description}
+      action={
+        copy.canCreate ? (
+          <Link
+            href="/dashboard/create"
+            className="theme-brand-gradient-bg inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-transparent px-3.5 text-sm font-bold text-white shadow-[var(--theme-shadow-button)] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-brand-500)]/40 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--theme-bg)] active:translate-y-px"
+          >
+            <Plus className="h-4 w-4" />
+            新建作品
+          </Link>
+        ) : null
+      }
+    />
   );
 }
 
@@ -304,62 +169,31 @@ function PaginationBar({
   pageCount: number;
   total: number;
 }) {
-  const safePageCount = Math.max(1, pageCount);
-
   return (
-    <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/60 bg-white/70 px-6 py-4 shadow-sm ring-1 ring-[var(--theme-border)] backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60 dark:ring-[var(--theme-border)]">
-      <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">
-        共 <span className="font-bold text-zinc-950 dark:text-white">{total}</span> 部作品，第 <span className="font-bold text-zinc-950 dark:text-white">{page} / {safePageCount}</span> 页
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3 py-2.5 backdrop-blur-sm">
+      <p className="text-sm font-medium text-[var(--theme-text-muted)]">
+        共 <span className="font-extrabold text-[var(--theme-text-strong)]">{total}</span> 部作品，第{" "}
+        <span className="font-extrabold text-[var(--theme-text-strong)]">
+          {page} / {pageCount}
+        </span>{" "}
+        页
       </p>
-      <div className="flex gap-3">
-        <button
+      <div className="flex gap-2">
+        <Button
+          type="button"
           disabled={page <= 1}
           onClick={() => onPageChange(Math.max(1, page - 1))}
-          className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-white px-5 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-[var(--theme-border)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-[var(--theme-border)]"
         >
           上一页
-        </button>
-        <button
-          disabled={page >= safePageCount}
-          onClick={() => onPageChange(Math.min(safePageCount, page + 1))}
-          className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-white px-5 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:ring-1 hover:ring-[var(--theme-border)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-[var(--theme-border)]"
+        </Button>
+        <Button
+          type="button"
+          disabled={page >= pageCount}
+          onClick={() => onPageChange(Math.min(pageCount, page + 1))}
         >
           下一页
-        </button>
+        </Button>
       </div>
-    </div>
-  );
-}
-
-function EmptyWorksState({
-  filters,
-  onCreate,
-}: {
-  filters: DashboardFilters;
-  onCreate: () => void;
-}) {
-  const copy = getWorkLibraryEmptyCopy(filters);
-
-  return (
-    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-[var(--theme-border)] bg-zinc-50/50 p-10 text-center shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
-      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-xl bg-zinc-100/80 text-zinc-400 shadow-inner ring-1 ring-[var(--theme-border)] dark:bg-zinc-800/80 dark:text-zinc-500 dark:ring-[var(--theme-border)]">
-        <FileText className="h-8 w-8" aria-hidden />
-      </div>
-      <h3 className="text-2xl font-extrabold tracking-tight text-zinc-950 dark:text-white">
-        {copy.title}
-      </h3>
-      <p className="mt-3 max-w-md text-sm font-bold leading-relaxed text-zinc-500 dark:text-zinc-400">
-        {copy.description}
-      </p>
-      {copy.canCreate && (
-        <button
-          onClick={onCreate}
-          className="mt-8 inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-8 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-xl hover:shadow-emerald-500/25 active:scale-[0.98] dark:bg-emerald-500 dark:hover:bg-emerald-400"
-        >
-          <Plus className="h-5 w-5" />
-          新建作品
-        </button>
-      )}
     </div>
   );
 }

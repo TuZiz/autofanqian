@@ -73,17 +73,17 @@ export function WorkDashboardSidebar({
                   type="button"
                   aria-disabled="true"
                   onClick={(event) => event.preventDefault()}
-                  className="group relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-[1.1rem] border border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,250,240,0.98),rgba(255,246,219,0.93))] px-3.5 py-3 text-left text-amber-900 opacity-50 shadow-[0_14px_28px_-22px_rgba(180,83,9,0.25),inset_0_1px_0_rgba(255,255,255,0.96)] transition-all aria-disabled:cursor-not-allowed dark:border-amber-500/30 dark:bg-[linear-gradient(180deg,rgba(68,45,17,0.96),rgba(47,31,12,0.92))] dark:text-amber-200"
+                  className="group relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-[1.1rem] border border-[var(--theme-warning-border)]/80 bg-[var(--theme-warning-soft)] px-3.5 py-3 text-left text-[var(--theme-warning-text)] opacity-50 shadow-[var(--theme-shadow-button)] transition-all aria-disabled:cursor-not-allowed"
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200/80 bg-white/70 text-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--theme-warning-border)]/80 bg-[var(--theme-surface-soft)] text-[var(--theme-warning-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
                       <Zap className="h-4 w-4" />
                     </span>
                     <span className="text-sm font-bold tracking-[0.01em]">规划下一段</span>
                   </span>
                 </button>
               </TooltipTrigger>
-              <TooltipContent className="max-w-[19rem] rounded-[1rem] border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,244,0.98),rgba(255,244,217,0.95))] px-3.5 py-2.5 text-[11px] font-semibold leading-5 text-amber-950 shadow-[0_20px_32px_-24px_rgba(180,83,9,0.3)] [--tooltip-bg:rgba(255,250,240,0.98)] [--tooltip-border:rgba(253,230,138,0.95)] [--tooltip-fg:rgba(120,53,15,0.96)] [--tooltip-shadow:0_20px_34px_-24px_rgba(180,83,9,0.28)] dark:border-amber-400/30 dark:bg-[linear-gradient(180deg,rgba(69,45,18,0.98),rgba(50,32,13,0.95))] dark:text-amber-100 dark:[--tooltip-bg:rgba(64,42,17,0.98)] dark:[--tooltip-border:rgba(251,191,36,0.28)] dark:[--tooltip-fg:rgba(254,243,199,0.98)] dark:[--tooltip-shadow:0_20px_34px_-24px_rgba(0,0,0,0.55)]">
+              <TooltipContent className="max-w-[19rem] rounded-[1rem] border-[var(--theme-warning-border)]/80 bg-[var(--theme-warning-soft)] px-3.5 py-2.5 text-[11px] font-semibold leading-5 text-[var(--theme-warning-text)] shadow-[var(--theme-shadow-button)] [--tooltip-bg:var(--theme-warning-soft)] [--tooltip-border:var(--theme-warning-border)] [--tooltip-fg:var(--theme-warning-text)] [--tooltip-shadow:var(--theme-shadow-button)]">
                 {extendBlockedReason}
               </TooltipContent>
             </Tooltip>
@@ -107,8 +107,8 @@ export function WorkDashboardSidebar({
                 className={cn(
                   "min-h-11 whitespace-pre-line rounded-xl border px-2 text-xs font-semibold uppercase tracking-wider transition-all active:scale-[0.98]",
                   outlineExtensionSize === size
-                    ? "border-zinc-950 bg-zinc-950 text-white shadow-md dark:border-white dark:bg-white dark:text-zinc-950"
-                    : "border-[var(--theme-border)] bg-white/80 text-zinc-500 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 hover:shadow dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white",
+                    ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] shadow-md"
+                    : "border-[var(--theme-border)] bg-[var(--theme-surface-soft)] text-[var(--theme-text-muted)] shadow-sm hover:bg-[var(--theme-surface-solid)] hover:text-[var(--theme-text-strong)] hover:shadow",
                 )}
               >
                 {DEFAULT_PLANNING_CONFIG.presets[size].label.replace(" ", "\n")}
@@ -118,7 +118,7 @@ export function WorkDashboardSidebar({
           )}
 
           {outlineRefineError ? (
-            <div className="rounded-xl border border-red-200/60 bg-red-50/80 p-3 text-xs font-bold leading-5 text-red-600 shadow-inner dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-300">
+            <div className="rounded-xl border border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] p-3 text-xs font-bold leading-5 text-[var(--theme-danger-text)] shadow-inner">
               {outlineRefineError}
             </div>
           ) : null}
@@ -137,8 +137,8 @@ export function WorkDashboardSidebar({
               className={cn(
                 "rounded-xl border p-3 text-xs font-bold leading-5 shadow-inner",
                 consistencyError
-                  ? "border-red-200/60 bg-red-50/80 text-red-600 dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-300"
-                  : "border-emerald-200/60 bg-emerald-50/80 text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300",
+                  ? "border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)]"
+                  : "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
               )}
             >
               {consistencyError || consistencyNotice}
@@ -207,20 +207,20 @@ function SidebarActionButton({
       className={cn(
         "group relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-[1.1rem] border px-3.5 py-3 text-left transition-all active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50",
         tone === "primary" &&
-          "border-zinc-900 bg-[linear-gradient(180deg,#171717,#050505)] text-white shadow-[0_18px_36px_-24px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.08)] hover:-translate-y-0.5 hover:shadow-[0_22px_40px_-24px_rgba(16,185,129,0.28),inset_0_1px_0_rgba(255,255,255,0.12)] dark:border-white/10 dark:bg-[linear-gradient(180deg,#ffffff,#e9edf1)] dark:text-zinc-950",
+          "theme-brand-gradient-bg border-transparent text-white shadow-[var(--theme-shadow-button)] hover:-translate-y-0.5 hover:shadow-[var(--theme-shadow-card)]",
         tone === "neutral" &&
-          "border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,246,249,0.93))] text-[var(--theme-text-strong)] shadow-[0_14px_28px_-22px_rgba(15,23,42,0.38),inset_0_1px_0_rgba(255,255,255,0.96)] hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-22px_rgba(15,23,42,0.28),inset_0_1px_0_rgba(255,255,255,0.98)] dark:border-[var(--theme-border)] dark:bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(18,18,20,0.92))]",
+          "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-strong)] shadow-[var(--theme-shadow-button)] hover:-translate-y-0.5 hover:shadow-[var(--theme-shadow-card)]",
         tone === "warm" &&
-          "border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,250,240,0.98),rgba(255,246,219,0.93))] text-amber-900 shadow-[0_14px_28px_-22px_rgba(180,83,9,0.25),inset_0_1px_0_rgba(255,255,255,0.96)] hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-20px_rgba(245,158,11,0.28),inset_0_1px_0_rgba(255,255,255,0.98)] dark:border-amber-500/30 dark:bg-[linear-gradient(180deg,rgba(68,45,17,0.96),rgba(47,31,12,0.92))] dark:text-amber-200",
+          "border-[var(--theme-warning-border)]/80 bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] shadow-[var(--theme-shadow-button)] hover:-translate-y-0.5 hover:shadow-[var(--theme-shadow-card)]",
       )}
     >
       <span className="flex items-center gap-2.5">
         <span
           className={cn(
             "flex h-9 w-9 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]",
-            tone === "primary" && "border-white/10 bg-white/10 text-white dark:border-zinc-900/10 dark:bg-zinc-900/10 dark:text-zinc-950",
-            tone === "neutral" && "border-zinc-200/80 bg-white/90 text-zinc-700 dark:border-[var(--theme-border)] dark:bg-zinc-900/80 dark:text-zinc-300",
-            tone === "warm" && "border-amber-200/80 bg-white/70 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200",
+            tone === "primary" && "border-white/10 bg-white/10 text-white",
+            tone === "neutral" && "border-[var(--theme-border)] bg-[var(--theme-surface-soft)] text-[var(--theme-text-secondary)]",
+            tone === "warm" && "border-[var(--theme-warning-border)]/80 bg-[var(--theme-surface-soft)] text-[var(--theme-warning-text)]",
           )}
         >
           {icon}
@@ -231,7 +231,7 @@ function SidebarActionButton({
         <span
           className={cn(
             "text-[11px] font-black uppercase tracking-[0.18em]",
-            tone === "primary" ? "text-white/72 dark:text-zinc-700" : "text-zinc-500 dark:text-zinc-400",
+            tone === "primary" ? "text-white/72" : "text-[var(--theme-text-muted)]",
           )}
         >
           {meta}
@@ -259,7 +259,7 @@ function MetricRow({
         className={cn(
           "shrink-0 tabular-nums text-sm font-bold text-[var(--theme-text-strong)]",
           accent && "text-[var(--theme-brand-text)]",
-          danger && "text-amber-600 dark:text-amber-400",
+          danger && "text-[var(--theme-warning-text)]",
         )}
       >
         {value}

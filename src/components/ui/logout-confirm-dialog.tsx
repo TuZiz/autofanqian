@@ -44,7 +44,7 @@ export function LogoutConfirmDialog({
         className="relative z-10 w-full max-w-md rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-5 shadow-xl"
       >
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)]">
               <LogOut className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -69,7 +69,7 @@ export function LogoutConfirmDialog({
             </button>
             <button
               type="button"
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-red-600 px-4 text-sm font-bold text-white transition hover:bg-red-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--theme-danger-text)] px-4 text-sm font-bold text-white transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() => void onConfirm()}
               disabled={busy}
             >

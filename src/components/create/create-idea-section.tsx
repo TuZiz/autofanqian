@@ -61,10 +61,10 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
 
   return (
     <section id="create-idea-section" className="overflow-hidden border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-sm">
-      <div className="flex flex-col gap-2 border-b border-[var(--theme-border)] bg-gradient-to-r from-emerald-500/5 to-transparent px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-2 border-b border-[var(--theme-border)] bg-gradient-to-r from-[var(--theme-brand-500)]/5 to-transparent px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <label className="flex items-center gap-2.5 text-lg font-extrabold tracking-tight text-[var(--theme-text-strong)]">
-            <span className="flex h-7 w-7 items-center justify-center bg-emerald-500 text-xs font-black text-white shadow-sm">
+            <span className="flex h-7 w-7 items-center justify-center bg-[var(--theme-brand-500)] text-xs font-black text-white shadow-sm">
               2
             </span>
             故事简介
@@ -81,8 +81,8 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
           <span className={cn(
             "inline-flex px-3 py-1.5 text-xs font-bold ring-1",
             readyForOutline
-              ? "bg-emerald-50 text-emerald-700 ring-emerald-200/60 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20"
-              : "bg-amber-50 text-amber-700 ring-amber-200/60 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20"
+              ? "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-[var(--theme-brand-border)]"
+              : "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] ring-[var(--theme-warning-border)]"
           )}>
             {readinessText}
           </span>
@@ -152,7 +152,7 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
                 : "请先填写至少 10 个字的创意描述"
             }
             aria-label={canGenerateAi ? aiZhCN.idea.optimize : "请先填写创意描述"}
-            className="group relative inline-flex shrink-0 cursor-pointer items-center gap-2 overflow-hidden bg-emerald-50 px-3.5 py-2 text-sm font-bold text-emerald-600 transition-all hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+            className="group relative inline-flex shrink-0 cursor-pointer items-center gap-2 overflow-hidden bg-[var(--theme-brand-soft)] px-3.5 py-2 text-sm font-bold text-[var(--theme-brand-text)] transition-all hover:bg-[var(--theme-brand-soft)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {aiBusy ? (
               <>
@@ -195,8 +195,8 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
             aria-invalid={hasIdeaError}
             aria-describedby={hasIdeaError ? "create-form-error" : undefined}
             className={cn(
-              "min-h-[170px] w-full resize-y bg-[var(--theme-surface-overlay)] p-4 pr-16 text-[15px] font-medium leading-relaxed text-[var(--theme-text-strong)] ring-1 ring-[var(--theme-border)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:ring-2 focus:ring-emerald-500/40",
-              hasIdeaError && "ring-2 ring-red-400 focus:ring-red-400",
+              "min-h-[170px] w-full resize-y bg-[var(--theme-surface-overlay)] p-4 pr-16 text-[15px] font-medium leading-relaxed text-[var(--theme-text-strong)] ring-1 ring-[var(--theme-border)] outline-none transition-all placeholder:text-[var(--theme-text-muted)] focus:ring-2 focus:ring-[var(--theme-brand-500)]/40",
+              hasIdeaError && "ring-2 ring-[var(--theme-danger-border)] focus:ring-[var(--theme-danger-border)]",
             )}
             placeholder={placeholder}
           />
@@ -233,12 +233,12 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
         </div>
 
         {analysisPanelVisible ? (
-          <div className="mt-4 overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-b from-emerald-50/50 to-[var(--theme-surface-solid)] shadow-sm dark:border-emerald-500/15 dark:from-emerald-500/5">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-emerald-100/80 dark:border-emerald-500/10 px-5 py-4">
+          <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--theme-brand-border)] bg-gradient-to-b from-[var(--theme-brand-soft)]/50 to-[var(--theme-surface-solid)] shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--theme-brand-border)] px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 text-sm font-bold text-[var(--theme-text-strong)]">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-500/15">
-                    <Star className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--theme-brand-soft)]">
+                    <Star className="h-3.5 w-3.5 text-[var(--theme-brand-text)]" />
                   </div>
                   {aiZhCN.idea.analyzeTitle}
                 </div>
@@ -253,7 +253,7 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
                     className={cn(
                       "h-3 w-3",
                       analyzeBlockedByAiThinking || analysisBusy ? "animate-pulse" : "",
-                      analyzeBlockedByAiThinking ? "text-[var(--theme-text-muted)]" : "text-emerald-500",
+                      analyzeBlockedByAiThinking ? "text-[var(--theme-text-muted)]" : "text-[var(--theme-brand-text)]",
                     )}
                   />
                   {analyzeBlockedByAiThinking
@@ -279,7 +279,7 @@ export function CreateIdeaSection({ create }: CreateIdeaSectionProps) {
 
             <div className="p-5">
               {analysisBusy ? (
-                <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                <div className="flex items-center gap-2 text-sm font-bold text-[var(--theme-brand-text)]">
                   <Sparkles className="h-4 w-4 animate-pulse" />
                   {aiZhCN.idea.analyzePanelBusy}
                 </div>
@@ -319,7 +319,7 @@ function IdeaAnalysisPanel({ analysis }: IdeaAnalysisPanelProps) {
               {analysis.recommendedTitles.map((title) => (
                 <span
                   key={title}
-                  className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                  className="rounded-lg bg-[var(--theme-brand-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--theme-brand-text)]"
                 >
                   {title}
                 </span>
@@ -354,7 +354,7 @@ function IdeaAnalysisPanel({ analysis }: IdeaAnalysisPanelProps) {
             {analysis.coreSellingPoints.map((point) => (
               <div
                 key={point}
-                className="rounded-xl bg-emerald-50/80 px-4 py-3 text-sm font-semibold leading-relaxed text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                className="rounded-xl bg-[var(--theme-brand-soft)] px-4 py-3 text-sm font-semibold leading-relaxed text-[var(--theme-brand-text)]"
               >
                 {point}
               </div>

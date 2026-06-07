@@ -25,10 +25,11 @@ type GenerationCost = WorkAiObservabilityData["generationCost"];
 
 const AXIS_COLOR = "var(--theme-text-muted)";
 const GRID_COLOR = "color-mix(in srgb, var(--theme-border) 72%, transparent)";
-const QUALITY_COLOR = "#10b981";
-const CONSISTENCY_COLOR = "#14b8a6";
-const TOKEN_COLOR = "#0f766e";
-const VALUE_COLOR = "#f59e0b";
+const QUALITY_COLOR = "var(--theme-success)";
+const CONSISTENCY_COLOR = "var(--theme-brand-500)";
+const TOKEN_COLOR = "var(--theme-brand-600)";
+const VALUE_COLOR = "var(--theme-warning)";
+const CHART_INITIAL_DIMENSION = { width: 640, height: 288 };
 
 function chartModelLabel(providerId?: string | null, modelUsed?: string | null) {
   if (!providerId && !modelUsed) return "未知模型";
@@ -82,7 +83,7 @@ function ChartPanel({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <div className="h-72 min-w-[640px]">{children}</div>
+          <div className="h-72 min-h-72 min-w-[640px]">{children}</div>
         </div>
       )}
     </section>
@@ -102,7 +103,13 @@ export function QualityTrendChart({ qualityTrend }: { qualityTrend: QualityTrend
       subtitle="按章节对比一致性分和质量分。"
       empty={!data.length}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        minHeight={288}
+        initialDimension={CHART_INITIAL_DIMENSION}
+      >
         <LineChart data={data} margin={{ left: 0, right: 18, top: 12, bottom: 4 }}>
           <CartesianGrid stroke={GRID_COLOR} strokeDasharray="4 6" vertical={false} />
           <XAxis
@@ -163,7 +170,13 @@ export function CostByActionChart({
       subtitle="按动作聚合 token 消耗，前 10 项之外合并为其他。"
       empty={!data.length}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        minHeight={288}
+        initialDimension={CHART_INITIAL_DIMENSION}
+      >
         <BarChart data={data} margin={{ left: 0, right: 18, top: 12, bottom: 20 }}>
           <CartesianGrid stroke={GRID_COLOR} strokeDasharray="4 6" vertical={false} />
           <XAxis
@@ -198,7 +211,13 @@ export function CostByModelChart({ byModel }: { byModel: GenerationCost["byModel
       subtitle="按 Provider / Model 聚合 token 消耗。"
       empty={!data.length}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        minHeight={288}
+        initialDimension={CHART_INITIAL_DIMENSION}
+      >
         <BarChart data={data} layout="vertical" margin={{ left: 12, right: 18, top: 12, bottom: 4 }}>
           <CartesianGrid stroke={GRID_COLOR} strokeDasharray="4 6" horizontal={false} />
           <XAxis type="number" tick={{ fill: AXIS_COLOR, fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
@@ -250,7 +269,13 @@ export function ModelQualityValueChart({
       subtitle="横轴为平均 token，纵轴为质量均分，越靠左上越值得优先观察。"
       empty={!data.length}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer
+        width="100%"
+        height="100%"
+        minWidth={0}
+        minHeight={288}
+        initialDimension={CHART_INITIAL_DIMENSION}
+      >
         <ScatterChart margin={{ left: 0, right: 18, top: 12, bottom: 8 }}>
           <CartesianGrid stroke={GRID_COLOR} strokeDasharray="4 6" />
           <XAxis

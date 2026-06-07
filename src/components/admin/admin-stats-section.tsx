@@ -3,8 +3,9 @@
 import {
   Activity,
   BarChart3,
-  Clock3,
   Crown,
+  LineChart,
+  Radar,
   RefreshCw,
   Route,
   Server,
@@ -14,144 +15,251 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
+import { Button, SectionCard } from "@/components/design-system";
 import { formatDurationMs, formatNumber } from "@/lib/admin/dashboard-admin-format";
 import type { DashboardAdminController } from "@/lib/admin/use-dashboard-admin";
+
+import {
+  AdminEmptyStateCard,
+  AdminFormGroup,
+  AdminRankingRow,
+  AdminStatCard,
+  AdminStatusPill,
+} from "./admin-console-primitives";
 
 type AdminStatsSectionProps = {
   admin: DashboardAdminController;
 };
 
+const AI_ROUTE_CHART_INITIAL_DIMENSION = { width: 720, height: 300 };
+
 export function AdminStatsSection({ admin }: AdminStatsSectionProps) {
   const { aiStats, aiStatsLoading, handleRefreshAiStats } = admin;
   const todaySuccessRate = getRate(aiStats?.successCalls ?? 0, aiStats?.totalCalls ?? 0);
-  const allSuccessRate = getRate(
-    aiStats?.allTime.successCalls ?? 0,
-    aiStats?.allTime.totalCalls ?? 0,
-  );
+  const allSuccessRate = getRate(aiStats?.allTime.successCalls ?? 0, aiStats?.allTime.totalCalls ?? 0);
+  const routeChartData =
+    aiStats?.byRoute.slice(0, 6).map((row) => ({
+      name: row.routeLabel ?? row.routeId,
+      calls: row.calls,
+      tokens: row.tokens.total,
+    })) ?? [];
 
   return (
-    <section className="mb-4 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm dark:border-white/10 dark:bg-stone-950">
-      <div className="flex flex-col gap-3 border-b border-stone-100 px-4 py-3 dark:border-white/10 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white">
-            <Activity className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-extrabold text-stone-950 dark:text-stone-50">
-              实时 AI 数据监控
-            </h2>
-            <p className="text-xs font-semibold text-stone-500 dark:text-stone-400">
-              今日数据、累计消耗、逻辑路线与物理端点命中一屏看完。
-            </p>
-          </div>
+    <SectionCard
+      icon={Activity}
+      title="实时 AI 数据监控"
+      description="把今日调用、累计消耗、逻辑线路径、物理端点和正文智能链命中放在同一个视图里，便于快速排查。"
+      variant="elevated"
+      actions={
+        <div className="flex items-center gap-2">
+          {aiStatsLoading ? <AdminStatusPill tone="brand">刷新中</AdminStatusPill> : null}
+          <Button
+            type="button"
+            icon={RefreshCw}
+            busy={aiStatsLoading}
+            onClick={handleRefreshAiStats}
+            className="min-h-9 px-3"
+          >
+            手动刷新
+          </Button>
         </div>
-        <button
-          type="button"
-          onClick={handleRefreshAiStats}
-          disabled={aiStatsLoading}
-          className="theme-button-secondary inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RefreshCw className={aiStatsLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-          {aiStatsLoading ? "刷新中..." : "手动刷新"}
-        </button>
-      </div>
+      }
+    >
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
+        <div className="space-y-4">
+          <ChapterSmartRoutePanel admin={admin} />
+          <AiRouteChart
+            data={routeChartData}
+            loading={aiStatsLoading}
+            onRefresh={handleRefreshAiStats}
+          />
+        </div>
 
-      <div className="border-b border-stone-100 px-4 py-4 dark:border-white/10">
-        <ChapterSmartRoutePanel admin={admin} />
-      </div>
-
-      <div className="grid gap-0 divide-y divide-stone-100 dark:divide-white/10 xl:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.85fr)] xl:divide-x xl:divide-y-0">
-        <div className="grid gap-3 p-4 sm:grid-cols-2 2xl:grid-cols-4">
-          <MetricTile
+        <div className="grid auto-rows-max gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <AdminStatCard
+            description={`成功 ${formatNumber(aiStats?.successCalls ?? 0)} / 失败 ${formatNumber(aiStats?.failedCalls ?? 0)}`}
             icon={Zap}
             label="今日调用"
+            tone="success"
+            trend={`成功率 ${todaySuccessRate}`}
             value={formatNumber(aiStats?.totalCalls ?? 0)}
-            detail={`成功 ${formatNumber(aiStats?.successCalls ?? 0)} / 失败 ${formatNumber(aiStats?.failedCalls ?? 0)}`}
-            meta={`成功率 ${todaySuccessRate}`}
-            tone="emerald"
           />
-          <MetricTile
+          <AdminStatCard
+            description={`输入 ${formatNumber(aiStats?.tokens.input ?? 0)} / 输出 ${formatNumber(aiStats?.tokens.output ?? 0)}`}
             icon={BarChart3}
             label="今日 Token"
+            tone="ai"
+            trend={`Fallback ${formatNumber(aiStats?.fallbackCount ?? 0)} / Probe ${formatNumber(aiStats?.probeCount ?? 0)}`}
             value={formatNumber(aiStats?.tokens.total ?? 0)}
-            detail={`输入 ${formatNumber(aiStats?.tokens.input ?? 0)} / 输出 ${formatNumber(aiStats?.tokens.output ?? 0)}`}
-            meta={`Fallback ${formatNumber(aiStats?.fallbackCount ?? 0)} / 探针 ${formatNumber(aiStats?.probeCount ?? 0)} 次 / 探针均耗时 ${formatDurationMs(aiStats?.avgProbeDurationMs)}`}
-            tone="sky"
           />
-          <MetricTile
+          <AdminStatCard
+            description={`成功 ${formatNumber(aiStats?.allTime.successCalls ?? 0)} / 失败 ${formatNumber(aiStats?.allTime.failedCalls ?? 0)}`}
             icon={Server}
             label="累计调用"
+            tone="warning"
+            trend={`成功率 ${allSuccessRate}`}
             value={formatNumber(aiStats?.allTime.totalCalls ?? 0)}
-            detail={`成功 ${formatNumber(aiStats?.allTime.successCalls ?? 0)} / 失败 ${formatNumber(aiStats?.allTime.failedCalls ?? 0)}`}
-            meta={`成功率 ${allSuccessRate}`}
-            tone="amber"
           />
-          <MetricTile
+          <AdminStatCard
+            description={`输入 ${formatNumber(aiStats?.allTime.tokens.input ?? 0)} / 输出 ${formatNumber(aiStats?.allTime.tokens.output ?? 0)}`}
             icon={Timer}
             label="累计 Token"
+            tone="brand"
+            trend={`Probe 均耗时 ${formatDurationMs(aiStats?.allTime.avgProbeDurationMs)}`}
             value={formatNumber(aiStats?.allTime.tokens.total ?? 0)}
-            detail={`输入 ${formatNumber(aiStats?.allTime.tokens.input ?? 0)} / 输出 ${formatNumber(aiStats?.allTime.tokens.output ?? 0)}`}
-            meta={`Fallback ${formatNumber(aiStats?.allTime.fallbackCount ?? 0)} / 探针 ${formatNumber(aiStats?.allTime.probeCount ?? 0)} 次 / 探针均耗时 ${formatDurationMs(aiStats?.allTime.avgProbeDurationMs)}`}
-            tone="slate"
-          />
-        </div>
-
-        <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-1">
-          <RankPanel
-            icon={Route}
-            title="今日逻辑路线排行"
-            empty="暂无今日路线调用"
-            rows={(aiStats?.byRoute ?? []).slice(0, 4).map((row) => ({
-              id: row.routeId,
-              label: row.routeLabel ?? row.routeId,
-              calls: row.calls,
-              tokens: row.tokens.total,
-              duration: row.avgDurationMs,
-            }))}
-          />
-          <RankPanel
-            icon={Server}
-            title="今日物理端点排行"
-            empty="暂无今日端点调用"
-            rows={(aiStats?.byProvider ?? []).slice(0, 4).map((row) => ({
-              id: row.providerId,
-              label:
-                (row.providerLabel ?? row.providerId) +
-                `${row.fallbackCount ? ` / fallback ${formatNumber(row.fallbackCount)}` : ""}` +
-                `${row.probeCount ? ` / probe ${formatNumber(row.probeCount)}` : ""}`,
-              calls: row.calls,
-              tokens: row.tokens.total,
-              duration: row.avgDurationMs,
-            }))}
-          />
-          <RankPanel
-            icon={Route}
-            title="累计逻辑路线排行"
-            empty="暂无累计路线数据"
-            rows={(aiStats?.allTime.byRoute ?? []).slice(0, 4).map((row) => ({
-              id: row.routeId,
-              label: row.routeLabel ?? row.routeId,
-              calls: row.calls,
-              tokens: row.tokens.total,
-              duration: row.avgDurationMs,
-            }))}
-          />
-          <RankPanel
-            icon={Clock3}
-            title="累计模型排行"
-            empty="暂无模型消耗"
-            rows={(aiStats?.allTime.byModel ?? []).slice(0, 5).map((row) => ({
-              id: row.modelUsed,
-              label: row.modelUsed,
-              calls: row.calls,
-              tokens: row.tokens.total,
-              duration: row.avgDurationMs,
-            }))}
           />
         </div>
       </div>
-    </section>
+
+      <div className="mt-4 grid gap-4 2xl:grid-cols-2">
+        <RankPanel
+          icon={Route}
+          title="今日逻辑线排行"
+          emptyTitle="今日暂无逻辑线调用"
+          emptyDescription="当有创作请求进入后，这里会按逻辑线展示调用量、Token 与平均耗时。"
+          onRefresh={handleRefreshAiStats}
+          rows={(aiStats?.byRoute ?? []).slice(0, 4).map((row) => ({
+            id: row.routeId,
+            title: row.routeLabel ?? row.routeId,
+            subtitle: row.routeId,
+            metrics: [
+              { label: "调用", value: `${formatNumber(row.calls)} 次` },
+              { label: "Token", value: formatNumber(row.tokens.total) },
+              { label: "均耗时", value: formatDurationMs(row.avgDurationMs) },
+            ],
+          }))}
+        />
+        <RankPanel
+          icon={Server}
+          title="今日物理端点排行"
+          emptyTitle="今日暂无端点调用"
+          emptyDescription="当逻辑线落到具体提供方后，这里会显示真实端点的调用情况。"
+          onRefresh={handleRefreshAiStats}
+          rows={(aiStats?.byProvider ?? []).slice(0, 4).map((row) => ({
+            id: row.providerId,
+            title: row.providerLabel ?? row.providerId,
+            subtitle: buildProviderSubtitle(row),
+            metrics: [
+              { label: "调用", value: `${formatNumber(row.calls)} 次` },
+              { label: "Token", value: formatNumber(row.tokens.total) },
+              { label: "均耗时", value: formatDurationMs(row.avgDurationMs) },
+            ],
+          }))}
+        />
+        <RankPanel
+          icon={Radar}
+          title="累计逻辑线排行"
+          emptyTitle="暂无累计逻辑线数据"
+          emptyDescription="累计数据会随着时间沉淀，适合观察长期热路径与异常增长。"
+          onRefresh={handleRefreshAiStats}
+          rows={(aiStats?.allTime.byRoute ?? []).slice(0, 4).map((row) => ({
+            id: row.routeId,
+            title: row.routeLabel ?? row.routeId,
+            subtitle: row.routeId,
+            metrics: [
+              { label: "调用", value: `${formatNumber(row.calls)} 次` },
+              { label: "Token", value: formatNumber(row.tokens.total) },
+              { label: "均耗时", value: formatDurationMs(row.avgDurationMs) },
+            ],
+          }))}
+        />
+        <RankPanel
+          icon={LineChart}
+          title="累计模型排行"
+          emptyTitle="暂无模型消耗数据"
+          emptyDescription="当模型被真实命中后，这里会逐步形成稳定的累计消耗排行榜。"
+          onRefresh={handleRefreshAiStats}
+          rows={(aiStats?.allTime.byModel ?? []).slice(0, 5).map((row) => ({
+            id: row.modelUsed,
+            title: row.modelUsed,
+            subtitle: "按模型维度聚合",
+            metrics: [
+              { label: "调用", value: `${formatNumber(row.calls)} 次` },
+              { label: "Token", value: formatNumber(row.tokens.total) },
+              { label: "均耗时", value: formatDurationMs(row.avgDurationMs) },
+            ],
+          }))}
+        />
+      </div>
+    </SectionCard>
+  );
+}
+
+function AiRouteChart({
+  data,
+  loading,
+  onRefresh,
+}: {
+  data: Array<{ name: string; calls: number; tokens: number }>;
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <AdminFormGroup
+      title="今日路线调用图"
+      description="按逻辑线路径展示今日调用量和 Token 消耗，方便快速识别突发增长与热点路径。"
+      badge={loading ? <AdminStatusPill tone="brand">刷新中</AdminStatusPill> : undefined}
+    >
+      <div className="h-[320px] min-w-0">
+        {data.length ? (
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+            minHeight={300}
+            initialDimension={AI_ROUTE_CHART_INITIAL_DIMENSION}
+          >
+            <BarChart data={data} margin={{ left: -18, right: 8, top: 8, bottom: 0 }}>
+              <CartesianGrid stroke="var(--theme-divider)" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "var(--theme-text-muted)", fontSize: 11, fontWeight: 700 }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "var(--theme-text-muted)", fontSize: 11, fontWeight: 700 }}
+              />
+              <Tooltip
+                cursor={{ fill: "var(--theme-surface-hover)" }}
+                contentStyle={{
+                  background: "rgba(255,255,255,0.96)",
+                  border: "1px solid var(--theme-border)",
+                  borderRadius: "18px",
+                  color: "var(--theme-text-primary)",
+                  boxShadow: "var(--theme-shadow-card)",
+                }}
+              />
+              <Bar dataKey="calls" name="调用" fill="var(--theme-brand-500)" radius={[10, 10, 0, 0]} />
+              <Bar dataKey="tokens" name="Token" fill="var(--theme-brand-700)" radius={[10, 10, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <AdminEmptyStateCard
+            className="h-full"
+            icon={LineChart}
+            title="今日暂无路线调用"
+            description="当有创作请求进入逻辑线后，这里会自动生成柱状图，不会再是一块空白区域。"
+            action={
+              <Button type="button" icon={RefreshCw} onClick={onRefresh}>
+                手动刷新
+              </Button>
+            }
+          />
+        )}
+      </div>
+    </AdminFormGroup>
   );
 }
 
@@ -161,211 +269,169 @@ function ChapterSmartRoutePanel({ admin }: AdminStatsSectionProps) {
   const allTime = stats?.allTime;
 
   return (
-    <section className="rounded-lg border border-stone-200 bg-stone-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-md border border-stone-200 bg-white px-2.5 py-1 text-[11px] font-bold text-stone-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-300">
-            <Route className="h-3.5 w-3.5" />
-            正文专项卡片
-          </div>
-          <h3 className="mt-2 text-base font-extrabold text-stone-950 dark:text-stone-50">
-            正文智能链命中情况
-          </h3>
-          <p className="mt-1 text-xs font-semibold text-stone-500 dark:text-stone-400">
-            {stats
-              ? `${stats.primaryLabel} -> ${stats.fallbackLabel} -> ${stats.rescueLabel}`
-              : "xtokenmirror -> 99dun -> 豆包"}
-          </p>
-        </div>
-        <div className="text-xs font-semibold text-stone-500 dark:text-stone-400">
-          只统计正文主生成与流式正文主生成，不含探针和字数修复
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 lg:grid-cols-2">
-        <CompactStatCard
+    <AdminFormGroup
+      title="正文智能链命中情况"
+      description="这里专门观察正文主生成链路，不含探针与字数修复，便于判断主链、Fallback 和兜底命中是否健康。"
+      badge={<AdminStatusPill tone="brand">正文专属视图</AdminStatusPill>}
+    >
+      <div className="grid gap-3 xl:grid-cols-2">
+        <SmartRouteSnapshot
           title="今日正文主链"
           subtitle={`成功 ${formatNumber(today?.successCalls ?? 0)} / 总计 ${formatNumber(today?.totalCalls ?? 0)}`}
           meta={`均耗时 ${formatDurationMs(today?.avgDurationMs)}`}
           items={[
             {
               icon: Crown,
-              label: `${stats?.primaryLabel ?? "xtokenmirror"} 命中率`,
+              label: `${stats?.primaryLabel ?? "主链"} 命中率`,
               value: `${today?.primaryHitRate ?? 0}%`,
             },
             {
               icon: ShieldPlus,
-              label: `${stats?.fallbackLabel ?? "99dun"} 接管次数`,
+              label: `${stats?.fallbackLabel ?? "Fallback"} 接管次数`,
               value: formatNumber(today?.fallbackHits ?? 0),
             },
             {
               icon: ShieldCheck,
-              label: `${stats?.rescueLabel ?? "豆包"} 兜底次数`,
+              label: `${stats?.rescueLabel ?? "兜底"} 兜底次数`,
               value: formatNumber(today?.rescueHits ?? 0),
             },
           ]}
         />
-        <CompactStatCard
+        <SmartRouteSnapshot
           title="累计正文主链"
           subtitle={`成功 ${formatNumber(allTime?.successCalls ?? 0)} / 总计 ${formatNumber(allTime?.totalCalls ?? 0)}`}
           meta={`均耗时 ${formatDurationMs(allTime?.avgDurationMs)}`}
           items={[
             {
               icon: Crown,
-              label: `${stats?.primaryLabel ?? "xtokenmirror"} 命中率`,
+              label: `${stats?.primaryLabel ?? "主链"} 命中率`,
               value: `${allTime?.primaryHitRate ?? 0}%`,
             },
             {
               icon: ShieldPlus,
-              label: `${stats?.fallbackLabel ?? "99dun"} 接管次数`,
+              label: `${stats?.fallbackLabel ?? "Fallback"} 接管次数`,
               value: formatNumber(allTime?.fallbackHits ?? 0),
             },
             {
               icon: ShieldCheck,
-              label: `${stats?.rescueLabel ?? "豆包"} 兜底次数`,
+              label: `${stats?.rescueLabel ?? "兜底"} 兜底次数`,
               value: formatNumber(allTime?.rescueHits ?? 0),
             },
           ]}
         />
       </div>
-    </section>
+    </AdminFormGroup>
   );
 }
 
-type MetricTileProps = {
-  detail: string;
-  icon: LucideIcon;
-  label: string;
-  meta: string;
-  tone: "amber" | "emerald" | "sky" | "slate";
-  value: string;
-};
-
-function MetricTile({ detail, icon: Icon, label, meta, tone, value }: MetricTileProps) {
-  const toneClass = {
-    amber:
-      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-400/10 dark:text-amber-200 dark:border-amber-300/20",
-    emerald:
-      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-200 dark:border-emerald-300/20",
-    sky:
-      "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-400/10 dark:text-sky-200 dark:border-sky-300/20",
-    slate:
-      "bg-stone-50 text-stone-700 border-stone-200 dark:bg-white/[0.04] dark:text-stone-200 dark:border-white/10",
-  }[tone];
-
-  return (
-    <article className="rounded-lg border border-stone-200 bg-stone-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-xs font-bold text-stone-500 dark:text-stone-400">{label}</div>
-          <div className="mt-1 text-3xl font-extrabold tracking-tight text-stone-950 dark:text-stone-50">
-            {value}
-          </div>
-        </div>
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${toneClass}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div className="mt-3 truncate text-xs font-bold text-stone-600 dark:text-stone-300">{detail}</div>
-      <div className="mt-2 inline-flex rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] font-bold text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
-        {meta}
-      </div>
-    </article>
-  );
-}
-
-function CompactStatCard({
-  title,
-  subtitle,
-  meta,
+function SmartRouteSnapshot({
   items,
+  meta,
+  subtitle,
+  title,
 }: {
-  title: string;
-  subtitle: string;
-  meta: string;
   items: Array<{ icon: LucideIcon; label: string; value: string }>;
+  meta: string;
+  subtitle: string;
+  title: string;
 }) {
   return (
-    <article className="rounded-lg border border-stone-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="flex items-start justify-between gap-3">
+    <div className="rounded-[20px] border border-[var(--theme-border)] bg-[rgba(255,255,255,0.88)] p-4 shadow-[var(--theme-shadow-card)]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h4 className="text-sm font-extrabold text-stone-950 dark:text-stone-50">{title}</h4>
-          <p className="mt-1 text-xs font-semibold text-stone-500 dark:text-stone-400">
-            {subtitle}
-          </p>
+          <h3 className="text-sm font-black text-[var(--theme-text-strong)]">{title}</h3>
+          <p className="mt-1 text-[13px] font-semibold text-[var(--theme-text-secondary)]">{subtitle}</p>
         </div>
-        <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-[11px] font-bold text-stone-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-stone-400">
-          {meta}
-        </span>
+        <AdminStatusPill tone="neutral">{meta}</AdminStatusPill>
       </div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
         {items.map((item) => {
           const Icon = item.icon;
           return (
             <div
               key={item.label}
-              className="rounded-lg border border-stone-200 bg-stone-50/70 px-3 py-3 dark:border-white/10 dark:bg-white/[0.03]"
+              className="rounded-[18px] border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-3 py-3"
             >
-              <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
+              <div className="flex items-center gap-2 text-[var(--theme-text-muted)]">
                 <Icon className="h-4 w-4" />
                 <span className="text-[11px] font-bold">{item.label}</span>
               </div>
-              <div className="mt-2 text-2xl font-extrabold tracking-tight text-stone-950 dark:text-stone-50">
+              <div className="mt-2 text-2xl font-black tracking-[-0.03em] text-[var(--theme-text-strong)]">
                 {item.value}
               </div>
             </div>
           );
         })}
       </div>
-    </article>
+    </div>
   );
 }
 
-type RankPanelProps = {
-  empty: string;
+function RankPanel({
+  emptyDescription,
+  emptyTitle,
+  icon,
+  onRefresh,
+  rows,
+  title,
+}: {
+  emptyDescription: string;
+  emptyTitle: string;
   icon: LucideIcon;
-  rows: Array<{ id: string; label: string; calls: number; tokens: number; duration: number | null }>;
+  onRefresh: () => void;
+  rows: Array<{
+    id: string;
+    metrics: Array<{ label: string; value: string }>;
+    subtitle?: string;
+    title: string;
+  }>;
   title: string;
-};
-
-function RankPanel({ empty, icon: Icon, rows, title }: RankPanelProps) {
+}) {
   return (
-    <article className="rounded-lg border border-stone-200 bg-stone-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
-      <div className="mb-3 flex items-center gap-2">
-        <Icon className="h-4 w-4 text-stone-500 dark:text-stone-400" />
-        <h3 className="text-sm font-bold text-stone-950 dark:text-stone-50">{title}</h3>
+    <AdminFormGroup
+      title={title}
+      description="统一用胶囊信息展示调用次数、Token 与平均耗时，首位数据会获得更明显的层级强调。"
+      badge={<AdminStatusPill tone="neutral">Top {Math.max(rows.length, 4)}</AdminStatusPill>}
+    >
+      <div className="space-y-3">
+        {rows.length ? (
+          rows.map((row, index) => (
+            <AdminRankingRow
+              key={row.id}
+              rank={index + 1}
+              subtitle={row.subtitle}
+              title={row.title}
+              metrics={row.metrics}
+            />
+          ))
+        ) : (
+          <AdminEmptyStateCard
+            icon={icon}
+            title={emptyTitle}
+            description={emptyDescription}
+            action={
+              <Button type="button" icon={RefreshCw} onClick={onRefresh}>
+                手动刷新
+              </Button>
+            }
+          />
+        )}
       </div>
-      <div className="space-y-2">
-        {rows.map((row, index) => (
-          <div
-            key={row.id}
-            className="grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-stone-200 bg-white px-2.5 py-2 dark:border-white/10 dark:bg-white/[0.04]"
-          >
-            <span className="text-xs font-bold text-stone-500">#{index + 1}</span>
-            <span className="truncate text-sm font-bold text-stone-800 dark:text-stone-100">
-              {row.label}
-            </span>
-            <div className="flex flex-wrap justify-end gap-1.5">
-              <span className="rounded-md bg-stone-100 px-2 py-1 text-[11px] font-semibold text-stone-600 dark:bg-white/[0.08] dark:text-stone-300">
-                {formatNumber(row.calls)} 次
-              </span>
-              <span className="rounded-md bg-stone-100 px-2 py-1 text-[11px] font-semibold text-stone-600 dark:bg-white/[0.08] dark:text-stone-300">
-                {formatNumber(row.tokens)} Token
-              </span>
-              <span className="rounded-md bg-stone-100 px-2 py-1 text-[11px] font-semibold text-stone-600 dark:bg-white/[0.08] dark:text-stone-300">
-                均 {formatDurationMs(row.duration)}
-              </span>
-            </div>
-          </div>
-        ))}
-        {!rows.length ? (
-          <div className="rounded-lg border border-dashed border-stone-200 py-5 text-center text-sm font-bold text-stone-500 dark:border-white/10">
-            {empty}
-          </div>
-        ) : null}
-      </div>
-    </article>
+    </AdminFormGroup>
   );
+}
+
+function buildProviderSubtitle(row: {
+  fallbackCount?: number;
+  probeCount?: number;
+  providerId: string;
+}) {
+  const details = [
+    row.fallbackCount ? `fallback ${formatNumber(row.fallbackCount)}` : null,
+    row.probeCount ? `probe ${formatNumber(row.probeCount)}` : null,
+  ].filter(Boolean);
+
+  return details.length ? `${row.providerId} · ${details.join(" / ")}` : row.providerId;
 }
 
 function getRate(success: number, total: number) {

@@ -36,11 +36,11 @@ const typeCopy: Record<ChapterConsistencyIssue["type"], string> = {
 
 const severityClass: Record<ChapterConsistencyIssue["severity"], string> = {
   high:
-    "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200",
+    "border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)]",
   medium:
-    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200",
+    "border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)]",
   low:
-    "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200",
+    "border-[var(--theme-info-border)] bg-[var(--theme-info-soft)] text-[var(--theme-info-text)]",
 };
 
 function countIssues(result: ChapterConsistencyResult | null) {
@@ -134,7 +134,7 @@ export function ChapterConsistencyPanel({
               className={cn(
                 "h-8 rounded-md text-xs font-black transition disabled:opacity-50",
                 consistencyScope === item.value
-                  ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
+                  ? "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]"
                   : "text-[var(--theme-text-muted)] hover:text-[var(--theme-text-strong)]",
               )}
             >
@@ -169,7 +169,7 @@ export function ChapterConsistencyPanel({
             </div>
 
             {!hasIssues ? (
-              <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-xs leading-5 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+              <div className="flex items-start gap-2 rounded-lg border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] px-3 py-3 text-xs leading-5 text-[var(--theme-brand-text)]">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                 暂未发现明显一致性问题，可以继续写作或进行人工复核。
               </div>
@@ -222,9 +222,9 @@ function ProblemBlock({
     <div
       className={cn(
         "rounded-lg border px-3 py-2",
-        tone === "bad" && "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200",
-        tone === "warn" && "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200",
-        tone === "info" && "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200",
+        tone === "bad" && "border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)]",
+        tone === "warn" && "border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)]",
+        tone === "info" && "border-[var(--theme-info-border)] bg-[var(--theme-info-soft)] text-[var(--theme-info-text)]",
       )}
     >
       <div className="mb-1 text-xs font-black">{title}</div>
@@ -255,10 +255,10 @@ function MetricTile({
       <div
         className={cn(
           "text-lg font-black tabular-nums",
-          tone === "good" && "text-emerald-600 dark:text-emerald-300",
-          tone === "warn" && "text-amber-600 dark:text-amber-300",
-          tone === "bad" && "text-red-600 dark:text-red-300",
-          tone === "info" && "text-sky-600 dark:text-sky-300",
+          tone === "good" && "text-[var(--theme-brand-text)]",
+          tone === "warn" && "text-[var(--theme-warning-text)]",
+          tone === "bad" && "text-[var(--theme-danger-text)]",
+          tone === "info" && "text-[var(--theme-info-text)]",
         )}
       >
         {value}

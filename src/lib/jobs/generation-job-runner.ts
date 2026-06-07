@@ -238,7 +238,7 @@ function buildLongShortStoryOutlinePrompt(input: ShortStoryGenerateInput) {
   return [
     "请先只生成长文本短篇小说的结构化大纲 JSON，不要输出正文。",
     "JSON 字段必须是 tag/title/synopsis/targetWords/theme/hook/endingType/characters/beats/fullOutline。",
-    "beats 需要 5-10 个，后续会按 beat 分段写正文；每个 beat 必须包含 index/title/purpose/targetWords/writingPrompt。",
+    "beats 字段需要 5-10 个结构节点，后续会按节点分段写正文；每个节点都必须包含 index/title/purpose/targetWords/writingPrompt。",
     "",
     `类型：${input.genre}`,
     `标签：${formatTags(input.tags)}`,
@@ -300,12 +300,12 @@ function buildSegmentPrompt(params: {
     "",
     previous ? `前文衔接：\n${previous}` : "前文衔接：无，本段是开篇。",
     "",
-    `当前 beat：${params.beat.index}. ${params.beat.title}`,
+    `当前节点：${params.beat.index}. ${params.beat.title}`,
     `剧情目的：${params.beat.purpose}`,
     `写作提示：${params.beat.writingPrompt}`,
     `本段目标字数：${params.beat.targetWords}`,
     "",
-    "硬性要求：按当前视角写，段落自然，承接前文；只写本 beat，不提前写后续 beat 的结局。",
+    "硬性要求：按当前视角写，段落自然，承接前文；只写当前节点，不提前写后续节点的结局。",
   ].join("\n");
 }
 
@@ -480,7 +480,7 @@ async function runLongShortStoryJob(job: GenerationJob) {
         segments,
         finalWorkId: null,
       } as Prisma.InputJsonValue,
-      resultSummary: `短篇结构已生成，共 ${outline.beats.length} 个 beats。`,
+      resultSummary: `短篇结构已生成，共 ${outline.beats.length} 个节点。`,
     });
   }
 

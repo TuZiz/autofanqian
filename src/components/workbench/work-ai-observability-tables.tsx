@@ -32,15 +32,15 @@ function compactList(items: string[] | undefined, empty = "—") {
 
 function scoreTone(value: number | null | undefined) {
   if (typeof value !== "number") {
-    return "bg-slate-100 text-slate-500 ring-slate-200 dark:bg-white/5 dark:text-zinc-400 dark:ring-white/10";
+    return "bg-[var(--theme-surface-soft)] text-[var(--theme-text-muted)] ring-[var(--theme-border)]";
   }
   if (value >= 85) {
-    return "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20";
+    return "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-[var(--theme-brand-border)]";
   }
   if (value >= 70) {
-    return "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20";
+    return "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] ring-[var(--theme-warning-border)]";
   }
-  return "bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/20";
+  return "bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)] ring-[var(--theme-danger-border)]";
 }
 
 function ScorePill({ value }: { value: number | null | undefined }) {
@@ -67,24 +67,24 @@ function StatusPill({
 }) {
   if (active === null || active === undefined) {
     return (
-      <span className="inline-flex h-7 items-center rounded-full bg-slate-100 px-2.5 text-xs font-black text-slate-500 ring-1 ring-slate-200 dark:bg-white/5 dark:text-zinc-400 dark:ring-white/10">
+      <span className="inline-flex h-7 items-center rounded-full bg-[var(--theme-surface-soft)] px-2.5 text-xs font-black text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]">
         —
       </span>
     );
   }
   if (!active) {
     return (
-      <span className="inline-flex h-7 items-center rounded-full bg-slate-50 px-2.5 text-xs font-black text-slate-400 ring-1 ring-slate-200/70 dark:bg-white/5 dark:text-zinc-500 dark:ring-white/10">
+      <span className="inline-flex h-7 items-center rounded-full bg-[var(--theme-surface-soft)] px-2.5 text-xs font-black text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]/70">
         否
       </span>
     );
   }
 
   const toneClass = {
-    blue: "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-500/20",
-    emerald: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20",
-    red: "bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/10 dark:text-red-300 dark:ring-red-500/20",
-    yellow: "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20",
+    blue: "bg-[var(--theme-info-soft)] text-[var(--theme-info-text)] ring-[var(--theme-info-border)]",
+    emerald: "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-[var(--theme-brand-border)]",
+    red: "bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)] ring-[var(--theme-danger-border)]",
+    yellow: "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] ring-[var(--theme-warning-border)]",
   }[tone];
 
   return (

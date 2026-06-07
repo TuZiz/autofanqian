@@ -23,8 +23,8 @@ export function RouteMatrixGroup({
   model: AiModelConfigController;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-stone-200 bg-white/82 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="grid gap-2 border-b border-stone-100 px-3 py-2.5 dark:border-white/10 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+    <section className="overflow-hidden rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-sm backdrop-blur">
+      <div className="grid gap-2 border-b border-[var(--theme-border)] px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span
@@ -35,24 +35,24 @@ export function RouteMatrixGroup({
             >
               {group.title}
             </span>
-            <span className="text-xs font-bold text-stone-500 dark:text-stone-400">
+            <span className="text-xs font-bold text-[var(--theme-text-muted)]">
               {group.routes.length} 项
             </span>
           </div>
-          <p className="mt-1 truncate text-xs font-semibold text-stone-600 dark:text-stone-400">
+          <p className="mt-1 truncate text-xs font-semibold text-[var(--theme-text-muted)]">
             {group.description}
           </p>
         </div>
       </div>
 
-      <div className="hidden grid-cols-[minmax(230px,1.1fr)_minmax(210px,0.9fr)_minmax(230px,0.95fr)_minmax(130px,0.5fr)] border-b border-stone-100 bg-stone-50/80 px-3 py-2 text-[11px] font-semibold uppercase text-stone-500 dark:border-white/10 dark:bg-white/[0.03] lg:grid">
+      <div className="hidden grid-cols-[minmax(230px,1.1fr)_minmax(210px,0.9fr)_minmax(230px,0.95fr)_minmax(130px,0.5fr)] border-b border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-3 py-2 text-[11px] font-semibold uppercase text-[var(--theme-text-muted)] lg:grid">
         <span>功能 / 接口</span>
         <span>逻辑路线</span>
         <span>模型覆盖</span>
         <span>状态</span>
       </div>
 
-      <div className="divide-y divide-stone-100 dark:divide-white/10">
+      <div className="divide-y divide-[var(--theme-border)]">
         {group.routes.map((route) => (
           <RouteMatrixRow key={route.key} model={model} route={route} />
         ))}
@@ -76,31 +76,31 @@ function RouteMatrixRow({
   return (
     <article className="grid gap-3 px-3 py-3 lg:grid-cols-[minmax(230px,1.1fr)_minmax(210px,0.9fr)_minmax(230px,0.95fr)_minmax(130px,0.5fr)] lg:items-center lg:gap-4 lg:py-2.5">
       <div className="flex min-w-0 items-start gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-stone-700 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-200">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)]">
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-bold text-stone-950 dark:text-stone-50">
+            <h3 className="text-sm font-bold text-[var(--theme-text-strong)]">
               {route.title}
             </h3>
             {target.model ? (
-              <span className="rounded-md border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:border-sky-300/20 dark:bg-sky-300/10 dark:text-sky-200">
+              <span className="rounded-md border border-[var(--theme-info-border)] bg-[var(--theme-info-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--theme-info-text)]">
                 已覆盖
               </span>
             ) : null}
           </div>
-          <p className="mt-0.5 truncate font-mono text-[11px] font-bold text-stone-500 dark:text-stone-400">
+          <p className="mt-0.5 truncate font-mono text-[11px] font-bold text-[var(--theme-text-muted)]">
             {route.api}
           </p>
-          <p className="mt-1 line-clamp-1 text-xs font-semibold leading-5 text-stone-600 dark:text-stone-400">
+          <p className="mt-1 line-clamp-1 text-xs font-semibold leading-5 text-[var(--theme-text-muted)]">
             {route.description}
           </p>
         </div>
       </div>
 
       <label className="block min-w-0">
-        <span className="mb-1 block text-[11px] font-bold text-stone-500 dark:text-stone-400 lg:hidden">
+        <span className="mb-1 block text-[11px] font-bold text-[var(--theme-text-muted)] lg:hidden">
           逻辑路线
         </span>
         <select
@@ -133,7 +133,7 @@ function RouteMatrixRow({
       </label>
 
       <label className="block min-w-0">
-        <span className="mb-1 block text-[11px] font-bold text-stone-500 dark:text-stone-400 lg:hidden">
+        <span className="mb-1 block text-[11px] font-bold text-[var(--theme-text-muted)] lg:hidden">
           模型覆盖
         </span>
         <select
@@ -170,7 +170,7 @@ function RouteMatrixRow({
           type="button"
           onClick={() => updateRouteModel(model, route.key, null)}
           disabled={!target.model}
-          className="h-8 rounded-md border border-stone-200 bg-white px-2.5 text-[11px] font-semibold text-stone-500 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:bg-white/[0.03] dark:text-stone-400 dark:hover:bg-white/[0.06]"
+          className="h-8 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-2.5 text-[11px] font-semibold text-[var(--theme-text-muted)] transition-colors hover:bg-[var(--theme-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           清空
         </button>

@@ -50,7 +50,7 @@ function TooltipTrigger({
   if (!isValidElement(onlyChild)) {
     return (
       <Focusable>
-        <span className={cn("inline-flex", className)} role="button" tabIndex={0} {...props}>
+        <span {...props} className={cn("inline-flex", className)} role="button" tabIndex={props.tabIndex ?? 0}>
           {children}
         </span>
       </Focusable>
@@ -65,7 +65,10 @@ function TooltipTrigger({
 
   const focusableChild = cloneElement(
     mergedChild,
-    props as DOMAttributes<FocusableElement>,
+    {
+      ...(props as DOMAttributes<FocusableElement>),
+      tabIndex: onlyChild.props.tabIndex ?? props.tabIndex ?? 0,
+    },
   ) as ReactElement<DOMAttributes<FocusableElement>, string>;
 
   return <Focusable>{focusableChild}</Focusable>;
@@ -79,7 +82,9 @@ function TooltipContent({
   return (
     <AriaTooltipContent
       className={cn(
-        "z-50 inline-flex w-fit max-w-xs items-center gap-1.5 rounded-[0.95rem] border border-[var(--tooltip-border,rgba(148,163,184,0.18))] bg-[var(--tooltip-bg,rgba(255,255,255,0.98))] px-3 py-2 text-xs text-[var(--tooltip-fg,rgba(24,24,27,0.92))] shadow-[var(--tooltip-shadow,0_18px_32px_-24px_rgba(15,23,42,0.2))] backdrop-blur-sm",
+        "z-50 inline-flex w-fit max-w-xs items-center gap-1.5 rounded-lg",
+        "border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] px-3 py-2 text-xs text-[var(--theme-text-primary)]",
+        "shadow-[var(--theme-shadow-panel)] backdrop-blur-sm",
         className,
       )}
       {...(props as Omit<ComponentProps<typeof AriaTooltipContent>, "children"> & {
@@ -88,7 +93,7 @@ function TooltipContent({
       })}
     >
       {children}
-      <OverlayArrow className="fill-[var(--tooltip-bg,rgba(255,255,255,0.98))] drop-shadow-[0_8px_14px_rgba(15,23,42,0.08)]">
+      <OverlayArrow className="fill-[var(--theme-surface-strong)] drop-shadow-sm">
         <svg fill="none" height="12" viewBox="0 0 12 12" width="12" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 0C5.48483 8 6.5 8 12 0Z" />
         </svg>

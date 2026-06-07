@@ -73,6 +73,58 @@ CREATE INDEX "GenerationJob_userId_novelId_chapterId_action_status_idx"
 CREATE INDEX "GenerationJob_status_heartbeatAt_idx"
   ON "GenerationJob"("status", "heartbeatAt");
 
+-- Historical databases may already contain duplicate queued/running jobs for the
+-- same user + work + chapter + action. Keep the newest active row and mark older
+-- duplicates as stale before adding the partial unique indexes below.
+WITH ranked_active_jobs AS (
+  SELECT
+    "id",
+    ROW_NUMBER() OVER (
+      PARTITION BY "userId", "novelId", COALESCE("chapterIndex", -1), "action"
+      ORDER BY COALESCE("heartbeatAt", "updatedAt", "createdAt") DESC, "createdAt" DESC, "id" DESC
+    ) AS row_number
+  FROM "GenerationJob"
+  WHERE "status" IN ('queued', 'running')
+)
+UPDATE "GenerationJob" gj
+SET
+  "status" = 'stale',
+  "activeLockKey" = NULL,
+  "finishedAt" = COALESCE(gj."finishedAt", CURRENT_TIMESTAMP),
+  "completedAt" = COALESCE(gj."completedAt", CURRENT_TIMESTAMP),
+  "heartbeatAt" = CURRENT_TIMESTAMP,
+  "error" = COALESCE(gj."error", 'migration_duplicate_active_generation_job'),
+  "errorMessage" = COALESCE(gj."errorMessage", '迁移时检测到重复活跃生成任务，已保留最新任务并将旧任务标记为过期。')
+FROM ranked_active_jobs ranked
+WHERE gj."id" = ranked."id"
+  AND ranked.row_number > 1;
+
+-- Chapter generation actions are mutually exclusive even if the action name
+-- differs between streaming and non-streaming generation paths.
+WITH ranked_generation_jobs AS (
+  SELECT
+    "id",
+    ROW_NUMBER() OVER (
+      PARTITION BY "userId", "novelId", COALESCE("chapterIndex", -1)
+      ORDER BY COALESCE("heartbeatAt", "updatedAt", "createdAt") DESC, "createdAt" DESC, "id" DESC
+    ) AS row_number
+  FROM "GenerationJob"
+  WHERE "status" IN ('queued', 'running')
+    AND "action" IN ('chapter.generate', 'chapter.generate.stream', 'regenerate.all', 'regenerate.all.stream')
+)
+UPDATE "GenerationJob" gj
+SET
+  "status" = 'stale',
+  "activeLockKey" = NULL,
+  "finishedAt" = COALESCE(gj."finishedAt", CURRENT_TIMESTAMP),
+  "completedAt" = COALESCE(gj."completedAt", CURRENT_TIMESTAMP),
+  "heartbeatAt" = CURRENT_TIMESTAMP,
+  "error" = COALESCE(gj."error", 'migration_duplicate_active_generation_job'),
+  "errorMessage" = COALESCE(gj."errorMessage", '迁移时检测到重复活跃章节生成任务，已保留最新任务并将旧任务标记为过期。')
+FROM ranked_generation_jobs ranked
+WHERE gj."id" = ranked."id"
+  AND ranked.row_number > 1;
+
 CREATE UNIQUE INDEX "GenerationJob_active_chapter_action_key"
   ON "GenerationJob"("userId", "novelId", COALESCE("chapterIndex", -1), "action")
   WHERE "status" IN ('queued', 'running');

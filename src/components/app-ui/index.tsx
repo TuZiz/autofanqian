@@ -33,7 +33,7 @@ export function AppInput({ className, ...props }: ComponentProps<typeof Input>) 
     <Input
       {...props}
       className={cn(
-        "h-9 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-semibold text-[var(--theme-text-primary)] shadow-sm placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-brand-border)] focus:outline-none focus:ring-2 focus:ring-emerald-500/15",
+        "h-9 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-semibold text-[var(--theme-text-primary)] shadow-sm placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-brand-border)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-brand-500)]/15",
         className,
       )}
     />
@@ -45,7 +45,7 @@ export function AppTextarea({ className, ...props }: ComponentProps<typeof TextA
     <TextArea
       {...props}
       className={cn(
-        "min-h-24 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 py-2 text-sm font-semibold leading-6 text-[var(--theme-text-primary)] shadow-sm placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-brand-border)] focus:outline-none focus:ring-2 focus:ring-emerald-500/15",
+        "min-h-24 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 py-2 text-sm font-semibold leading-6 text-[var(--theme-text-primary)] shadow-sm placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-brand-border)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-brand-500)]/15",
         className,
       )}
     />

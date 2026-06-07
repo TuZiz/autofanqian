@@ -105,7 +105,7 @@ function normalizeBeats(value: unknown): ShortStoryOutlineBeatView[] {
 
       return {
         index: readNumber(item.index) ?? index + 1,
-        title: title || `Beat ${index + 1}`,
+        title: title || `节点 ${index + 1}`,
         purpose,
         targetWords: readNumber(item.targetWords),
         writingPrompt,

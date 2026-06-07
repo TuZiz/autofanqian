@@ -195,7 +195,7 @@ export function mergeNovelCanonState(params: {
   const state = normalizeNovelCanonState(params.current, params.mode);
   const title = readString(params.chapterTitle);
   const summary = readString(params.chapterSummary) || summarizeContent(params.chapterContent ?? "", 220);
-  const label = `${params.mode === "short" ? "Beat" : "第"}${params.chapterIndex}${params.mode === "short" ? "" : "章"}`;
+  const label = params.mode === "short" ? `节点 ${params.chapterIndex}` : `第${params.chapterIndex}章`;
   const chapterLine = `${label}${title ? `《${title}》` : ""}${summary ? `：${summary}` : ""}`;
   const issues = (params.consistencyIssues ?? []).map((item) => item.trim()).filter(Boolean);
 
@@ -292,7 +292,7 @@ export function mergeCanonStateFromExtractionPayload(params: {
   const state = normalizeNovelCanonState(params.current, params.mode);
   const title = readString(params.chapterTitle);
   const summary = readString(params.payload.summary);
-  const chapterLine = `${params.mode === "short" ? "Beat" : "第"}${params.chapterIndex}${params.mode === "short" ? "" : "章"}${title ? `《${title}》` : ""}${summary ? `：${summary}` : ""}`;
+  const chapterLine = `${params.mode === "short" ? `节点 ${params.chapterIndex}` : `第${params.chapterIndex}章`}${title ? `《${title}》` : ""}${summary ? `：${summary}` : ""}`;
   const memories = params.payload.memories ?? [];
   const timelineEvents = params.payload.timelineEvents ?? [];
   const foreshadowings = params.payload.foreshadowings ?? [];

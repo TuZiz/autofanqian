@@ -1,6 +1,5 @@
 import { zhCN } from "@/lib/copy/zh-cn";
-import { apiRequest as requestData } from "@/lib/http/client";
-import { ApiClientError, type ApiFieldErrors } from "@/lib/http/errors";
+import type { ApiFieldErrors } from "@/lib/http/errors";
 
 export type { ApiFieldErrors };
 
@@ -14,6 +13,19 @@ export type AuthApiResponse<T = unknown> = {
 
 type AuthApiRequestInit = Omit<RequestInit, "body"> & {
   redirectOnUnauthorized?: boolean;
+};
+
+type AuthSuccessPayload<T> = {
+  success: true;
+  message?: string;
+  data?: T;
+};
+
+type AuthErrorPayload = {
+  success: false;
+  message?: string;
+  fieldErrors?: ApiFieldErrors;
+  code?: string;
 };
 
 function isAuthEntryPath(pathname: string) {
@@ -30,22 +42,32 @@ export async function apiRequest<T = unknown>(
   const { redirectOnUnauthorized = true, ...requestInit } = init ?? {};
 
   try {
-    const data = await requestData<T>(url, {
-      method: requestInit.method ?? (payload ? "POST" : "GET"),
-      headers: requestInit.headers,
-      body: payload ? JSON.stringify(payload) : undefined,
-      ...requestInit,
-    });
+    const headers = new Headers(requestInit.headers);
+    if (!headers.has("Content-Type") && payload) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (!headers.has("Accept")) {
+      headers.set("Accept", "application/json");
+    }
 
-    return {
-      success: true,
-      message: "OK",
-      data,
-    };
-  } catch (error) {
-    if (error instanceof ApiClientError) {
+    const response = await fetch(url, {
+      credentials: "include",
+      ...requestInit,
+      method: requestInit.method ?? (payload ? "POST" : "GET"),
+      headers,
+      body: payload ? JSON.stringify(payload) : undefined,
+    });
+    const responsePayload = (await response.json().catch(() => null)) as
+      | AuthSuccessPayload<T>
+      | AuthErrorPayload
+      | null;
+
+    if (!response.ok || !responsePayload?.success) {
+      const errorPayload =
+        responsePayload && !responsePayload.success ? responsePayload : null;
+
       if (
-        error.status === 401 &&
+        response.status === 401 &&
         redirectOnUnauthorized &&
         typeof window !== "undefined" &&
         !isAuthEntryPath(window.location.pathname)
@@ -56,19 +78,25 @@ export async function apiRequest<T = unknown>(
 
       return {
         success: false,
-        status: error.status,
+        status: response.status,
         message:
-          error.status === 403
-            ? error.message || "权限不足，无法执行该操作。"
-            : error.status === 429
-              ? error.message || "请求过于频繁，请稍后再试。"
-              : error.status >= 500
+          response.status === 403
+            ? errorPayload?.message || "权限不足，无法执行该操作。"
+            : response.status === 429
+              ? errorPayload?.message || "请求过于频繁，请稍后再试。"
+              : response.status >= 500
                 ? "服务异常，请稍后重试。"
-                : error.message || zhCN.auth.response.networkError,
-        fieldErrors: error.fieldErrors,
+                : errorPayload?.message || zhCN.auth.response.networkError,
+        fieldErrors: errorPayload?.fieldErrors,
       };
     }
 
+    return {
+      success: true,
+      message: responsePayload.message || "操作成功。",
+      data: responsePayload.data,
+    };
+  } catch {
     return {
       success: false,
       message: zhCN.auth.response.networkError,

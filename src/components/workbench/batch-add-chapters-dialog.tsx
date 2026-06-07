@@ -124,7 +124,7 @@ export function BatchAddChaptersDialog() {
 
       <div className="space-y-4 px-6 py-6">
         <label className="block">
-          <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+          <span className="mb-3 block text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--theme-text-muted)]">
             添加数量
           </span>
           <input
@@ -145,16 +145,16 @@ export function BatchAddChaptersDialog() {
                   : current,
               )
             }
-            className="h-14 w-full rounded-2xl border border-[var(--theme-border)] bg-white/80 px-5 text-xl font-medium tabular-nums text-zinc-950 outline-none shadow-sm transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
+            className="h-14 w-full rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-5 text-xl font-medium tabular-nums text-[var(--theme-text-strong)] outline-none shadow-sm transition-all focus:border-[var(--theme-brand-border)] focus:ring-4 focus:ring-[var(--theme-brand-border)]"
           />
         </label>
-        <div className="rounded-2xl border border-[var(--theme-border)] bg-zinc-50/80 px-5 py-4 text-sm font-bold leading-relaxed text-zinc-600 shadow-inner dark:border-[var(--theme-border)] dark:bg-zinc-900/80 dark:text-zinc-300">
+        <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-5 py-4 text-sm font-bold leading-relaxed text-[var(--theme-text-secondary)] shadow-inner">
           {preview || `请输入 ${request.min}-${request.max} 之间的整数。`}
         </div>
         {request.error ? <DisabledHint>{request.error}</DisabledHint> : null}
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-border)] bg-zinc-50/50 px-6 py-5 dark:border-[var(--theme-border)] dark:bg-zinc-900/50 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-6 py-5 sm:flex-row sm:justify-end">
         <button type="button" className={secondaryButtonClass} onClick={closeBatchDialog}>
           取消
         </button>

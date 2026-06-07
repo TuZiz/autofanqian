@@ -56,6 +56,20 @@ export async function markStaleGenerationJobs(now = new Date()) {
       activeLockKey: null,
     },
   });
+  await prisma.generationJob.updateMany({
+    where: {
+      status: "queued",
+      createdAt: { lt: staleBefore },
+    },
+    data: {
+      status: "stale",
+      error: "generation_job_stale",
+      errorMessage: "生成任务排队超过 30 分钟未执行，已自动标记为过期。",
+      finishedAt: now,
+      completedAt: now,
+      activeLockKey: null,
+    },
+  });
 }
 
 export function normalizeGenerationJobSuccessStatus(status: string) {

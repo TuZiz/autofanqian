@@ -9,7 +9,7 @@ export default function DashboardCreateOutlineRedirectPage() {
   const outline = useCreateOutlineRedirect();
 
   return (
-    <main className="theme-page relative min-h-screen overflow-hidden bg-[#faf9f6] font-sans transition-[background-color,color] dark:bg-[#1a1816]">
+    <main className="theme-page relative min-h-screen overflow-hidden bg-[var(--theme-bg)] font-sans transition-[background-color,color]">
       <div className="pointer-events-none absolute inset-0 theme-app-surface" />
       <div className="pointer-events-none absolute inset-0 theme-app-grid" />
       <div className="pointer-events-none absolute inset-0 theme-app-vignette" />
@@ -26,7 +26,7 @@ export default function DashboardCreateOutlineRedirectPage() {
         />
 
         <OutlinePageSkeleton />
-        <div className="absolute inset-0 z-[60] bg-white/55 backdrop-blur-md dark:bg-black/35" />
+        <div className="absolute inset-0 z-[60] bg-[var(--theme-bg)]/55 backdrop-blur-md" />
         <OutlineProgressDialog outline={outline} />
       </div>
     </main>
@@ -50,26 +50,26 @@ function OutlinePageSkeleton() {
         </div>
 
         <div className="mt-6 space-y-3">
-          <div className="h-10 w-[min(720px,92%)] rounded-lg bg-stone-900/5 dark:bg-white/10" />
-          <div className="h-4 w-[min(980px,96%)] rounded-md bg-stone-900/5 dark:bg-white/10" />
-          <div className="h-4 w-[min(940px,90%)] rounded-md bg-stone-900/5 dark:bg-white/10" />
+          <div className="h-10 w-[min(720px,92%)] rounded-lg bg-[var(--theme-surface-overlay)]" />
+          <div className="h-4 w-[min(980px,96%)] rounded-md bg-[var(--theme-surface-overlay)]" />
+          <div className="h-4 w-[min(940px,90%)] rounded-md bg-[var(--theme-surface-overlay)]" />
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-3">
           <div className="theme-card-soft rounded-lg p-6 lg:col-span-2">
-            <div className="h-6 w-32 rounded-md bg-stone-900/5 dark:bg-white/10" />
+            <div className="h-6 w-32 rounded-md bg-[var(--theme-surface-overlay)]" />
             <div className="mt-4 space-y-3">
-              <div className="h-4 w-full rounded-md bg-stone-900/5 dark:bg-white/10" />
-              <div className="h-4 w-[92%] rounded-md bg-stone-900/5 dark:bg-white/10" />
-              <div className="h-4 w-[88%] rounded-md bg-stone-900/5 dark:bg-white/10" />
+              <div className="h-4 w-full rounded-md bg-[var(--theme-surface-overlay)]" />
+              <div className="h-4 w-[92%] rounded-md bg-[var(--theme-surface-overlay)]" />
+              <div className="h-4 w-[88%] rounded-md bg-[var(--theme-surface-overlay)]" />
             </div>
           </div>
           <div className="theme-card-soft rounded-lg p-6">
-            <div className="h-6 w-24 rounded-md bg-stone-900/5 dark:bg-white/10" />
+            <div className="h-6 w-24 rounded-md bg-[var(--theme-surface-overlay)]" />
             <div className="mt-4 space-y-3">
-              <div className="h-10 w-full rounded-lg bg-stone-900/5 dark:bg-white/10" />
-              <div className="h-10 w-full rounded-lg bg-stone-900/5 dark:bg-white/10" />
-              <div className="h-10 w-full rounded-lg bg-stone-900/5 dark:bg-white/10" />
+              <div className="h-10 w-full rounded-lg bg-[var(--theme-surface-overlay)]" />
+              <div className="h-10 w-full rounded-lg bg-[var(--theme-surface-overlay)]" />
+              <div className="h-10 w-full rounded-lg bg-[var(--theme-surface-overlay)]" />
             </div>
           </div>
         </div>
@@ -88,13 +88,13 @@ function OutlineProgressDialog({ outline }: OutlineProgressDialogProps) {
       <div className="glass-panel relative w-full max-w-2xl overflow-hidden rounded-lg p-8 text-center shadow-sm sm:p-10">
         {outline.stage === "done" || outline.stage === "error" ? null : (
           <>
-            <span className="pointer-events-none absolute left-0 top-0 z-0 h-full w-1.5 bg-stone-900/5 dark:bg-white/10" />
-            <span className="pointer-events-none absolute left-0 top-0 z-0 h-[45%] w-1.5 bg-emerald-500 animate-[ai-progress-sweep_1.2s_ease-in-out_infinite] motion-reduce:animate-none" />
+            <span className="pointer-events-none absolute left-0 top-0 z-0 h-full w-1.5 bg-[var(--theme-surface-overlay)]" />
+            <span className="pointer-events-none absolute left-0 top-0 z-0 h-[45%] w-1.5 bg-[var(--theme-brand-500)] animate-[ai-progress-sweep_1.2s_ease-in-out_infinite] motion-reduce:animate-none" />
           </>
         )}
 
         <div className="relative z-10">
-          <div className="mx-auto relative inline-flex items-center gap-2 overflow-hidden rounded-md border border-stone-900 bg-stone-950 px-3 py-1 text-xs font-semibold text-white shadow-sm dark:border-white dark:bg-white dark:text-stone-950">
+          <div className="mx-auto relative inline-flex items-center gap-2 overflow-hidden rounded-md border border-[var(--theme-border-strong)] bg-[var(--theme-text-strong)] px-3 py-1 text-xs font-semibold text-[var(--theme-surface-solid)] shadow-sm">
             {outline.stage === "done" ? (
               <CheckCircle2 className="relative h-4 w-4" />
             ) : (
@@ -140,7 +140,7 @@ function OutlineProgressBar({ outline }: OutlineProgressDialogProps) {
       aria-valuenow={outline.progressPercent}
     >
       <div className="theme-muted flex items-center justify-center gap-2 text-sm font-semibold">
-        <Sparkles className="h-4 w-4 animate-pulse text-emerald-600 dark:text-emerald-300" />
+        <Sparkles className="h-4 w-4 animate-pulse text-[var(--theme-brand-text)]" />
         <span
           key={outline.thinkingIndex}
           className="animate-[ai-copy-swap_220ms_ease-out] motion-reduce:animate-none"
@@ -149,9 +149,9 @@ function OutlineProgressBar({ outline }: OutlineProgressDialogProps) {
         </span>
       </div>
       <div className="relative mt-3">
-        <div className="h-2 overflow-hidden rounded-full bg-stone-200/70 dark:bg-white/10">
+        <div className="h-2 overflow-hidden rounded-full bg-[var(--theme-surface-overlay)]">
           <div
-            className="h-full rounded-full bg-emerald-500 transition-[width] duration-300 ease-linear motion-reduce:animate-none"
+            className="h-full rounded-full bg-[var(--theme-brand-500)] transition-[width] duration-300 ease-linear motion-reduce:animate-none"
             style={{
               width: `${outline.progressValue}%`,
               backgroundSize: "200% 100%",
@@ -159,7 +159,7 @@ function OutlineProgressBar({ outline }: OutlineProgressDialogProps) {
           />
         </div>
         <div
-          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md border border-black/10 bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-stone-900 shadow-sm backdrop-blur transition-[left] duration-300 ease-linear motion-reduce:transition-none dark:border-white/10 dark:bg-zinc-900/90 dark:text-white"
+          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)]/90 px-2 py-0.5 text-[11px] font-semibold text-[var(--theme-text-strong)] shadow-sm backdrop-blur transition-[left] duration-300 ease-linear motion-reduce:transition-none"
           style={{ left: `${outline.progressLabelLeft}%` }}
         >
           {outline.progressPercent}%

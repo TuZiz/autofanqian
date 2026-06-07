@@ -24,28 +24,24 @@ type EditorialTone = {
 
 const EDITORIAL_TONES: EditorialTone[] = [
   {
-    coverGradient:
-      "linear-gradient(145deg, rgba(33, 37, 32, 0.96) 0%, rgba(70, 87, 65, 0.96) 48%, rgba(184, 191, 153, 0.92) 100%)",
-    coverTextClassName: "text-white/82",
+    coverGradient: "var(--theme-cover-gradient-1)",
+    coverTextClassName: "text-white",
+    chipClassName: "bg-orange-50 text-orange-800 ring-1 ring-orange-100",
+  },
+  {
+    coverGradient: "var(--theme-cover-gradient-2)",
+    coverTextClassName: "text-white",
+    chipClassName: "bg-stone-50 text-stone-800 ring-1 ring-stone-100",
+  },
+  {
+    coverGradient: "var(--theme-cover-gradient-3)",
+    coverTextClassName: "text-white",
     chipClassName: "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100",
   },
   {
-    coverGradient:
-      "linear-gradient(145deg, rgba(62, 45, 34, 0.96) 0%, rgba(131, 88, 62, 0.94) 48%, rgba(234, 205, 160, 0.92) 100%)",
-    coverTextClassName: "text-stone-950/72",
+    coverGradient: "var(--theme-cover-gradient-4)",
+    coverTextClassName: "text-white",
     chipClassName: "bg-amber-50 text-amber-800 ring-1 ring-amber-100",
-  },
-  {
-    coverGradient:
-      "linear-gradient(145deg, rgba(42, 43, 38, 0.96) 0%, rgba(104, 92, 70, 0.94) 50%, rgba(230, 219, 198, 0.92) 100%)",
-    coverTextClassName: "text-white/80",
-    chipClassName: "bg-stone-100 text-stone-700 ring-1 ring-stone-200/80",
-  },
-  {
-    coverGradient:
-      "linear-gradient(145deg, rgba(34, 58, 48, 0.96) 0%, rgba(91, 124, 106, 0.94) 48%, rgba(207, 222, 189, 0.92) 100%)",
-    coverTextClassName: "text-white/84",
-    chipClassName: "bg-lime-50 text-lime-800 ring-1 ring-lime-100",
   },
 ];
 
@@ -83,9 +79,9 @@ export function getProgressCopy(input: ProgressInput): ProgressCopy {
 
   if (targetWordCount) {
     return {
-      label: shortStory ? "短篇完成度" : "规划目标完成度",
+      label: shortStory ? "短篇完成度" : "目标完成度",
       value: `${percent}%`,
-      hint: `按字数目标计算 · 目标 ${targetWordCount.toLocaleString("zh-CN")} 字`,
+      hint: `目标 ${targetWordCount.toLocaleString("zh-CN")} 字`,
       percent,
       hasTarget: true,
     };
@@ -93,13 +89,13 @@ export function getProgressCopy(input: ProgressInput): ProgressCopy {
 
   if (hasPlanningWindow) {
     const planLabel = shortStory
-      ? `已拆成 ${input.plannedUntilChapter || input.targetChapters || 0} 个场景`
+      ? `已拆分 ${input.plannedUntilChapter || input.targetChapters || 0} 个场景`
       : input.plannedUntilChapter
-        ? `当前已规划到第 ${input.plannedUntilChapter} 章`
+        ? `已规划到第 ${input.plannedUntilChapter} 章`
         : `长期目标 ${input.targetChapters} 章`;
 
     return {
-      label: shortStory ? "短篇场景完成度" : "当前规划窗口完成度",
+      label: shortStory ? "场景完成度" : "规划窗口完成度",
       value: `${percent}%`,
       hint: planLabel,
       percent,
@@ -109,8 +105,8 @@ export function getProgressCopy(input: ProgressInput): ProgressCopy {
 
   return {
     label: "未设定总目标",
-    value: "—",
-    hint: "建议先补一个规划窗口或字数目标",
+    value: "-",
+    hint: "建议补充字数目标或规划窗口",
     percent: 0,
     hasTarget: false,
   };
@@ -127,7 +123,7 @@ export function getPlanningLabel(input: {
   }
 
   if (input.plannedUntilChapter) {
-    return `规划至第 ${input.plannedUntilChapter} 章`;
+    return `已规划至第 ${input.plannedUntilChapter} 章`;
   }
 
   if (input.targetChapters) {
@@ -145,24 +141,35 @@ export function getChapterLine(input: {
     wordCount: number;
   };
 }) {
-  const unit = isShortStoryWork(input.workType) ? "场景" : "章";
+  const shortStory = isShortStoryWork(input.workType);
+  const unit = shortStory ? "场景" : "章";
+
   if (input.chapter.title?.trim()) {
-    return isShortStoryWork(input.workType)
+    return shortStory
       ? `场景 ${input.chapter.index} · ${input.chapter.title.trim()}`
       : `第 ${input.chapter.index} 章 · ${input.chapter.title.trim()}`;
   }
 
   if (input.chapter.wordCount > 0) {
-    return isShortStoryWork(input.workType)
+    return shortStory
       ? `场景 ${input.chapter.index} · 正在写作`
       : `第 ${input.chapter.index} 章 · 正在写作`;
   }
 
-  return isShortStoryWork(input.workType)
+  return shortStory
     ? `${unit} ${input.chapter.index} · 还未开始`
-    : `第 ${input.chapter.index} 章 · 还未开始`;
+    : `第 ${input.chapter.index} ${unit} · 还未开始`;
 }
 
+const HAN_CHARACTER_PATTERN = /[\u3400-\u9fff\uf900-\ufaff]/u;
+const FALLBACK_INITIAL_PATTERN = /[A-Za-z0-9]/u;
+
 export function getTitleInitial(title: string) {
-  return title.replace(/[《》\s]/g, "").trim().slice(0, 1) || "书";
+  const hanCharacter = title.match(HAN_CHARACTER_PATTERN)?.[0];
+
+  if (hanCharacter) {
+    return hanCharacter;
+  }
+
+  return title.match(FALLBACK_INITIAL_PATTERN)?.[0]?.toUpperCase() ?? "书";
 }

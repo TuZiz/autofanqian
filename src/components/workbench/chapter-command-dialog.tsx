@@ -78,7 +78,7 @@ export function ChapterCommandDialog({ editor }: { editor: WorkChapterEditorCont
         role="dialog"
         aria-modal="true"
         aria-labelledby="chapter-command-title"
-        className="relative flex max-h-[78vh] w-full max-w-2xl animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-xl dark:border-[var(--theme-border)] dark:bg-[var(--theme-surface-solid)]"
+        className="relative flex max-h-[78vh] w-full max-w-2xl animate-[fadeIn_0.2s_ease-out] flex-col overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-xl"
       >
         <div className="flex items-center gap-4 border-b border-[var(--theme-divider)] px-5 py-4 sm:px-6">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-600)] ring-1 ring-[var(--theme-brand-border)]">

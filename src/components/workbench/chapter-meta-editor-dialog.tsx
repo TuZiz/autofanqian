@@ -85,7 +85,7 @@ export function MetaEditorDialog({ editor }: { editor: WorkChapterEditorControll
           placeholder={metaEditorConfig.placeholder}
           className={cn(textareaClass, "h-[min(34vh,320px)] min-h-[200px] resize-y")}
         />
-        <div className="flex flex-col gap-3 rounded-2xl bg-zinc-50/80 px-5 py-4 text-xs font-bold text-zinc-500 shadow-inner ring-1 ring-[var(--theme-border)] dark:bg-zinc-900/80 dark:text-zinc-400 dark:ring-[var(--theme-border)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl bg-[var(--theme-surface-soft)] px-5 py-4 text-xs font-bold text-[var(--theme-text-muted)] shadow-inner ring-1 ring-[var(--theme-border)] sm:flex-row sm:items-center sm:justify-between">
           <span className="min-w-0 truncate">{metaEditorConfig.saveHint}</span>
           <span className="shrink-0 tabular-nums">
             {metaEditorValue.length}/{limit}
@@ -94,7 +94,7 @@ export function MetaEditorDialog({ editor }: { editor: WorkChapterEditorControll
         {disabledReason ? <DisabledHint>{disabledReason}</DisabledHint> : null}
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-border)] bg-zinc-50/50 px-6 py-5 dark:border-[var(--theme-border)] dark:bg-zinc-900/50 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-6 py-5 sm:flex-row sm:justify-end">
         <button
           type="button"
           className={secondaryButtonClass}

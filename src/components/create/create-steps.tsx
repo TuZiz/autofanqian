@@ -34,7 +34,7 @@ export function CreateSteps({ compact = false }: CreateStepsProps) {
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-300",
                     isActive
-                      ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/25"
+                      ? "bg-[var(--theme-brand-500)] text-white shadow-sm shadow-[var(--theme-brand-500)]/25"
                       : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]",
                   )}
                 >
@@ -45,7 +45,7 @@ export function CreateSteps({ compact = false }: CreateStepsProps) {
                   <div
                     className={cn(
                       "text-xs font-bold",
-                      isActive ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--theme-text-muted)]",
+                      isActive ? "text-[var(--theme-brand-text)]" : "text-[var(--theme-text-muted)]",
                     )}
                   >
                     {step.title}
@@ -76,7 +76,7 @@ export function CreateSteps({ compact = false }: CreateStepsProps) {
                 className={cn(
                   "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300",
                   isActive
-                    ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/25"
+                    ? "bg-[var(--theme-brand-500)] text-white shadow-sm shadow-[var(--theme-brand-500)]/25"
                     : "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)]",
                 )}
               >
@@ -87,7 +87,7 @@ export function CreateSteps({ compact = false }: CreateStepsProps) {
                 <div
                   className={cn(
                     "text-sm font-bold",
-                    isActive ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--theme-text-muted)]",
+                    isActive ? "text-[var(--theme-brand-text)]" : "text-[var(--theme-text-muted)]",
                   )}
                 >
                   {step.title}

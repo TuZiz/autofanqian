@@ -90,7 +90,7 @@ export function WorkAiObservabilityView({ workId }: WorkAiObservabilityViewProps
   return (
     <main className="app-work-surface min-h-dvh px-3 py-4 text-[var(--theme-text-primary)] sm:px-5 lg:px-8">
       <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-4">
-        <header className="rounded-[1.6rem] border border-[var(--theme-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(242,250,247,0.9))] p-4 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.45)] dark:bg-[linear-gradient(135deg,rgba(24,28,26,0.96),rgba(15,18,17,0.92))] sm:p-5">
+        <header className="rounded-[1.6rem] border border-[var(--theme-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(242,250,247,0.9))] p-4 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.45)] sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <Link
@@ -101,11 +101,11 @@ export function WorkAiObservabilityView({ workId }: WorkAiObservabilityViewProps
                 返回作品
               </Link>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-[0_18px_32px_-22px_rgba(16,185,129,0.9)]">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] shadow-[0_18px_32px_-22px_rgba(14,165,233,0.6)] ring-1 ring-[var(--theme-brand-border)]">
                   <BarChart3 className="h-5 w-5" />
                 </span>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-[var(--theme-brand-text)]">
                     AI Observability
                   </p>
                   <h1 className="text-2xl font-black tracking-tight text-[var(--theme-text-strong)] sm:text-3xl">
@@ -171,7 +171,7 @@ export function WorkAiObservabilityView({ workId }: WorkAiObservabilityViewProps
         </header>
 
         {error ? (
-          <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-200">
+          <div className="flex items-center gap-2 rounded-2xl border border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] px-4 py-3 text-sm font-bold text-[var(--theme-danger-text)]">
             <AlertCircle className="h-4 w-4" />
             {error}
           </div>
@@ -179,7 +179,7 @@ export function WorkAiObservabilityView({ workId }: WorkAiObservabilityViewProps
 
         {loading && !data ? (
           <section className="rounded-[1.6rem] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-8 text-center shadow-sm">
-            <RefreshCw className="mx-auto mb-3 h-6 w-6 animate-spin text-emerald-600" />
+            <RefreshCw className="mx-auto mb-3 h-6 w-6 animate-spin text-[var(--theme-brand-text)]" />
             <p className="text-sm font-bold text-[var(--theme-text-secondary)]">正在加载 AI 观测数据...</p>
           </section>
         ) : data ? (
@@ -269,7 +269,7 @@ function SummaryCards({ summary }: { summary: WorkAiObservabilityViewData["summa
           <div key={card.label} className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">{card.label}</span>
-              <Icon className="h-4 w-4 text-emerald-600" />
+              <Icon className="h-4 w-4 text-[var(--theme-brand-text)]" />
             </div>
             <div className="text-2xl font-black tabular-nums text-[var(--theme-text-strong)]">{card.value}</div>
           </div>
@@ -330,7 +330,7 @@ function ExportToolbar({
             type="button"
             onClick={button.onClick}
             disabled={button.disabled}
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-[var(--theme-border)] bg-white px-3 text-xs font-black text-[var(--theme-text-secondary)] shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:bg-[var(--theme-surface-muted)] disabled:text-[var(--theme-text-muted)] disabled:shadow-none dark:bg-white/5 dark:hover:bg-emerald-500/10"
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs font-black text-[var(--theme-text-secondary)] shadow-sm transition hover:border-[var(--theme-brand-border)] hover:bg-[var(--theme-brand-soft)] hover:text-[var(--theme-brand-text)] disabled:cursor-not-allowed disabled:bg-[var(--theme-surface-muted)] disabled:text-[var(--theme-text-muted)] disabled:shadow-none"
             title={button.disabled ? "暂无可导出的数据" : button.label}
           >
             <Download className="h-3.5 w-3.5" />
@@ -348,10 +348,10 @@ function LatestChapterReportPanel({
   report: WorkAiObservabilityViewData["latestChapterReport"];
 }) {
   return (
-    <section className="rounded-[1.4rem] border border-emerald-200/60 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(236,253,245,0.72))] p-4 shadow-sm dark:border-emerald-500/20 dark:bg-[linear-gradient(135deg,rgba(24,28,26,0.96),rgba(16,185,129,0.08))]">
+    <section className="rounded-[1.4rem] border border-[var(--theme-brand-border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(236,253,245,0.72))] p-4 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-300">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--theme-brand-text)]">
             Latest Chapter Report
           </p>
           <h2 className="mt-1 text-base font-black text-[var(--theme-text-strong)]">
@@ -361,7 +361,7 @@ function LatestChapterReportPanel({
             最近章节的一致性、质量评分和模型使用情况。
           </p>
         </div>
-        <span className="inline-flex h-8 items-center rounded-full bg-emerald-500/10 px-3 text-xs font-black text-emerald-700 ring-1 ring-emerald-500/15 dark:text-emerald-200">
+        <span className="inline-flex h-8 items-center rounded-full bg-[var(--theme-brand-soft)] px-3 text-xs font-black text-[var(--theme-brand-text)] ring-1 ring-[var(--theme-brand-border)]">
           {report ? `第 ${report.chapterIndex} 章` : "暂无章节"}
         </span>
       </div>
@@ -389,7 +389,7 @@ function LatestChapterReportPanel({
           </div>
         </div>
       ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-[var(--theme-border)] bg-white/65 p-5 text-sm font-bold text-[var(--theme-text-muted)] dark:bg-white/5">
+        <div className="mt-4 rounded-2xl border border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-solid)]/65 p-5 text-sm font-bold text-[var(--theme-text-muted)]">
           还没有可展示的最新章节质量报告。
         </div>
       )}
@@ -399,7 +399,7 @@ function LatestChapterReportPanel({
 
 function MetricCard({ label, small, value }: { label: string; small?: boolean; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/70 bg-white/80 p-3 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.5)] ring-1 ring-[var(--theme-border)]/70 dark:bg-white/5">
+    <div className="rounded-2xl border border-white/70 bg-[var(--theme-surface-soft)] p-3 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.5)] ring-1 ring-[var(--theme-border)]/70">
       <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
         {label}
       </p>
@@ -418,7 +418,7 @@ function MetricCard({ label, small, value }: { label: string; small?: boolean; v
 
 function TextList({ items, title }: { items: string[]; title: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--theme-border)] bg-white/75 p-3 dark:bg-white/5">
+    <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] p-3">
       <h3 className="text-xs font-black text-[var(--theme-text-strong)]">{title}</h3>
       {items.length ? (
         <ul className="mt-2 space-y-2">
@@ -448,7 +448,7 @@ function ModelRecommendationPanel({ recommendations }: { recommendations: WorkAi
         <h2 className="text-sm font-black text-[var(--theme-text-strong)]">不推荐模型</h2>
         <div className="mt-3 space-y-2">
           {recommendations.notRecommended.length ? recommendations.notRecommended.slice(0, 4).map((item) => (
-            <div key={`${item.providerId}-${item.modelUsed}-${item.reason}`} className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 dark:bg-red-500/10 dark:text-red-200">
+            <div key={`${item.providerId}-${item.modelUsed}-${item.reason}`} className="rounded-xl bg-red-50 bg-[var(--theme-danger-soft)] px-3 py-2 text-xs font-bold text-[var(--theme-danger-text)]">
               {modelLabel(item.providerId, item.modelUsed)}：{item.reason}
             </div>
           )) : (
@@ -462,9 +462,9 @@ function ModelRecommendationPanel({ recommendations }: { recommendations: WorkAi
 
 function RecommendationCard({ item, title, tone }: { item: ModelRecommendation | null; title: string; tone: "emerald" | "amber" | "sky" }) {
   const toneClass = {
-    emerald: "from-emerald-50 to-white text-emerald-700 dark:from-emerald-500/10 dark:to-transparent dark:text-emerald-200",
-    amber: "from-amber-50 to-white text-amber-700 dark:from-amber-500/10 dark:to-transparent dark:text-amber-200",
-    sky: "from-sky-50 to-white text-sky-700 dark:from-sky-500/10 dark:to-transparent dark:text-sky-200",
+    emerald: "bg-emerald-50 from-[var(--theme-brand-soft)] to-[var(--theme-surface-solid)] text-[var(--theme-brand-text)]",
+    amber: "bg-amber-50 from-[var(--theme-warning-soft)] to-[var(--theme-surface-solid)] text-[var(--theme-warning-text)]",
+    sky: "from-[var(--theme-info-soft)] to-[var(--theme-surface-solid)] text-[var(--theme-info-text)]",
   }[tone];
 
   return (

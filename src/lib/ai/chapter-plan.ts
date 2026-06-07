@@ -72,7 +72,7 @@ const longPlanSchema = z
 const shortPlanSchema = z
   .object({
     mode: z.literal("short"),
-    beatGoal: z.string().trim().default("完成当前 beat 的明确目的。"),
+    beatGoal: z.string().trim().default("完成当前节点的明确目的。"),
     emotionalTurn: z.string().trim().default("让主角或冲突出现可感知转折。"),
     sceneBeats: z.array(z.string().trim().min(1)).max(8).default([]),
     mustResolve: z.array(z.string().trim().min(1)).max(6).default([]),
@@ -114,12 +114,12 @@ export function buildFallbackChapterPlan(params: {
   if (params.mode === "short") {
     return {
       mode: "short",
-      beatGoal: params.currentGoal || "完成当前 beat 的冲突推进和信息交付。",
+      beatGoal: params.currentGoal || "完成当前节点的冲突推进和信息交付。",
       emotionalTurn: "让主角状态或读者情绪产生明确变化。",
       sceneBeats: [
-        "承接前一个 beat 的结尾。",
+        "承接前一个节点的结尾。",
         "用一个具体行动推动核心冲突。",
-        "在结尾完成当前 beat 的功能。",
+        "在结尾完成当前节点的功能。",
       ],
       mustResolve: [],
       mustNotOpen: [

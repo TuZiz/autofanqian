@@ -22,15 +22,15 @@ export function ContextEditor({
       <button
         type="button"
         aria-label="关闭编辑抽屉"
-        className="absolute inset-0 cursor-pointer bg-zinc-950/40 backdrop-blur-sm dark:bg-black/60"
+        className="absolute inset-0 cursor-pointer bg-[var(--theme-surface-solid)]/40 backdrop-blur-sm/60"
         onClick={onClose}
       />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[600px] flex-col border-l border-white/60 bg-white/70 shadow-lg shadow-zinc-950/20 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/60">
-        <div className="border-b border-[var(--theme-border)] bg-white/50 px-8 py-6 dark:border-[var(--theme-border)] dark:bg-zinc-950/50">
-          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[600px] flex-col border-l border-white/60 bg-[var(--theme-surface-soft)] shadow-lg shadow-zinc-950/20 backdrop-blur-xl">
+        <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-8 py-6/50">
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--theme-text-muted)]">
             Editor
           </div>
-          <h4 className="mt-1 text-2xl font-extrabold tracking-tight text-zinc-950 dark:text-white">
+          <h4 className="mt-1 text-2xl font-extrabold tracking-tight text-[var(--theme-text-strong)]">
             {editor.kind === "foreshadowing"
               ? "修正伏笔"
               : editor.kind === "setting"
@@ -47,11 +47,11 @@ export function ContextEditor({
             <TimelineFields editor={editor} setEditor={setEditor} />
           )}
         </div>
-        <div className="flex items-center justify-end gap-3 border-t border-[var(--theme-border)] bg-zinc-50/50 px-8 py-6 dark:border-[var(--theme-border)] dark:bg-zinc-900/50">
+        <div className="flex items-center justify-end gap-3 border-t border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-8 py-6">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-white px-6 text-sm font-bold text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:text-zinc-950 hover:shadow-md hover:ring-1 hover:ring-[var(--theme-border)] active:scale-[0.98] dark:border-[var(--theme-border)] dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:ring-[var(--theme-border)]"
+            className="inline-flex h-12 items-center justify-center rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-6 text-sm font-bold text-[var(--theme-text-secondary)] shadow-sm transition-all hover:bg-[var(--theme-surface-solid)] hover:text-[var(--theme-text-strong)] hover:shadow-md hover:ring-1 hover:ring-[var(--theme-border)] active:scale-[0.98]"
           >
             取消
           </button>
@@ -59,7 +59,7 @@ export function ContextEditor({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:bg-emerald-500 hover:shadow-xl hover:shadow-emerald-500/30 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+            className="theme-brand-gradient-bg inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold text-white shadow-lg shadow-[var(--theme-brand-500)]/20 transition-all hover:-translate-y-0.5 hover:brightness-105 hover:shadow-xl hover:shadow-[var(--theme-brand-500)]/30 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit3 className="h-4 w-4" />}
             保存修改
@@ -147,19 +147,19 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-3 block text-[11px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className="mb-3 block text-[11px] font-bold uppercase tracking-widest text-[var(--theme-text-muted)]">{label}</span>
       {textarea ? (
         <textarea
           value={value}
           onChange={(event) => onChange(event.target.value)}
           rows={4}
-          className="min-h-[140px] w-full rounded-2xl border border-[var(--theme-border)] bg-white/80 px-5 py-4 text-sm font-bold text-zinc-900 shadow-sm outline-none transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
+          className="min-h-[140px] w-full rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-5 py-4 text-sm font-bold text-[var(--theme-text-strong)] shadow-sm outline-none transition-all focus:border-[var(--theme-brand-border)] focus:ring-4 focus:ring-[var(--theme-brand-border)]"
         />
       ) : (
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="h-12 w-full rounded-xl border border-[var(--theme-border)] bg-white/80 px-5 text-sm font-bold text-zinc-900 shadow-sm outline-none transition-all focus:border-emerald-400 focus:ring-4 focus:ring-emerald-400/20 dark:border-[var(--theme-border)] dark:bg-zinc-950/80 dark:text-white dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
+          className="h-12 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-5 text-sm font-bold text-[var(--theme-text-strong)] shadow-sm outline-none transition-all focus:border-[var(--theme-brand-border)] focus:ring-4 focus:ring-[var(--theme-brand-border)]"
         />
       )}
     </label>

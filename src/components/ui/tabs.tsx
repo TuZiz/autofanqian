@@ -50,15 +50,19 @@ function TabsList({
   return (
     <TabList
       className={cn(
-        "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-[orientation=horizontal]/tabs:h-8 group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col",
-        variant === "default" && "bg-muted",
+        "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-[var(--theme-text-muted)]",
+        "group-data-[orientation=horizontal]/tabs:h-8",
+        "group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col",
+        variant === "default" && "bg-[var(--theme-surface-overlay)]",
         variant === "line" && "gap-1 bg-transparent",
         className,
       )}
       {...props}
     >
       {children}
-      {variant === "default" && <TabIndicator className="bg-background rounded-md shadow-sm" />}
+      {variant === "default" && (
+        <TabIndicator className="rounded-md bg-[var(--theme-surface-solid)] shadow-sm" />
+      )}
     </TabList>
   );
 }
@@ -76,7 +80,14 @@ function TabsTrigger({
   return (
     <Tab
       className={cn(
-        "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-1.5 py-0.5 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-[selected]:bg-background data-[selected]:text-foreground data-[selected]:shadow-sm",
+        "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-1.5 py-0.5 text-sm font-medium whitespace-nowrap",
+        "text-[var(--theme-text-muted)] transition-all",
+        "group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start",
+        "hover:text-[var(--theme-text-strong)]",
+        "focus-visible:ring-2 focus-visible:ring-[var(--theme-brand-500)]/40",
+        "disabled:pointer-events-none disabled:opacity-50",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "data-[selected]:bg-[var(--theme-surface-solid)] data-[selected]:text-[var(--theme-text-strong)] data-[selected]:shadow-sm",
         className,
       )}
       {...props}

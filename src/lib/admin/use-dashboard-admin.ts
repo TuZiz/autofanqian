@@ -14,7 +14,7 @@ import type {
 import { useAdminCreateConfigActions } from "./use-admin-create-config-actions";
 import { useAdminTemplates } from "./use-admin-templates";
 
-type ConfigSaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+type ConfigSaveState = "dirty" | "error" | "idle" | "saved" | "saving";
 
 export function useDashboardAdmin() {
   const [loading, setLoading] = useState(true);
@@ -55,12 +55,8 @@ export function useDashboardAdmin() {
     templates,
     templatesLoading,
   } = useAdminTemplates();
-  const {
-    handleAddGenre,
-    handleAddOption,
-    handleDeleteGenre,
-    handleDeleteOption,
-  } = useAdminCreateConfigActions({ config, setConfig });
+  const { handleAddGenre, handleAddOption, handleDeleteGenre, handleDeleteOption } =
+    useAdminCreateConfigActions({ config, setConfig });
 
   const persistConfig = useCallback(
     async (nextConfig: CreateUiConfig, options?: { silent?: boolean }) => {
@@ -218,6 +214,7 @@ export function useDashboardAdmin() {
       setUser(nextUser);
       setAiStatsLoading(true);
       setAuditLogsLoading(true);
+
       const [configRes, planningRes, statsRes, auditRes] = await Promise.all([
         apiRequest<{ config: CreateUiConfig }>("/api/admin/create-config"),
         apiRequest<{ config: PlanningWindowConfig }>("/api/admin/planning-config"),
@@ -256,6 +253,7 @@ export function useDashboardAdmin() {
     }
 
     void bootstrap();
+
     return () => {
       cancelled = true;
     };
@@ -309,10 +307,6 @@ export function useDashboardAdmin() {
     configLastSavedAt,
     configSaveError,
     configSaveState,
-    planningConfig,
-    planningLastSavedAt,
-    planningSaveError,
-    planningSaveState,
     genreForTemplates,
     genreOptions,
     handleAddGenre,
@@ -329,6 +323,10 @@ export function useDashboardAdmin() {
     handleUpdateTemplate,
     learning,
     loading,
+    planningConfig,
+    planningLastSavedAt,
+    planningSaveError,
+    planningSaveState,
     savingConfig,
     setConfig,
     setGenreForTemplates,

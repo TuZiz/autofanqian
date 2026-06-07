@@ -1,37 +1,46 @@
-﻿"use client";
+"use client";
 
+import { motion } from "framer-motion";
 import {
   AlertCircle,
-  ArrowLeft,
-  CheckCircle2,
-  Clock3,
-  Feather,
+  Lightbulb,
+  ListChecks,
   Loader2,
   PenLine,
   RefreshCw,
+  Sparkles,
   Wand2,
 } from "lucide-react";
-import Link from "next/link";
+import type { ReactNode } from "react";
 
-import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { SHORT_STORY_ENDING_LABELS } from "@/shared/schemas/short-story";
+import {
+  AppShell,
+  MobileBottomNav,
+  SectionCard,
+  StatusBadge,
+} from "@/components/design-system";
 import {
   getShortStoryStageMessage,
   getShortStoryWordOptionHint,
-  SHORT_STORY_STRUCTURE_TEMPLATE_HINTS,
   type ShortStoryCreateController,
 } from "@/lib/create/use-short-story-create";
 import { cn } from "@/lib/utils";
 
-import { CreateModeSwitch } from "./create-mode-switch";
+import { CreateWorkspaceHeader, type CreateStep } from "./create-workspace-header";
+import {
+  getShortStoryEndingLabel,
+  getShortStoryPovLabel,
+  getShortStoryStructureLabel,
+  getShortStoryStyleLabel,
+} from "./short-story-labels";
 
 const GENRE_PRESETS = ["悬疑", "恋爱", "反转", "脑洞", "虐文", "爽文", "短剧风", "小红书故事"];
 const SHORT_STEPS = [
-  { label: "确定创意", text: "题材、标签和核心钩子" },
-  { label: "短篇结构", text: "按模板生成 3-8 个关键段落" },
-  { label: "一键成文", text: "生成标题、简介、大纲和全文" },
-  { label: "润色导出", text: "进入正文继续润色并导出" },
-];
+  { label: "确定创意", text: "题材、关键词和核心钩子" },
+  { label: "短篇结构", text: "模板、视角、结局倾向" },
+  { label: "一键成文", text: "8000 字以上进入后台任务" },
+  { label: "润色导出", text: "进入作品页继续编辑" },
+] satisfies CreateStep[];
 
 type ShortStoryCreateViewProps = {
   create: ShortStoryCreateController;
@@ -39,411 +48,565 @@ type ShortStoryCreateViewProps = {
 
 export function ShortStoryCreateView({ create }: ShortStoryCreateViewProps) {
   const stageText = getShortStoryStageMessage(create.stage);
+  const createProgress = getShortCreateProgress(create);
 
   return (
-    <main className="create-modern-shell min-h-dvh w-full overflow-x-clip bg-[#f7f8fa] text-slate-900">
-      <div className="pointer-events-none fixed inset-0 opacity-[0.14] [background-image:radial-gradient(circle_at_20%_18%,rgba(14,165,233,0.10),transparent_30%),radial-gradient(circle_at_82%_12%,rgba(99,102,241,0.09),transparent_28%),linear-gradient(to_right,rgba(51,65,85,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(51,65,85,0.035)_1px,transparent_1px)] [background-size:auto,auto,56px_56px,56px_56px]" />
+    <AppShell
+      className="create-modern-shell"
+      maxWidthClassName="max-w-[1500px]"
+      mobileNav={<MobileBottomNav activeHref="/dashboard/create" />}
+    >
+      <form onSubmit={create.handleSubmit} noValidate className="space-y-3">
+        <CreateWorkspaceHeader
+          active="short"
+          ariaLabel="短篇创建进度"
+          currentStepIndex={createProgress.currentStepIndex}
+          progress={createProgress.progress}
+          steps={SHORT_STEPS}
+          title="短篇创作任务台"
+        />
 
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-[1480px] flex-col">
-        <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/92 backdrop-blur-xl">
-          <div className="grid min-h-[68px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-2 sm:px-4 lg:px-[18px]">
-            <div className="flex min-w-0 items-center gap-3.5">
-              <Link
-                href="/dashboard"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200/70 bg-white text-slate-500 transition-all duration-200 hover:-translate-x-0.5 hover:border-slate-300 hover:text-slate-900"
-                title="返回控制台"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-              <div className="min-w-0">
-                <h1 className="truncate text-[22px] font-extrabold tracking-tight text-slate-950">
-                  短篇小说
-                </h1>
-                <p className="hidden truncate text-[13px] font-medium text-slate-500 sm:block">
-                  一篇完结 · 快速成稿 · 可润色投稿和导出
-                </p>
-              </div>
-              <div className="hidden md:block">
-                <CreateModeSwitch active="short" />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-1.5">
-              <ThemeToggle className="h-10 w-10 rounded-full border border-slate-200/70 bg-white text-slate-500 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-950" />
-            </div>
-          </div>
-        </header>
-
-        <div className="flex-1 px-3.5 pb-16 pt-3.5 sm:px-4 lg:px-[18px]">
-          <div className="mb-3 md:hidden">
-            <CreateModeSwitch active="short" />
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="grid gap-3 min-[1120px]:grid-cols-[minmax(0,1fr)_360px]"
+        >
+          <div className="min-w-0">
+            <p className="mb-2 text-xs font-black text-[var(--theme-brand-600)]">
+              一篇完结 · 快速成稿 · 可润色投稿和导出
+            </p>
+            <ParameterSection create={create} />
           </div>
 
-          <form
-            onSubmit={create.handleSubmit}
-            noValidate
-            className="grid gap-3 min-[1080px]:grid-cols-[260px_minmax(0,1fr)_300px] min-[1080px]:items-start min-[1440px]:grid-cols-[270px_minmax(0,1fr)_310px]"
-          >
-            <aside className="rounded-[18px] border border-slate-200/70 bg-white/88 p-4 shadow-[0_18px_44px_-36px_rgba(20,32,29,0.38)] backdrop-blur-xl">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl create-accent text-white shadow-[0_14px_24px_-18px_rgba(20,32,29,0.78)]">
-                  <Feather className="h-[18px] w-[18px]" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    Short Story
-                  </div>
-                  <h2 className="text-base font-extrabold text-slate-950">短篇模式</h2>
-                  <p className="mt-0.5 text-[11px] font-semibold text-slate-500">从钩子到结尾，一次完成一篇故事。</p>
-                </div>
-              </div>
-              <div className="mt-3 space-y-2">
-                {SHORT_STEPS.map((item, index) => (
-                  <div
-                    key={item.label}
-                    className="flex items-start gap-2.5 rounded-2xl border border-slate-200/70 create-tint px-3 py-2.5"
-                  >
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-black text-slate-500 ring-1 ring-slate-200">
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-xs font-extrabold text-slate-800">
-                        {item.label}
-                      </span>
-                      <span className="mt-0.5 block text-[11px] font-medium leading-4 text-slate-500">
-                        {item.text}
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </aside>
-
-            <section className="min-w-0 rounded-[20px] border border-slate-200/70 bg-white/94 p-4 shadow-[0_18px_44px_-36px_rgba(20,32,29,0.38)] sm:p-5">
-              <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    01 / 创意设定
-                  </div>
-                  <h2 className="mt-1 text-[24px] font-extrabold tracking-tight text-slate-950">
-                    一键生成一篇完结短篇
-                  </h2>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
-                    专为短篇设计：结构 beats、正文、润色和导出在同一条创作线上完成。
-                  </p>
-                </div>
-                <div className="inline-flex items-center rounded-full border border-slate-200 create-tint px-3 py-2 text-xs font-bold text-slate-500">
-                  {create.ideaCount}/2000
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                <div>
-                  <FieldLabel label="短篇类型" />
-                  <div className="flex flex-wrap gap-2">
-                    {GENRE_PRESETS.map((item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() => create.setGenre(item)}
-                        className={cn(
-                          "h-9 rounded-xl border px-3 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5",
-                          create.genre === item
-                            ? "border-transparent create-accent text-white shadow-[0_14px_24px_-18px_rgba(20,32,29,0.78)]"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-[var(--create-tint)] hover:text-slate-950",
-                        )}
-                      >
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    value={create.genre}
-                    onChange={(event) => create.setGenre(event.target.value)}
-                    className="mt-2 h-11 w-full rounded-xl border border-slate-200 create-tint px-3 text-sm font-bold text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)]"
-                    placeholder="也可以手动输入短篇类型"
-                    maxLength={64}
-                  />
-                  <FieldError message={create.fieldErrors.genre} />
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <FieldLabel label="关键词" />
-                    <input
-                      value={create.tagsText}
-                      onChange={(event) => create.setTagsText(event.target.value)}
-                      className="h-11 w-full rounded-xl border border-slate-200 create-tint px-3 text-sm font-bold text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)]"
-                      placeholder="例如：雨夜 反杀 暗恋"
-                    />
-                    <FieldError message={create.fieldErrors.tags} />
-                  </div>
-
-                  <div>
-                    <FieldLabel label="目标字数" />
-                    <select
-                      value={create.targetPreset}
-                      onChange={(event) => create.setTargetPreset(event.target.value)}
-                      className="h-11 w-full rounded-xl border border-slate-200 create-tint px-3 text-sm font-bold text-slate-900 outline-none transition-all duration-200 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)]"
-                    >
-                      {create.wordOptions.map((words) => (
-                        <option key={words} value={words}>
-                          {words.toLocaleString("zh-CN")} 字 · {getShortStoryWordOptionHint(words)}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="mt-1.5 text-xs font-semibold text-slate-500">
-                      {getShortStoryWordOptionHint(create.targetWords)}
-                    </p>
-                    <FieldError message={create.fieldErrors.targetWords} />
-                  </div>
-                </div>
-
-                <SegmentGroup
-                  label="结构模板"
-                  options={create.structureTemplateOptions}
-                  value={create.structureTemplate}
-                  onChange={create.setStructureTemplate}
-                />
-                <SegmentGroup
-                  label="叙事风格"
-                  options={create.styleOptions}
-                  value={create.style}
-                  onChange={create.setStyle}
-                />
-                <SegmentGroup
-                  label="叙事视角"
-                  options={create.povOptions}
-                  value={create.pov}
-                  onChange={create.setPov}
-                />
-                <div>
-                  <FieldLabel label="结局倾向" />
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                    {create.endingOptions.map((ending) => (
-                      <button
-                        key={ending}
-                        type="button"
-                        onClick={() => create.setEndingType(ending)}
-                        className={cn(
-                          "h-10 rounded-xl border px-3 text-sm font-bold transition-all duration-200 hover:-translate-y-0.5",
-                          create.endingType === ending
-                            ? "border-transparent create-accent text-white shadow-[0_14px_24px_-18px_rgba(20,32,29,0.78)]"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-[var(--create-tint)] hover:text-slate-950",
-                        )}
-                      >
-                        {SHORT_STORY_ENDING_LABELS[ending]}
-                      </button>
-                    ))}
-                  </div>
-                  <FieldError message={create.fieldErrors.endingType} />
-                </div>
-
-                <div>
-                  <FieldLabel label="核心创意" />
-                  <textarea
-                    value={create.idea}
-                    onChange={(event) => create.setIdea(event.target.value.slice(0, 2000))}
-                    className="min-h-[178px] w-full resize-y rounded-2xl border border-slate-200 create-tint px-4 py-3 text-[15px] font-semibold leading-7 text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-[var(--create-accent)] focus:bg-white focus:ring-4 focus:ring-[var(--create-focus)]"
-                    placeholder="写清主角、冲突、反转或情绪落点。至少 10 个字。"
-                  />
-                  <FieldError message={create.fieldErrors.idea} />
-                </div>
-              </div>
-            </section>
-
-            <aside className="rounded-[20px] border border-slate-200/70 bg-white/94 p-4 shadow-[0_18px_44px_-36px_rgba(20,32,29,0.38)] min-[1080px]:sticky min-[1080px]:top-[82px]">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl create-tint text-slate-700 ring-1 ring-slate-200">
-                  <Wand2 className="h-4.5 w-4.5" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    Create
-                  </div>
-                  <h2 className="text-base font-extrabold text-slate-950">生成配置</h2>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-2.5 rounded-2xl border border-slate-200 create-tint p-3 text-xs font-bold text-slate-600">
-                <SummaryRow label="类型" value={create.genre || "未填写"} />
-                <SummaryRow label="字数" value={`${Number.isFinite(create.targetWords) ? create.targetWords.toLocaleString("zh-CN") : "-"} 字`} />
-                <SummaryRow label="结构" value={create.structureTemplate} />
-                <SummaryRow label="风格" value={create.style} />
-                <SummaryRow label="视角" value={create.pov} />
-                <SummaryRow label="结局" value={SHORT_STORY_ENDING_LABELS[create.endingType]} />
-              </div>
-
-              {create.formError ? (
-                <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm font-bold leading-6 text-red-600">
-                  {create.formError}
-                </div>
-              ) : null}
-
-              {create.asyncJobId ? (
-                <AsyncJobPanel create={create} />
-              ) : null}
-
-              <button
-                type="submit"
-                disabled={create.busy}
-                className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full create-accent px-4 text-sm font-extrabold text-white shadow-[0_16px_28px_-20px_rgba(20,32,29,0.86)] transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait disabled:opacity-65"
-              >
-                {create.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenLine className="h-4 w-4" />}
-                {create.busy ? "生成中..." : "一键生成短篇"}
-              </button>
-
-              <p className="mt-3 text-center text-xs font-semibold leading-5 text-slate-500">
-                {stageText}
-              </p>
-            </aside>
-          </form>
-        </div>
-      </div>
-    </main>
+          <aside className="min-w-0 min-[1120px]:sticky min-[1120px]:top-3 min-[1120px]:self-start">
+            <ShortSubmitPanel create={create} stageText={stageText} />
+          </aside>
+        </motion.div>
+      </form>
+    </AppShell>
   );
 }
 
-function AsyncJobPanel({ create }: { create: ShortStoryCreateController }) {
-  const status = create.asyncJob?.status ?? "queued";
-  const failed = status === "failed";
-  const running = status === "running" || status === "queued" || status === "stale";
-  const progressLabel = create.asyncProgress?.label;
+function getShortCreateProgress(create: ShortStoryCreateController) {
+  const generating = create.stage === "outline" || create.stage === "work" || create.stage === "queued";
+  const completed = create.stage === "done"
+    ? SHORT_STEPS.length
+    : generating
+      ? 3
+      : create.inputValid
+        ? 2
+        : create.idea.trim().length >= 10
+          ? 1
+          : 0;
+  const progress = (completed / SHORT_STEPS.length) * 100;
+  const currentStepIndex = Math.max(0, Math.min(completed, SHORT_STEPS.length - 1));
+
+  return {
+    currentStepIndex,
+    progress,
+  };
+}
+
+function ParameterSection({ create }: { create: ShortStoryCreateController }) {
+  const customGenre = GENRE_PRESETS.includes(create.genre) ? "" : create.genre;
+  const structureSummary = getStructureSummary(create);
 
   return (
-    <div
-      className={cn(
-        "mt-3 rounded-2xl border px-3.5 py-3 text-sm shadow-sm",
-        failed
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-emerald-200 bg-emerald-50/80 text-emerald-800",
-      )}
+    <SectionCard
+      accent={false}
+      className="rounded-[8px] [&>div:first-of-type]:px-3 [&>div:first-of-type]:py-3 [&>div:last-child]:p-3"
+      icon={ListChecks}
+      title="参数区"
+      description="先确定类型、字数和核心创意。"
+      actions={<StatusBadge>{create.ideaCount}/2000</StatusBadge>}
     >
-      <div className="flex items-start gap-2.5">
-        <div
-          className={cn(
-            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white ring-1",
-            failed ? "text-red-600 ring-red-200" : "text-emerald-700 ring-emerald-200",
-          )}
-        >
-          {failed ? <AlertCircle className="h-4 w-4" /> : <Clock3 className="h-4 w-4" />}
+      <div className="space-y-3">
+        <div className="overflow-hidden rounded-[8px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)]">
+          <div className="border-b border-[var(--theme-divider)] px-3 py-2.5">
+            <h3 className="text-sm font-black text-[var(--theme-text-strong)]">故事参数</h3>
+            <p className="mt-0.5 truncate text-xs font-semibold text-[var(--theme-text-muted)]">
+              {create.genre || "未选类型"} · {structureSummary}
+            </p>
+          </div>
+
+          <div className="grid min-[860px]:grid-cols-2">
+            <GenreChoiceGroup
+              className="border-b border-[var(--theme-divider)] min-[860px]:border-r"
+              customGenre={customGenre}
+              genre={create.genre}
+              onChange={create.setGenre}
+            />
+            <ParameterChoiceGroup
+              className="border-b border-[var(--theme-divider)]"
+              label="结构"
+              options={create.structureTemplateOptions}
+              value={create.structureTemplate}
+              onChange={create.setStructureTemplate}
+              renderLabel={getShortStoryStructureLabel}
+            />
+          </div>
+
+          <div className="grid min-[860px]:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            <ParameterChoiceGroup
+              className="border-b border-[var(--theme-divider)] min-[860px]:border-r"
+              label="风格"
+              options={create.styleOptions}
+              value={create.style}
+              onChange={create.setStyle}
+              renderLabel={getShortStoryStyleLabel}
+            />
+            <ParameterChoiceGroup
+              className="border-b border-[var(--theme-divider)]"
+              label="视角"
+              options={create.povOptions}
+              value={create.pov}
+              onChange={create.setPov}
+              renderLabel={getShortStoryPovLabel}
+            />
+          </div>
+
+          <div className="grid min-[860px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <ParameterChoiceGroup
+              className="min-[860px]:border-r min-[860px]:border-[var(--theme-divider)]"
+              label="结局"
+              options={create.endingOptions}
+              value={create.endingType}
+              onChange={create.setEndingType}
+              renderLabel={getShortStoryEndingLabel}
+            />
+            <div className="min-w-0 bg-[var(--theme-surface-soft)] px-3 py-3 text-xs font-semibold leading-5 text-[var(--theme-text-secondary)]">
+              <p className="font-black text-[var(--theme-text-strong)]">创作取向</p>
+              <p className="mt-1">
+                短篇更吃钩子、节奏和结尾回收，参数越明确，生成时越不容易散。
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-extrabold">
-            {failed ? "后台生成失败" : "后台生成任务已排队"}
+        <FieldError message={create.fieldErrors.genre} />
+        <FieldError message={create.fieldErrors.endingType} />
+
+        <div className="grid gap-3 min-[760px]:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="rounded-[8px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-3">
+            <FieldLabel label="关键词" />
+            <input
+              value={create.tagsText}
+              onChange={(event) => create.setTagsText(event.target.value)}
+              className="h-10 w-full rounded-[6px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-semibold text-[var(--theme-text-primary)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-brand-border)] focus:ring-4 focus:ring-[var(--theme-brand-subtle)]"
+              placeholder="例如：雨夜 反杀 暗恋"
+            />
+            <p className="mt-1.5 text-xs font-semibold text-[var(--theme-text-muted)]">
+              添加核心关键词，帮助 AI 抓住情绪和反转。
+            </p>
+            <FieldError message={create.fieldErrors.tags} />
           </div>
-          <div className="mt-1 space-y-1 text-xs font-semibold leading-5 opacity-90">
-            <p>已创建作品：{create.asyncWorkId ? "是" : "等待确认"}</p>
-            <p>当前任务状态：{formatJobStatus(status)}</p>
-            {create.asyncJob?.resultSummary ? <p>{create.asyncJob.resultSummary}</p> : null}
-            {progressLabel ? <p>已生成段落：{progressLabel}</p> : null}
-            {failed && create.asyncJob?.errorMessage ? <p>失败原因：{create.asyncJob.errorMessage}</p> : null}
+
+          <div className="rounded-[8px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-3">
+            <FieldLabel label="目标字数" />
+            <select
+              value={create.targetPreset}
+              onChange={(event) => create.setTargetPreset(event.target.value)}
+              className="h-10 w-full rounded-[6px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-semibold text-[var(--theme-text-primary)] outline-none transition focus:border-[var(--theme-brand-border)] focus:ring-4 focus:ring-[var(--theme-brand-subtle)]"
+            >
+              {create.wordOptions.map((words) => (
+                <option key={words} value={words}>
+                  {words.toLocaleString("zh-CN")} 字 · {getShortStoryWordOptionHint(words)}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs font-semibold text-[var(--theme-text-muted)]">
+              {getShortStoryWordOptionHint(create.targetWords)}
+            </p>
+            <FieldError message={create.fieldErrors.targetWords} />
           </div>
+        </div>
+
+        <div>
+          <FieldLabel label="核心创意" />
+          <div className="overflow-hidden rounded-[8px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] transition focus-within:border-[var(--theme-brand-border)] focus-within:ring-4 focus-within:ring-[var(--theme-brand-subtle)]">
+            <textarea
+              value={create.idea}
+              onChange={(event) => create.setIdea(event.target.value.slice(0, 2000))}
+              className="min-h-[164px] w-full resize-y bg-transparent px-3.5 py-3 text-[15px] font-semibold leading-7 text-[var(--theme-text-primary)] outline-none placeholder:text-[var(--theme-text-muted)]"
+              placeholder="写清主角、冲突、反转或情绪落点。至少 10 个字。"
+            />
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--theme-divider)] bg-[var(--theme-surface-soft)] px-3 py-2">
+              <p className="min-w-0 truncate text-xs font-semibold text-[var(--theme-text-muted)]">
+                创意越具体，短篇生成结果越稳定。
+              </p>
+              <span className="shrink-0 text-xs font-black text-[var(--theme-text-secondary)]">
+                {create.ideaCount}/2000 字
+              </span>
+            </div>
+          </div>
+          <FieldError message={create.fieldErrors.idea} />
         </div>
       </div>
+    </SectionCard>
+  );
+}
 
-      {failed ? (
-        <button
-          type="button"
-          onClick={() => void create.retryAsyncJob()}
-          disabled={create.retrying}
-          className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-red-600 px-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-wait disabled:opacity-65"
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", create.retrying ? "animate-spin" : "")} />
-          {create.retrying ? "正在重试..." : "重试后台生成"}
-        </button>
-      ) : null}
+function ShortSubmitPanel({
+  create,
+  stageText,
+}: {
+  create: ShortStoryCreateController;
+  stageText: string;
+}) {
+  const status = create.asyncJob?.status ?? (create.busy ? "running" : "queued");
+  const failed = status === "failed" || create.stage === "failed";
+  const running = create.busy || status === "running" || status === "queued" || status === "stale";
+  const hasGenre = create.genre.trim().length > 0;
+  const hasIdea = create.idea.trim().length >= 10;
+  const structureSummary = getStructureSummary(create);
+  const submitLabel = create.busy
+    ? "生成中..."
+    : !hasGenre || !hasIdea
+      ? "先补齐创意"
+      : "一键生成短篇";
+  const progress = create.asyncProgress?.totalSegments
+    ? (create.asyncProgress.generatedSegments / create.asyncProgress.totalSegments) * 100
+    : create.stage === "done"
+      ? 100
+      : running
+        ? 28
+        : 0;
 
-      {running ? (
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/75">
-          <div
-            className="h-full rounded-full bg-emerald-600 transition-[width] duration-500"
-            style={{
-              width: create.asyncProgress?.totalSegments
-                ? `${Math.max(
-                    8,
-                    Math.min(
-                      98,
-                      Math.round(
-                        (create.asyncProgress.generatedSegments / create.asyncProgress.totalSegments) * 100,
-                      ),
-                    ),
-                  )}%`
-                : "18%",
-            }}
-          />
+  return (
+    <div className="space-y-3">
+      <section className="overflow-hidden rounded-[8px] border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] shadow-[var(--theme-shadow-card)]">
+        <div className="flex items-start gap-3 bg-[linear-gradient(135deg,var(--theme-brand-soft),transparent)] px-3 py-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] bg-[var(--theme-surface-solid)] text-[var(--theme-brand-600)] ring-1 ring-[var(--theme-brand-border)]">
+            <Wand2 className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base font-black text-[var(--theme-text-strong)]">生成短篇</h2>
+            <p className="mt-1 text-sm font-semibold leading-5 text-[var(--theme-text-secondary)]">
+              AI 将基于你的创意，生成完整短篇小说。
+            </p>
+          </div>
         </div>
-      ) : null}
+      </section>
+
+      <section className="rounded-[8px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-3 shadow-[var(--theme-shadow-card)]">
+        <div className="space-y-3">
+          <AsyncJobPanel
+            failed={failed}
+            label={failed ? "后台生成失败" : create.asyncJobId ? "后台分段生成" : "等待提交"}
+            progress={progress}
+            progressLabel={create.asyncProgress?.label ?? ""}
+            targetWords={create.targetWords}
+            status={<StatusBadge tone={failed ? "danger" : running ? "ai" : "neutral"}>{formatJobStatus(status)}</StatusBadge>}
+          />
+
+          {create.formError ? (
+            <div className="rounded-[6px] border border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] px-3 py-2 text-sm font-semibold text-[var(--theme-danger-text)]">
+              {create.formError}
+            </div>
+          ) : null}
+
+          {failed ? (
+            <div className="rounded-[6px] border border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] p-3 text-sm font-semibold text-[var(--theme-danger-text)]">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-black">失败原因</p>
+                  <p className="mt-1 leading-6">{create.asyncJob?.errorMessage || create.formError || "后台任务失败，请重试。"}</p>
+                </div>
+              </div>
+              {create.asyncJobId ? (
+                <button
+                  type="button"
+                  onClick={() => void create.retryAsyncJob()}
+                  disabled={create.retrying}
+                  className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[6px] bg-[var(--theme-danger-text)] px-3 text-xs font-black text-white transition disabled:cursor-wait disabled:opacity-65"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", create.retrying ? "animate-spin" : "")} />
+                  {create.retrying ? "正在重试..." : "重试后台生成"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={create.busy}
+            className="theme-brand-gradient-bg inline-flex h-11 w-full items-center justify-center gap-2 rounded-[6px] px-4 text-sm font-black text-white shadow-[var(--theme-shadow-button)] transition hover:-translate-y-0.5 active:translate-y-px disabled:cursor-wait disabled:opacity-65"
+          >
+            {create.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenLine className="h-4 w-4" />}
+            {submitLabel}
+          </button>
+
+          <p className="text-center text-xs font-semibold leading-5 text-[var(--theme-text-muted)]">
+            {stageText}
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-[8px] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-3 shadow-[var(--theme-shadow-card)]">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-600)] ring-1 ring-[var(--theme-brand-border)]">
+            <ListChecks className="h-4 w-4" />
+          </span>
+          <div>
+            <h2 className="text-sm font-black text-[var(--theme-text-strong)]">创作概览</h2>
+            <p className="text-xs font-semibold text-[var(--theme-text-muted)]">提交前快速核对生成方向。</p>
+          </div>
+        </div>
+        <CompactSummary
+          genre={create.genre || "未填写"}
+          hasGenre={hasGenre}
+          hasIdea={hasIdea}
+          ideaCount={create.ideaCount}
+          structureSummary={structureSummary}
+          targetWords={create.targetWords}
+        />
+      </section>
+
+      <section className="rounded-[8px] border border-[var(--theme-info-border)] bg-[var(--theme-info-soft)] p-3">
+        <div className="flex items-start gap-2.5">
+          <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[var(--theme-info-text)]" />
+          <div>
+            <h2 className="text-sm font-black text-[var(--theme-text-strong)]">小贴士</h2>
+            <p className="mt-1 text-xs font-semibold leading-5 text-[var(--theme-text-secondary)]">
+              创意越具体，生成效果越好。可以先用“雨夜反杀”“双向误会”这类关键词锁定情绪。
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
+  );
+}
+
+function AsyncJobPanel({
+  failed,
+  label,
+  progress,
+  progressLabel,
+  status,
+  targetWords,
+}: {
+  failed: boolean;
+  label: string;
+  progress: number;
+  progressLabel: string;
+  status: ReactNode;
+  targetWords: number;
+}) {
+  return (
+    <CompactProgress
+      failed={failed}
+      label={label}
+      progress={progress}
+      description={
+        progressLabel
+          ? <>已生成段落：{progressLabel}</>
+          : targetWords >= 8000
+            ? "提交后会创建后台任务并分段生成正文。"
+            : "当前字数通常会直接生成完成。"
+      }
+      status={status}
+    />
+  );
+}
+
+function CompactProgress({
+  description,
+  failed,
+  label,
+  progress,
+  status,
+}: {
+  description: ReactNode;
+  failed: boolean;
+  label: string;
+  progress: number;
+  status: ReactNode;
+}) {
+  const safeProgress = Math.max(0, Math.min(100, Math.round(progress)));
+
+  return (
+    <div className="rounded-[6px] bg-[var(--theme-surface-soft)] p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-extrabold text-[var(--theme-text-strong)]">
+            <Sparkles className={cn("h-4 w-4", failed ? "text-[var(--theme-danger-text)]" : "text-[var(--theme-brand-600)]")} />
+            <span className="truncate">{label}</span>
+          </div>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[var(--theme-text-muted)]">{description}</p>
+        </div>
+        <div className="shrink-0">{status}</div>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--theme-surface-overlay)]">
+        <div
+          className={cn(
+            "h-full rounded-full transition-[width] duration-500",
+            failed ? "bg-[var(--theme-danger-text)]" : "theme-brand-gradient-bg",
+          )}
+          style={{ width: `${safeProgress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function CompactSummary({
+  genre,
+  hasGenre,
+  hasIdea,
+  ideaCount,
+  structureSummary,
+  targetWords,
+}: {
+  genre: string;
+  hasGenre: boolean;
+  hasIdea: boolean;
+  ideaCount: number;
+  structureSummary: string;
+  targetWords: number;
+}) {
+  return (
+    <div className="text-xs font-semibold leading-5 text-[var(--theme-text-muted)]">
+      <div className="grid gap-2">
+        <SummaryToken label="类型" ready={hasGenre} value={genre} />
+        <SummaryToken label="创意" ready={hasIdea} value={hasIdea ? `${ideaCount}/2000` : "至少 10 字"} />
+        <SummaryToken
+          label="字数"
+          ready
+          value={`${Number.isFinite(targetWords) ? targetWords.toLocaleString("zh-CN") : "-"} 字`}
+        />
+      </div>
+      <p className="mt-2 truncate border-t border-[var(--theme-divider)] pt-2 text-[var(--theme-text-secondary)]">
+        结构：{structureSummary}
+      </p>
+    </div>
+  );
+}
+
+function SummaryToken({
+  label,
+  ready,
+  value,
+}: {
+  label: string;
+  ready: boolean;
+  value: string;
+}) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <span
+        className={cn(
+          "h-1.5 w-1.5 shrink-0 rounded-full",
+          ready ? "bg-[var(--theme-brand-600)]" : "bg-[var(--theme-danger-text)]",
+        )}
+      />
+      <span className="shrink-0">{label}</span>
+      <span className="truncate font-black text-[var(--theme-text-strong)]">{value}</span>
+    </span>
   );
 }
 
 function formatJobStatus(status: string) {
   const labels: Record<string, string> = {
+    cancelled: "已取消",
+    failed: "失败",
     queued: "排队中",
     running: "生成中",
     stale: "等待恢复",
-    succeeded: "已完成",
     success: "已完成",
-    failed: "失败",
-    cancelled: "已取消",
+    succeeded: "已完成",
   };
   return labels[status] ?? status;
 }
 
 function FieldLabel({ label }: { label: string }) {
-  return <label className="mb-2 block text-sm font-extrabold text-slate-800">{label}</label>;
+  return <label className="mb-1.5 block text-sm font-black text-[var(--theme-text-strong)]">{label}</label>;
 }
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p className="mt-1.5 flex items-center gap-1.5 rounded-xl bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-500">
-      <CheckCircle2 className="h-3.5 w-3.5" />
+    <p className="mt-1.5 flex items-center gap-1.5 rounded-[4px] bg-[var(--theme-danger-soft)] px-2.5 py-1.5 text-xs font-black text-[var(--theme-danger-text)]">
+      <AlertCircle className="h-3.5 w-3.5" />
       {message}
     </p>
   );
 }
 
-function SegmentGroup<T extends string>({
+function GenreChoiceGroup({
+  className,
+  customGenre,
+  genre,
+  onChange,
+}: {
+  className?: string;
+  customGenre: string;
+  genre: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className={cn("min-w-0 bg-[var(--theme-surface-solid)] p-3", className)}>
+      <ParameterGroupLabel label="类型" />
+      <div className="flex min-w-0 flex-wrap gap-1.5">
+        {GENRE_PRESETS.map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => onChange(item)}
+            className={cn(
+              "h-8 rounded-[6px] border px-2.5 text-xs font-black transition",
+              genre === item
+                ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]"
+                : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)]",
+            )}
+          >
+            {item}
+          </button>
+        ))}
+        <input
+          value={customGenre}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-8 min-w-[96px] flex-1 rounded-[6px] border border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-2.5 text-xs font-semibold text-[var(--theme-text-primary)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-brand-border)] focus:ring-4 focus:ring-[var(--theme-brand-subtle)]"
+          placeholder="自定义"
+          maxLength={64}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ParameterChoiceGroup<T extends string>({
+  className,
   label,
   onChange,
   options,
+  renderLabel,
   value,
 }: {
+  className?: string;
   label: string;
   onChange: (value: T) => void;
   options: readonly T[];
+  renderLabel: (value: T) => string;
   value: T;
 }) {
   return (
-    <div>
-      <FieldLabel label={label} />
-      <div className="flex flex-wrap gap-2">
+    <div className={cn("min-w-0 bg-[var(--theme-surface-solid)] p-3", className)}>
+      <ParameterGroupLabel label={label} />
+      <div className="flex min-w-0 flex-wrap gap-1.5">
         {options.map((option) => (
           <button
             key={option}
             type="button"
             onClick={() => onChange(option)}
-            title={getOptionHint(label, option)}
             className={cn(
-              "min-h-9 rounded-xl border px-3 py-1.5 text-left text-sm font-bold transition-all duration-200 hover:-translate-y-0.5",
+              "h-8 rounded-[6px] border px-2.5 text-xs font-black transition",
               value === option
-                ? "border-transparent create-accent text-white shadow-[0_14px_24px_-18px_rgba(20,32,29,0.78)]"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-[var(--create-tint)] hover:text-slate-950",
+                ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]"
+                : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)]",
             )}
           >
-            <span className="block leading-5">{option}</span>
-            {getOptionHint(label, option) ? (
-              <span
-                className={cn(
-                  "block text-[10px] font-semibold leading-4",
-                  value === option ? "text-white/75" : "text-slate-400",
-                )}
-              >
-                {getOptionHint(label, option)}
-              </span>
-            ) : null}
+            {renderLabel(option)}
           </button>
         ))}
       </div>
@@ -451,20 +614,15 @@ function SegmentGroup<T extends string>({
   );
 }
 
-function getOptionHint(label: string, option: string) {
-  if (label !== "结构模板") return "";
-  return SHORT_STORY_STRUCTURE_TEMPLATE_HINTS[
-    option as keyof typeof SHORT_STORY_STRUCTURE_TEMPLATE_HINTS
-  ] ?? "";
+function ParameterGroupLabel({ label }: { label: string }) {
+  return <div className="mb-1 text-[11px] font-black text-[var(--theme-text-muted)]">{label}</div>;
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-slate-400">{label}</span>
-      <span className="truncate text-right text-slate-800">{value}</span>
-    </div>
-  );
+function getStructureSummary(create: ShortStoryCreateController) {
+  return [
+    getShortStoryStructureLabel(create.structureTemplate),
+    getShortStoryStyleLabel(create.style),
+    getShortStoryPovLabel(create.pov),
+    getShortStoryEndingLabel(create.endingType),
+  ].join(" / ");
 }
-
-

@@ -34,10 +34,10 @@ npm ci --include=dev
 npm run db:generate
 npx prisma migrate deploy
 npm run build
-pm2 reload "$APP_NAME" --update-env || pm2 start npm --name "$APP_NAME" -- start
+pm2 reload "$APP_NAME" --update-env || pm2 start npm --name "$APP_NAME" -- start # refresh process environment
 if [ "$WITH_WORKER" != "false" ]; then
   if pm2 describe "$WORKER_NAME" >/dev/null 2>&1; then
-    pm2 restart "$WORKER_NAME" --update-env
+    pm2 restart "$WORKER_NAME" --update-env # refresh process environment
   elif [ "$WITH_WORKER" = "true" ]; then
     pm2 start npm --name "$WORKER_NAME" -- run worker:generation
   fi

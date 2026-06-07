@@ -67,12 +67,12 @@ export function RegenerateDialog({ editor }: { editor: WorkChapterEditorControll
           className={cn(textareaClass, "min-h-[160px]")}
         />
         {disabledReason ? <DisabledHint>{disabledReason}</DisabledHint> : null}
-        <div className="text-right text-xs font-bold text-zinc-500 dark:text-zinc-400 tabular-nums">
+        <div className="text-right text-xs font-bold text-[var(--theme-text-muted)] tabular-nums">
           {regeneratePrompt.length}/2000
         </div>
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-border)] bg-zinc-50/50 px-6 py-5 dark:border-[var(--theme-border)] dark:bg-zinc-900/50 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 border-t border-[var(--theme-border)] bg-[var(--theme-surface-soft)] px-6 py-5 sm:flex-row sm:justify-end">
         <button
           type="button"
           className={secondaryButtonClass}

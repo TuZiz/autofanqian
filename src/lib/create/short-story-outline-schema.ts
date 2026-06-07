@@ -109,7 +109,7 @@ function normalizeFullOutline(
       (character) =>
         `- ${character.name.trim()}（${character.role.trim()}）：${character.description.trim()}`,
     ),
-    "节奏 beats：",
+    "结构节点：",
     ...beats.map(
       (beat) =>
         `${beat.index}. ${beat.title}：${beat.purpose}。写作提示：${beat.writingPrompt}`,

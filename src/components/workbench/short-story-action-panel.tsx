@@ -84,9 +84,9 @@ export function ShortStoryActionPanel({ editor }: { editor: WorkChapterEditorCon
   }
 
   return (
-    <section className="rounded-lg border border-emerald-200/70 bg-emerald-50/60 p-3 shadow-sm dark:border-emerald-500/25 dark:bg-emerald-500/10">
+    <section className="rounded-lg border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] p-3 shadow-sm">
       <div className="flex items-start gap-2">
-        <WandSparkles className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
+        <WandSparkles className="mt-0.5 h-4 w-4 shrink-0 text-[var(--theme-brand-text)]" />
         <div className="min-w-0">
           <h3 className="text-sm font-extrabold text-[var(--theme-text-strong)]">
             短篇专属操作
@@ -98,13 +98,13 @@ export function ShortStoryActionPanel({ editor }: { editor: WorkChapterEditorCon
       </div>
 
       {rewriteBlockedReason ? (
-        <div className="mt-2 rounded-lg border border-amber-200/70 bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200">
+        <div className="mt-2 rounded-lg border border-[var(--theme-warning-border)]/70 bg-[var(--theme-warning-soft)] px-3 py-2 text-xs font-bold leading-5 text-[var(--theme-warning-text)]">
           {rewriteBlockedReason}
         </div>
       ) : null}
 
       {pendingNotice ? (
-        <div className="mt-2 rounded-lg border border-sky-200/70 bg-sky-50 px-3 py-2 text-xs font-bold leading-5 text-sky-700 dark:border-sky-500/25 dark:bg-sky-500/10 dark:text-sky-200">
+        <div className="mt-2 rounded-lg border border-[var(--theme-info-border)]/70 bg-[var(--theme-info-soft)] px-3 py-2 text-xs font-bold leading-5 text-[var(--theme-info-text)]">
           {pendingNotice}
         </div>
       ) : null}
@@ -120,8 +120,8 @@ export function ShortStoryActionPanel({ editor }: { editor: WorkChapterEditorCon
             className={cn(
               "group flex min-h-10 items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55",
               item.status === "ready"
-                ? "border-emerald-200/80 bg-white/90 text-emerald-800 hover:bg-emerald-50 hover:shadow-sm dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/15"
-                : "border-[var(--theme-border)] bg-white/75 text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)] dark:bg-zinc-900/70",
+                ? "border-[var(--theme-brand-border)] bg-[var(--theme-surface-soft)] text-[var(--theme-brand-text)] hover:bg-[var(--theme-brand-soft)] hover:shadow-sm/15"
+                : "border-[var(--theme-border)] bg-[var(--theme-surface-soft)] text-[var(--theme-text-secondary)] hover:bg-[var(--theme-surface-hover)]",
             )}
           >
             <span className="flex min-w-0 items-center gap-2">
@@ -136,7 +136,7 @@ export function ShortStoryActionPanel({ editor }: { editor: WorkChapterEditorCon
               )}
               <span className="truncate text-xs font-extrabold">{item.label}</span>
             </span>
-            <span className="shrink-0 rounded-md bg-white/80 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] opacity-75 ring-1 ring-black/5 dark:bg-black/10">
+            <span className="shrink-0 rounded-md bg-[var(--theme-surface-soft)] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] opacity-75 ring-1 ring-black/5">
               {item.status === "ready" ? "可用" : "接入中"}
             </span>
           </button>

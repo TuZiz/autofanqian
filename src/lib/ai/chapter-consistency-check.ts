@@ -99,12 +99,12 @@ function buildCheckPrompt(params: {
   const checks =
     params.mode === "short"
       ? [
-          "是否完成当前 beat 目的",
+          "是否完成当前节点目的",
           "是否写成长篇铺垫",
           "是否节奏拖沓",
           "是否新增过多设定/人物/伏笔",
           "是否服务主题和情绪线",
-          "是否与前一个 beat 连贯",
+          "是否与前一个节点连贯",
           ...(isFinalShortBeat
             ? [
                 "是否回收核心冲突",

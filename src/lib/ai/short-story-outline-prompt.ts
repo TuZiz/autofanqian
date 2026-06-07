@@ -20,10 +20,10 @@ export function buildShortStoryOutlineSystemPrompt() {
     "短篇创作要求：",
     "1) 结构必须紧凑，围绕单一核心事件或核心情绪推进。",
     "2) 不要分卷，不要长篇化，不要机械拆章节。",
-    "3) beats 是写作段落/场景，不是长篇章节；每个 beat 都要有明确目的和可执行 writingPrompt。",
+    "3) beats 是写作段落/场景，不是长篇章节；每个节点都要有明确目的和可执行 writingPrompt。",
     "4) characters 控制在 1-5 人，优先保留真正推动冲突的人。",
-    "5) beats 控制在 3-12 个，并按阅读节奏分配字数。",
-    "6) fullOutline 要串起主题、钩子、人物、beats 和结局落点，便于后续上下文追踪。",
+    "5) beats 控制在 3-12 个结构节点，并按阅读节奏分配字数。",
+    "6) fullOutline 要串起主题、钩子、人物、各节点和结局落点，便于后续上下文追踪。",
   ].join("\n");
 }
 
@@ -56,15 +56,15 @@ export function buildShortStoryOutlineUserPrompt(input: ShortStoryInput) {
     '  "beats": [',
     '    { "index": 1, "title": "场景标题", "purpose": "这一段的剧情目的", "targetWords": 段落目标字数数字, "writingPrompt": "可直接给写作模型使用的段落写作提示" }',
     "  ],",
-    '  "fullOutline": "完整短篇大纲，按 beats 串起人物、冲突、情绪递进和结局落点"',
+    '  "fullOutline": "完整短篇大纲，按各节点串起人物、冲突、情绪递进和结局落点"',
     "}",
     "",
     "校验要求：",
     "- characters 必须 1-5 个。",
-    "- beats 必须 3-12 个，index 从 1 开始连续递增。",
-    "- beats 的 targetWords 总和应接近用户目标字数。",
+    "- beats 字段必须包含 3-12 个节点，index 从 1 开始连续递增。",
+    "- beats 中各节点的 targetWords 总和应接近用户目标字数。",
     "- writingPrompt 要包含场景目标、冲突、情绪、信息揭露或转折，不要只写一句空泛概括。",
-    "- fullOutline 必须覆盖每个 beat 的推进关系，并明确最终结局如何贴合用户选择。",
+    "- fullOutline 必须覆盖每个节点的推进关系，并明确最终结局如何贴合用户选择。",
     "- 只输出 JSON。",
   ].join("\n");
 }

@@ -23,9 +23,9 @@ export function CreateOptionsSection({ create }: CreateOptionsSectionProps) {
 
   return (
     <section className="overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] shadow-sm">
-      <div className="border-b border-[var(--theme-border)] bg-gradient-to-r from-emerald-500/5 to-transparent px-6 py-5">
+      <div className="border-b border-[var(--theme-border)] bg-gradient-to-r from-[var(--theme-brand-500)]/5 to-transparent px-6 py-5">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-xs font-black text-white shadow-sm">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--theme-brand-500)] text-xs font-black text-white shadow-sm">
             3
           </span>
           <div className="text-xl font-extrabold tracking-tight text-[var(--theme-text-strong)]">
@@ -47,7 +47,7 @@ export function CreateOptionsSection({ create }: CreateOptionsSectionProps) {
             <select
               value={platform}
               onChange={(event) => setPlatform(event.target.value)}
-              className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-4 text-sm font-medium text-[var(--theme-text-primary)] outline-none transition-all focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20"
+              className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-4 text-sm font-medium text-[var(--theme-text-primary)] outline-none transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-[var(--theme-brand-500)]/20"
             >
               <option value="">选择目标发布平台</option>
               {platforms.map((item) => (
@@ -65,7 +65,7 @@ export function CreateOptionsSection({ create }: CreateOptionsSectionProps) {
             <select
               value={words}
               onChange={(event) => setWords(event.target.value)}
-              className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-4 text-sm font-medium text-[var(--theme-text-primary)] outline-none transition-all focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20"
+              className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-4 text-sm font-medium text-[var(--theme-text-primary)] outline-none transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-[var(--theme-brand-500)]/20"
             >
               {wordOptions.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -80,7 +80,7 @@ export function CreateOptionsSection({ create }: CreateOptionsSectionProps) {
           <div>
             <label className="mb-2 flex items-center gap-2 text-sm font-bold text-[var(--theme-text-primary)]">
               仿书 DNA
-              <span className="rounded-lg bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+              <span className="rounded-lg bg-[var(--theme-brand-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--theme-brand-text)]">
                 测试中功能
               </span>
             </label>
@@ -92,7 +92,7 @@ export function CreateOptionsSection({ create }: CreateOptionsSectionProps) {
               placeholder={
                 isAdmin ? "输入或选择参考书名（例如：诡秘之主）" : "内测中：仅管理员可使用"
               }
-              className="h-11 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-4 text-sm font-medium text-[var(--theme-text-primary)] outline-none transition-all focus:border-emerald-300 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-overlay)] px-4 text-sm font-medium text-[var(--theme-text-primary)] outline-none transition-all focus:border-[var(--theme-brand-border)] focus:ring-2 focus:ring-[var(--theme-brand-500)]/20 disabled:cursor-not-allowed disabled:opacity-60"
             />
             <datalist id="dna-book-suggestions">
               {dnaStyles.map((item) => {
@@ -106,7 +106,7 @@ export function CreateOptionsSection({ create }: CreateOptionsSectionProps) {
             </datalist>
           </div>
 
-          <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-3 text-xs font-semibold leading-5 text-emerald-700 dark:border-emerald-500/15 dark:bg-emerald-500/5 dark:text-emerald-300">
+          <div className="rounded-xl border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] px-4 py-3 text-xs font-semibold leading-5 text-[var(--theme-brand-text)]">
             生成大纲时会尝试进行网络检索，并抽象其写法与结构，不复制原作剧情。
           </div>
         </div>

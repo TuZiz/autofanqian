@@ -117,9 +117,15 @@ Remove-Item Env:TARGET_DATABASE -ErrorAction SilentlyContinue
 
 Write-Step "Applying database migrations"
 npx prisma migrate deploy
+if ($LASTEXITCODE -ne 0) {
+  throw "Database migration failed. Fix the Prisma migration error before starting the dev server."
+}
 
 Write-Step "Generating Prisma client"
 npx prisma generate
+if ($LASTEXITCODE -ne 0) {
+  throw "Prisma client generation failed."
+}
 
 if ($SkipDevServer) {
   Write-Step "Preflight complete"

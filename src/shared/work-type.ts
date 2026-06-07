@@ -2,7 +2,7 @@ export const WORK_TYPES = ["long_novel", "short_story"] as const;
 
 export type WorkTypeValue = (typeof WORK_TYPES)[number];
 
-export const WORK_LIBRARY_TYPE_FILTERS = ["all", "long", "short"] as const;
+export const WORK_LIBRARY_TYPE_FILTERS = ["all", "long", "short", "imported"] as const;
 
 export type WorkLibraryTypeFilter = (typeof WORK_LIBRARY_TYPE_FILTERS)[number];
 
@@ -16,6 +16,7 @@ export function matchesWorkLibraryTypeFilter(
 ) {
   if (filter === "all") return true;
   if (filter === "short") return isShortStoryWork(workType);
+  if (filter === "imported") return true;
   return !isShortStoryWork(workType);
 }
 

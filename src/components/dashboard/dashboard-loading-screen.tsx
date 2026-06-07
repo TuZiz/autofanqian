@@ -1,14 +1,32 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { AppShell, LoadingSkeleton, SectionCard } from "@/components/design-system";
 
 export function DashboardLoadingScreen() {
   return (
-    <main className="theme-page flex min-h-screen items-center justify-center bg-[var(--theme-bg)]">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-600 dark:text-emerald-400" />
-        <p className="text-sm font-medium text-[var(--theme-text-muted)]">正在验证身份信息...</p>
+    <AppShell maxWidthClassName="max-w-[1440px]">
+      <div className="space-y-4">
+        <SectionCard accent={false}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-3">
+              <LoadingSkeleton className="h-4 w-32" />
+              <LoadingSkeleton className="h-8 w-64" />
+              <LoadingSkeleton className="h-4 w-80 max-w-full" />
+            </div>
+            <LoadingSkeleton className="h-11 w-36" />
+          </div>
+        </SectionCard>
+        <div className="grid gap-3 md:grid-cols-3">
+          <LoadingSkeleton className="h-28" />
+          <LoadingSkeleton className="h-28" />
+          <LoadingSkeleton className="h-28" />
+        </div>
+        <div className="grid gap-3">
+          <LoadingSkeleton className="h-32" />
+          <LoadingSkeleton className="h-32" />
+          <LoadingSkeleton className="h-32" />
+        </div>
       </div>
-    </main>
+    </AppShell>
   );
 }

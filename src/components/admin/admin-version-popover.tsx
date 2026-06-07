@@ -36,7 +36,7 @@ export function AdminVersionPopover({ canUpdate = false }: AdminVersionPopoverPr
       <PopoverContent className="w-[min(92vw,390px)] border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-0 text-[var(--theme-text-primary)] shadow-2xl">
         <div className="overflow-hidden rounded-lg">
           <div className="relative border-b border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-4">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.12),transparent_34%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.1),transparent_34%)]" />
             <div className="relative flex items-start justify-between gap-3">
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--theme-text-muted)]">当前版本</div>
@@ -49,8 +49,8 @@ export function AdminVersionPopover({ canUpdate = false }: AdminVersionPopoverPr
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-extrabold",
                   isLatest
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200"
-                    : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200",
+                    ? "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]"
+                    : "border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)]",
                 )}
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
@@ -61,11 +61,11 @@ export function AdminVersionPopover({ canUpdate = false }: AdminVersionPopoverPr
 
           <div className="space-y-3 p-4">
             {version?.hasUpdate ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-100">
+              <div className="rounded-xl border border-[var(--theme-warning-border)] bg-[var(--theme-warning-soft)] px-3 py-2 text-sm font-bold text-[var(--theme-warning-text)]">
                 发现新版本 {version.latestVersion ? `v${version.latestVersion}` : version.latestCommit}
               </div>
             ) : (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-100">
+              <div className="rounded-xl border border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] px-3 py-2 text-sm font-bold text-[var(--theme-brand-text)]">
                 绿色灯亮着，当前构建已经对齐最新发布信息。
               </div>
             )}
@@ -116,7 +116,7 @@ export function AdminVersionPopover({ canUpdate = false }: AdminVersionPopoverPr
             </div>
 
             {message ? <div className="rounded-lg bg-[var(--theme-brand-soft)] px-3 py-2 text-xs font-bold text-[var(--theme-brand-text)]">{message}</div> : null}
-            {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200">{error}</div> : null}
+            {error ? <div className="rounded-lg border border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] px-3 py-2 text-xs font-bold text-[var(--theme-danger-text)]">{error}</div> : null}
 
             {job ? (
               <div className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] p-3">
@@ -127,7 +127,7 @@ export function AdminVersionPopover({ canUpdate = false }: AdminVersionPopoverPr
                   </span>
                   <span className="font-mono text-[10px] text-[var(--theme-text-muted)]">{job.id.slice(0, 8)}</span>
                 </div>
-                <pre className="max-h-36 overflow-auto whitespace-pre-wrap rounded-lg bg-black/85 p-2 text-[11px] leading-5 text-emerald-100">
+                <pre className="max-h-36 overflow-auto whitespace-pre-wrap rounded-lg bg-[var(--theme-text-strong)]/85 p-2 text-[11px] leading-5 text-[var(--theme-brand-soft)]">
                   {job.log || job.error || "等待日志输出..."}
                 </pre>
               </div>

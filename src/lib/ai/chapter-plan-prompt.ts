@@ -11,7 +11,7 @@ export function buildChapterPlanSystemPrompt(mode?: NovelMode) {
     "你的任务是先规划章节执行路线，不写正文，不写标题。",
     "只输出 ChapterPlan JSON，不要 Markdown，不要解释，不要额外字段。",
     mode === "short"
-      ? "短篇计划要聚焦 beat 目标、情绪转折、必须回收项和禁止新增的大坑。"
+      ? "短篇计划要聚焦节点目标、情绪转折、必须回收项和禁止新增的大坑。"
       : mode === "long"
         ? "长篇计划要维护人物状态、时间线、伏笔和当前卷目标。"
         : "根据用户要求选择 long 或 short schema。",

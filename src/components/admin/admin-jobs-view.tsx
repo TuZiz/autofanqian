@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { Bot, ListFilter, Loader2, Play, RefreshCw, RotateCcw } from "lucide-react";
 
-import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
+import { Button } from "@/components/design-system";
 import type { AdminGenerationJob, AdminJobsController, AdminJobStatus } from "@/lib/admin/use-admin-jobs";
 import { cn } from "@/lib/utils";
+
+import { AdminStatusPill } from "./admin-console-primitives";
+import { AdminWorkspaceShell } from "./admin-workspace-shell";
 
 const statusOptions: Array<{ value: AdminJobStatus; label: string }> = [
   { value: "all", label: "全部" },
@@ -17,157 +20,137 @@ const statusOptions: Array<{ value: AdminJobStatus; label: string }> = [
 ];
 
 const statusTone: Record<string, string> = {
-  queued: "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20",
-  running: "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-500/20",
-  succeeded: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20",
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-200 dark:ring-emerald-500/20",
-  failed: "bg-red-50 text-red-700 ring-red-200 dark:bg-red-500/10 dark:text-red-200 dark:ring-red-500/20",
-  stale: "bg-zinc-100 text-zinc-700 ring-zinc-200 dark:bg-white/8 dark:text-zinc-200 dark:ring-white/10",
+  queued: "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] ring-[var(--theme-warning-border)]",
+  running: "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-[var(--theme-brand-border)]",
+  succeeded: "bg-[var(--theme-success-soft)] text-[var(--theme-success-text)] ring-[var(--theme-brand-border)]",
+  success: "bg-[var(--theme-success-soft)] text-[var(--theme-success-text)] ring-[var(--theme-brand-border)]",
+  failed: "bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)] ring-[var(--theme-danger-border)]",
+  stale: "bg-[var(--theme-surface-overlay)] text-[var(--theme-text-secondary)] ring-[var(--theme-border)]",
 };
 
 export function AdminJobsView({ jobs }: { jobs: AdminJobsController }) {
+  const queuedCount = jobs.countMap.get("queued") ?? 0;
+  const runningCount = jobs.countMap.get("running") ?? 0;
+  const failedCount = jobs.countMap.get("failed") ?? 0;
+
   return (
-    <main className="app-work-surface relative min-h-dvh overflow-x-hidden pb-6 font-sans">
-      <div className="pointer-events-none fixed inset-0 theme-app-surface" />
-      <DashboardTopbar
-        className="relative z-40"
-        title="GenerationJob 执行器"
-        showBackToDashboard
-        backHref="/dashboard/admin"
-        backLabel="返回管理台"
-        showAdminLink={false}
-        maxWidthClassName="max-w-[1320px]"
-      />
+    <AdminWorkspaceShell
+      breadcrumbs={[{ label: "任务队列" }]}
+      description="任务 / 后台执行器"
+      icon={Bot}
+      subtitle="查看排队、运行、成功和失败任务；可手动执行待处理任务，适合部署环境没有常驻 worker 时兜底。"
+      title="AI 后台任务队列"
+      userEmail=""
+      meta={
+        <div className="flex flex-wrap items-center gap-2">
+          <AdminStatusPill tone="neutral">排队 {queuedCount}</AdminStatusPill>
+          <AdminStatusPill tone="brand">运行 {runningCount}</AdminStatusPill>
+          <AdminStatusPill tone="danger">失败 {failedCount}</AdminStatusPill>
+          <Button
+            type="button"
+            icon={RotateCcw}
+            busy={jobs.autoRefresh}
+            onClick={() => jobs.setAutoRefresh(!jobs.autoRefresh)}
+            className="min-h-9 px-3"
+          >
+            自动刷新
+          </Button>
+          <Button
+            type="button"
+            icon={ListFilter}
+            tone={jobs.executableOnly ? "primary" : "secondary"}
+            onClick={() => jobs.setExecutableOnly(!jobs.executableOnly)}
+            className="min-h-9 px-3"
+          >
+            只看可执行
+          </Button>
+          <Button
+            type="button"
+            icon={RefreshCw}
+            busy={jobs.loading}
+            onClick={() => void jobs.load()}
+            className="min-h-9 px-3"
+          >
+            刷新
+          </Button>
+          <Button
+            type="button"
+            icon={Play}
+            tone="primary"
+            busy={jobs.running}
+            onClick={() => void jobs.runPending()}
+            className="min-h-9 px-3"
+          >
+            执行待处理
+          </Button>
+          <Button
+            type="button"
+            icon={Play}
+            tone="ai"
+            busy={jobs.running}
+            onClick={() => void jobs.runCurrentFilter()}
+            className="min-h-9 px-3"
+          >
+            执行当前筛选
+          </Button>
+        </div>
+      }
+    >
+      {jobs.error ? <Notice tone="error">{jobs.error}</Notice> : null}
+      {jobs.notice ? <Notice tone="success">{jobs.notice}</Notice> : null}
 
-      <div className="relative z-10 mx-auto max-w-[1320px] px-4 pt-4 sm:px-5 lg:px-6">
-        <section className="app-compact-panel mb-3 p-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-            <div>
-              <div className="mb-2 inline-flex h-8 items-center gap-2 rounded-md bg-sky-50 px-2.5 text-xs font-black text-sky-700 ring-1 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-500/20">
-                <Bot className="h-3.5 w-3.5" />
-                Background Runner
-              </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-[var(--theme-text-strong)]">
-                AI 后台任务队列
-              </h1>
-              <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-[var(--theme-text-secondary)]">
-                查看排队、运行、成功和失败任务；可手动执行待处理任务，适合部署环境没有常驻 worker 时兜底。
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => jobs.setAutoRefresh(!jobs.autoRefresh)}
-                className={cn(
-                  "inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition",
-                  jobs.autoRefresh
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200"
-                    : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]",
-                )}
-              >
-                <RotateCcw className={cn("h-4 w-4", jobs.autoRefresh && "animate-spin")} />
-                自动刷新
-              </button>
-              <button
-                type="button"
-                onClick={() => jobs.setExecutableOnly(!jobs.executableOnly)}
-                className={cn(
-                  "inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition",
-                  jobs.executableOnly
-                    ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200"
-                    : "border-[var(--theme-border)] bg-[var(--theme-surface-solid)] text-[var(--theme-text-secondary)]",
-                )}
-              >
-                <ListFilter className="h-4 w-4" />
-                只看可执行
-              </button>
-              <button
-                type="button"
-                onClick={() => void jobs.load()}
-                disabled={jobs.loading}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-sm font-bold text-[var(--theme-text-secondary)] disabled:opacity-50"
-              >
-                <RefreshCw className={cn("h-4 w-4", jobs.loading && "animate-spin")} />
-                刷新
-              </button>
-              <button
-                type="button"
-                onClick={() => void jobs.runPending()}
-                disabled={jobs.running}
-                className="inline-flex h-10 items-center gap-2 rounded-lg bg-zinc-950 px-4 text-sm font-bold text-white disabled:opacity-50 dark:bg-white dark:text-zinc-950"
-              >
-                {jobs.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                执行待处理
-              </button>
-              <button
-                type="button"
-                onClick={() => void jobs.runCurrentFilter()}
-                disabled={jobs.running}
-                className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white disabled:opacity-50"
-              >
-                {jobs.running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                执行当前筛选
-              </button>
-            </div>
+      <section className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {statusOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => jobs.setStatus(option.value)}
+              className={cn(
+                "h-8 rounded-lg px-3 text-xs font-black transition",
+                jobs.status === option.value
+                  ? "bg-[var(--theme-text-strong)] text-[var(--theme-surface-solid)]"
+                  : "bg-[var(--theme-surface-solid)] text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)] hover:text-[var(--theme-text-strong)]",
+              )}
+            >
+              {option.label}
+              {option.value !== "all" ? ` ${jobs.countMap.get(option.value) ?? 0}` : ""}
+            </button>
+          ))}
+        </div>
+
+        {jobs.loading && !jobs.jobs.length ? (
+          <div className="flex min-h-[360px] items-center justify-center gap-2 text-sm font-bold text-[var(--theme-text-muted)]">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            正在加载任务...
           </div>
-        </section>
-
-        {jobs.error ? <Notice tone="error">{jobs.error}</Notice> : null}
-        {jobs.notice ? <Notice tone="success">{jobs.notice}</Notice> : null}
-
-        <section className="app-compact-panel overflow-hidden">
-          <div className="flex flex-wrap gap-2 border-b border-[var(--theme-divider)] p-3">
-            {statusOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => jobs.setStatus(option.value)}
-                className={cn(
-                  "h-8 rounded-lg px-3 text-xs font-black transition",
-                  jobs.status === option.value
-                    ? "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950"
-                    : "bg-[var(--theme-surface-solid)] text-[var(--theme-text-muted)] ring-1 ring-[var(--theme-border)] hover:text-[var(--theme-text-strong)]",
-                )}
-              >
-                {option.label}
-                {option.value !== "all" ? ` ${jobs.countMap.get(option.value) ?? 0}` : ""}
-              </button>
-            ))}
+        ) : jobs.jobs.length ? (
+          <div className="overflow-x-auto rounded-[20px] border border-[var(--theme-border)] bg-[rgba(255,255,255,0.88)] shadow-[var(--theme-shadow-card)]">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-[var(--theme-divider)] text-xs font-black uppercase tracking-[0.12em] text-[var(--theme-text-muted)]">
+                <tr>
+                  <th className="px-4 py-3">任务</th>
+                  <th className="px-4 py-3">作品</th>
+                  <th className="px-4 py-3">状态</th>
+                  <th className="px-4 py-3">Token</th>
+                  <th className="px-4 py-3">时间</th>
+                  <th className="px-4 py-3 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.jobs.map((job) => (
+                  <JobRow job={job} key={job.id} onRun={() => void jobs.runPending(job.id)} running={jobs.running} />
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          {jobs.loading && !jobs.jobs.length ? (
-            <div className="flex min-h-[360px] items-center justify-center gap-2 text-sm font-bold text-[var(--theme-text-muted)]">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              正在加载任务...
-            </div>
-          ) : jobs.jobs.length ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-[var(--theme-divider)] text-xs font-black uppercase tracking-[0.12em] text-[var(--theme-text-muted)]">
-                  <tr>
-                    <th className="px-4 py-3">任务</th>
-                    <th className="px-4 py-3">作品</th>
-                    <th className="px-4 py-3">状态</th>
-                    <th className="px-4 py-3">Token</th>
-                    <th className="px-4 py-3">时间</th>
-                    <th className="px-4 py-3 text-right">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {jobs.jobs.map((job) => (
-                    <JobRow job={job} key={job.id} onRun={() => void jobs.runPending(job.id)} running={jobs.running} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="flex min-h-[320px] items-center justify-center text-sm font-bold text-[var(--theme-text-muted)]">
-              暂无任务。
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
+        ) : (
+          <div className="flex min-h-[320px] items-center justify-center text-sm font-bold text-[var(--theme-text-muted)]">
+            暂无任务。
+          </div>
+        )}
+      </section>
+    </AdminWorkspaceShell>
   );
 }
 
@@ -190,12 +173,12 @@ function JobRow({
         <div className="font-extrabold text-[var(--theme-text-strong)]">{job.jobType || job.action}</div>
         <div className="mt-1 truncate text-xs font-semibold text-[var(--theme-text-muted)]">{job.id}</div>
         {job.progress ? (
-          <div className="mt-1 text-xs font-black text-sky-600 dark:text-sky-300">
+          <div className="mt-1 text-xs font-black text-[var(--theme-brand-text)]">
             分段进度 {job.progress.generatedSegments}/{job.progress.totalSegments ?? "-"}
           </div>
         ) : null}
         {job.failureCount ? (
-          <div className="mt-1 text-xs font-bold text-amber-600 dark:text-amber-300">
+          <div className="mt-1 text-xs font-bold text-[var(--theme-warning-text)]">
             连续失败 {job.failureCount} 次
           </div>
         ) : null}
@@ -203,7 +186,7 @@ function JobRow({
           <StatusHint tone="warning">已停止自动重试</StatusHint>
         ) : null}
         {job.errorMessage ? (
-          <div className="mt-2 max-w-[520px] whitespace-pre-wrap rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold leading-5 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
+          <div className="mt-2 max-w-[520px] whitespace-pre-wrap rounded-lg border border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--theme-danger-text)]">
             {job.errorMessage}
           </div>
         ) : (
@@ -261,8 +244,8 @@ function StatusHint({ children, tone }: { children: React.ReactNode; tone: "info
       className={cn(
         "mt-1 inline-flex rounded-md px-2 py-1 text-[11px] font-black ring-1",
         tone === "warning"
-          ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-200 dark:ring-amber-500/20"
-          : "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-200 dark:ring-sky-500/20",
+          ? "bg-[var(--theme-warning-soft)] text-[var(--theme-warning-text)] ring-[var(--theme-warning-border)]"
+          : "bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)] ring-[var(--theme-brand-border)]",
       )}
     >
       {children}
@@ -276,8 +259,8 @@ function Notice({ children, tone }: { children: React.ReactNode; tone: "error" |
       className={cn(
         "mb-3 rounded-lg border px-4 py-3 text-sm font-bold",
         tone === "error"
-          ? "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200"
-          : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200",
+          ? "border-[var(--theme-danger-border)] bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)]"
+          : "border-[var(--theme-brand-border)] bg-[var(--theme-brand-soft)] text-[var(--theme-brand-text)]",
       )}
     >
       {children}

@@ -30,7 +30,7 @@ export function ShortStoryOutlineView({
       <ShortStoryOutlineSummary view={view} />
 
       {view.parseFailed ? (
-        <div className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-4 py-3 text-sm font-semibold leading-6 text-amber-800 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200">
+        <div className="rounded-xl border border-[var(--theme-warning-border)]/80 bg-[var(--theme-warning-soft)]/70 px-4 py-3 text-sm font-semibold leading-6 text-[var(--theme-warning-text)]">
           短篇结构数据不是标准 JSON，已降级展示可读摘要，不影响正文阅读、润色和导出。
         </div>
       ) : null}
@@ -71,7 +71,7 @@ export function ShortStoryOutlineView({
         <div className="flex items-center justify-between gap-3 border-b border-[var(--theme-border)] px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-extrabold text-[var(--theme-text-strong)]">
             <Layers className="h-4 w-4 text-[var(--theme-brand-600)]" />
-            结构 Beats
+            结构节点
           </div>
           <span className="rounded-lg bg-[var(--theme-surface-strong)] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--theme-text-muted)]">
             {view.beats.length ? `${view.beats.length} 个节点` : "暂无节点"}
@@ -86,7 +86,7 @@ export function ShortStoryOutlineView({
                 className="grid gap-3 px-4 py-3 transition-colors hover:bg-[var(--theme-surface-hover)] sm:grid-cols-[76px_minmax(0,1fr)_auto]"
               >
                 <div className="flex h-8 w-fit items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-strong)] px-2.5 text-[11px] font-black text-[var(--theme-text-muted)]">
-                  Beat {beat.index}
+                  节点 {beat.index}
                 </div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -110,7 +110,7 @@ export function ShortStoryOutlineView({
                   <button
                     type="button"
                     onClick={() => onOpenBeat(beat.index)}
-                    className="inline-flex h-8 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs font-bold text-[var(--theme-text-secondary)] transition hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-200"
+                    className="inline-flex h-8 items-center justify-center rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] px-3 text-xs font-bold text-[var(--theme-text-secondary)] transition hover:bg-[var(--theme-brand-soft)] hover:text-[var(--theme-brand-text)]"
                   >
                     查看正文
                   </button>
@@ -120,7 +120,7 @@ export function ShortStoryOutlineView({
           </div>
         ) : (
           <div className="px-4 py-8 text-center text-sm font-bold text-[var(--theme-text-muted)]">
-            暂无 beats，可直接进入正文继续润色。
+            暂无结构节点，可直接进入正文继续润色。
           </div>
         )}
       </div>
