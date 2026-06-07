@@ -3,6 +3,23 @@
 This package is for the `web` Next.js app. It does not include `.env`,
 `.env.local`, `node_modules`, build output, logs, or local cache files.
 
+## 0. One-click install
+
+For a fresh Linux server, you can use the installer first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TuZiz/autofanqian/main/scripts/install.sh | sudo bash
+```
+
+For BaoTa or a fixed site path:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TuZiz/autofanqian/main/scripts/install.sh \
+  | sudo env APP_DIR=/www/wwwroot/wenyuo/web APP_BASE_URL=https://your-domain.com ROOT_ADMIN_EMAILS=admin@example.com bash
+```
+
+See `docs/one-click-install.md` for external database, update, uninstall, and troubleshooting commands.
+
 ## 1. Upload and unzip
 
 Upload the zip to your server, for example:
