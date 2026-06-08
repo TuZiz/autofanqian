@@ -3,11 +3,14 @@
 import { LogOut } from "lucide-react";
 import { useEffect } from "react";
 
+import { cn } from "@/lib/utils";
+
 type LogoutConfirmDialogProps = {
   busy?: boolean;
   open: boolean;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
+  square?: boolean;
 };
 
 export function LogoutConfirmDialog({
@@ -15,6 +18,7 @@ export function LogoutConfirmDialog({
   open,
   onCancel,
   onConfirm,
+  square = false,
 }: LogoutConfirmDialogProps) {
   useEffect(() => {
     if (!open || busy) return;
@@ -41,10 +45,18 @@ export function LogoutConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="logout-confirm-title"
-        className="relative z-10 w-full max-w-md rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-5 shadow-xl"
+        className={cn(
+          "relative z-10 w-full max-w-md border border-[var(--theme-border)] bg-[var(--theme-surface-solid)] p-5 shadow-xl",
+          square ? "rounded-none" : "rounded-xl",
+        )}
       >
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)]">
+            <div
+              className={cn(
+                "flex h-11 w-11 shrink-0 items-center justify-center bg-[var(--theme-danger-soft)] text-[var(--theme-danger-text)]",
+                square ? "rounded-none" : "rounded-2xl",
+              )}
+            >
               <LogOut className="h-5 w-5" />
             </div>
             <div className="min-w-0">
@@ -61,7 +73,10 @@ export function LogoutConfirmDialog({
             <button
               type="button"
               autoFocus
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--theme-border)] px-4 text-sm font-bold text-[var(--theme-text-secondary)] transition hover:bg-[var(--theme-surface-hover)] disabled:cursor-not-allowed disabled:opacity-70"
+              className={cn(
+                "inline-flex h-9 items-center justify-center border border-[var(--theme-border)] px-4 text-sm font-bold text-[var(--theme-text-secondary)] transition hover:bg-[var(--theme-surface-hover)] disabled:cursor-not-allowed disabled:opacity-70",
+                square ? "rounded-none" : "rounded-lg",
+              )}
               onClick={onCancel}
               disabled={busy}
             >
@@ -69,7 +84,10 @@ export function LogoutConfirmDialog({
             </button>
             <button
               type="button"
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--theme-danger-text)] px-4 text-sm font-bold text-white transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className={cn(
+                "inline-flex h-9 items-center justify-center bg-[var(--theme-danger-text)] px-4 text-sm font-bold text-white transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60",
+                square ? "rounded-none" : "rounded-lg",
+              )}
               onClick={() => void onConfirm()}
               disabled={busy}
             >

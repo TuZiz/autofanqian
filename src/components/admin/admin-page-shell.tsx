@@ -118,6 +118,7 @@ function AdminTopbar({ nav }: AdminTopbarProps) {
       <LogoutConfirmDialog
         open={logoutConfirmOpen}
         busy={logoutBusy}
+        square
         onCancel={() => setLogoutConfirmOpen(false)}
         onConfirm={async () => {
           try {
