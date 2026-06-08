@@ -1,28 +1,8 @@
-export type AiStatsDayRange = {
-  day: string;
-  end: Date;
-  start: Date;
-};
+import type { AdminDayRange } from "./admin-time";
 
-export function getShanghaiDayRange(now = new Date()): AiStatsDayRange {
-  const day = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
+export { getShanghaiDayRange } from "./admin-time";
 
-  const [yearRaw, monthRaw, dayRaw] = day.split("-");
-  const year = Number(yearRaw);
-  const month = Number(monthRaw);
-  const date = Number(dayRaw);
-
-  const offsetMs = 8 * 60 * 60 * 1000;
-  const startUtcMs = Date.UTC(year, month - 1, date, 0, 0, 0) - offsetMs;
-  const endUtcMs = startUtcMs + 24 * 60 * 60 * 1000;
-
-  return { day, start: new Date(startUtcMs), end: new Date(endUtcMs) };
-}
+export type AiStatsDayRange = AdminDayRange;
 
 export function buildProbeWhere(range?: { start: Date; end: Date }) {
   return {

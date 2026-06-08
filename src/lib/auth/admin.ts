@@ -13,10 +13,10 @@ export type AdminLikeUser = {
 
 type EffectiveUserRole = "user" | "admin" | "super_admin";
 
-function parseEmailList(value?: string) {
+function parseEmailList(...values: Array<string | undefined>) {
   return new Set(
-    (value ?? "")
-      .split(",")
+    values
+      .flatMap((value) => (value ?? "").split(","))
       .map((item) => item.trim().toLowerCase())
       .filter(Boolean),
   );
@@ -24,7 +24,8 @@ function parseEmailList(value?: string) {
 
 export function getRootAdminEmails() {
   const emails = parseEmailList(
-    process.env.ROOT_ADMIN_EMAILS || process.env.ADMIN_EMAILS,
+    process.env.ROOT_ADMIN_EMAILS,
+    process.env.ADMIN_EMAILS,
   );
 
   if (process.env.NODE_ENV === "production" && emails.size === 0) {

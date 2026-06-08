@@ -17,8 +17,6 @@ import { assertSameOriginRequest } from "@/lib/security/origin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export { DELETE, PUT } from "@/backend/admin/user-detail-route";
-
 const paramsSchema = z.object({
   id: z.string().trim().min(1).max(128),
 });

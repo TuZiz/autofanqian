@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
@@ -30,13 +30,24 @@ test("admin management guards protect root and admin targets", () => {
   assert.match(adminSource, /isRootAdminUser\(targetUser\)/);
   assert.match(adminSource, /isAdminUser\(targetUser\)/);
 
-  const userDetailSource = read("src/backend/admin/user-detail-route.ts");
-  const resetPasswordSource = read("src/app/api/admin/users/[id]/reset-password/route.ts");
-  assert.match(userDetailSource, /assertCanManageTargetUser\(\{[\s\S]*action: "update"/);
-  assert.match(userDetailSource, /assertCanManageTargetUser\(\{[\s\S]*action: "delete"/);
-  assert.match(resetPasswordSource, /assertCanManageTargetUser\(\{[\s\S]*action: "reset_password"/);
-  assert.doesNotMatch(userDetailSource, /prisma\.user\.delete\(/);
-  assert.match(userDetailSource, /status: "deleted"/);
+  const usersRouteSource = read("src/app/api/admin/users/route.ts");
+  const userDetailRouteSource = read("src/app/api/admin/users/[id]/route.ts");
+  const liteServiceSource = read("src/backend/admin/admin-users-lite-service.ts");
+
+  assert.match(usersRouteSource, /export async function GET/);
+  assert.doesNotMatch(usersRouteSource, /export async function POST/);
+  assert.match(userDetailRouteSource, /export async function GET/);
+  assert.match(userDetailRouteSource, /export async function PATCH/);
+  assert.match(userDetailRouteSource, /assertSameOriginRequest\(request\);/);
+  assert.doesNotMatch(userDetailRouteSource, /export async function (PUT|DELETE)/);
+  assert.match(liteServiceSource, /assertCanManageTargetUser\(\{[\s\S]*action: roleChange \? "role_change" : membershipChange \? "membership_change" : "update"/);
+  assert.match(liteServiceSource, /isRootAdminUser\(before\)[\s\S]*input\.status && input\.status !== "active"/);
+  assert.match(liteServiceSource, /requestedRole && nextRole !== "super_admin"/);
+  assert.doesNotMatch(liteServiceSource, /prisma\.user\.delete\(/);
+  assert.equal(
+    existsSync(path.join(rootDir, "src/app/api/admin/users/[id]/reset-password/route.ts")),
+    false,
+  );
 });
 
 test("all mutating route handlers catch assertSameOriginRequest with the first try block", () => {

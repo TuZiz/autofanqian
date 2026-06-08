@@ -50,16 +50,35 @@ export type UsageCounterSnapshot = {
   monthlyGeneratedChars: number;
 };
 
-function pad(value: number) {
-  return String(value).padStart(2, "0");
+const SHANGHAI_PERIOD_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Shanghai",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+function readShanghaiPeriodPart(parts: Map<string, string>, key: string) {
+  const value = parts.get(key);
+  if (!value) {
+    throw new Error(`Unable to resolve Asia/Shanghai period part: ${key}`);
+  }
+  return value;
 }
 
 export function getAiUsagePeriodKeys(now = new Date()) {
-  const year = now.getFullYear();
-  const month = pad(now.getMonth() + 1);
-  const day = pad(now.getDate());
-  const hour = pad(now.getHours());
-  const minute = pad(now.getMinutes());
+  const parts = new Map(
+    SHANGHAI_PERIOD_FORMATTER.formatToParts(now)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+  const year = readShanghaiPeriodPart(parts, "year");
+  const month = readShanghaiPeriodPart(parts, "month");
+  const day = readShanghaiPeriodPart(parts, "day");
+  const hour = readShanghaiPeriodPart(parts, "hour");
+  const minute = readShanghaiPeriodPart(parts, "minute");
 
   return {
     daily: `${year}-${month}-${day}`,

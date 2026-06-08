@@ -7,6 +7,7 @@ import {
   parseGenerationJobProgress,
 } from "@/lib/jobs/generation-job-progress";
 import { prisma } from "@/lib/prisma";
+import { getShanghaiDayRange } from "@/backend/admin/admin-time";
 import type {
   GenerationLogDetail,
   GenerationLogListItem,
@@ -31,7 +32,8 @@ type ListParams = {
 
 export async function listGenerationLogs(params: ListParams): Promise<GenerationLogsResponse> {
   const where = buildListWhere(params);
-  const todayStart = getLocalDayStart();
+  const todayRange = getShanghaiDayRange();
+  const todayCreatedAt = { gte: todayRange.start, lt: todayRange.end };
 
   const [
     jobs,
@@ -79,16 +81,16 @@ export async function listGenerationLogs(params: ListParams): Promise<Generation
       },
     }),
     prisma.generationJob.count({
-      where: { createdAt: { gte: todayStart } },
+      where: { createdAt: todayCreatedAt },
     }),
     prisma.generationJob.count({
-      where: { createdAt: { gte: todayStart }, status: { in: successStatuses } },
+      where: { createdAt: todayCreatedAt, status: { in: successStatuses } },
     }),
     prisma.generationJob.count({
-      where: { createdAt: { gte: todayStart }, status: { in: failedStatuses } },
+      where: { createdAt: todayCreatedAt, status: { in: failedStatuses } },
     }),
     prisma.generationJob.aggregate({
-      where: { createdAt: { gte: todayStart } },
+      where: { createdAt: todayCreatedAt },
       _avg: { durationMs: true },
       _sum: { totalTokens: true },
     }),
@@ -345,9 +347,4 @@ function getGroupedCount(item: {
     return count.id ?? count._all ?? 0;
   }
   return 0;
-}
-
-function getLocalDayStart() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }

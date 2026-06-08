@@ -14,8 +14,6 @@ import { errorResponse, successResponse } from "@/lib/auth/api";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export { POST } from "@/backend/admin/users-route";
-
 const querySchema = z.object({
   cursor: z.string().trim().min(1).max(128).optional(),
   emailVerified: z.enum(adminEmailVerifiedFilters).optional().default("all"),

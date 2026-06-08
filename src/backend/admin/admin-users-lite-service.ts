@@ -2,10 +2,10 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 
-import { getAiUsagePeriodKeys } from "@/lib/ai/usage-counter";
 import {
   assertCanManageTargetUser,
   getEffectiveUserRole,
+  getRootAdminEmails,
   isRootAdminUser,
   isSuperAdminUser,
   normalizeStoredRole,
@@ -14,6 +14,7 @@ import {
 import { AuthApiError } from "@/lib/auth/errors";
 import { recordAdminAuditLog } from "@/lib/admin/audit-log";
 import { prisma } from "@/lib/prisma";
+import { getShanghaiDayRange } from "@/backend/admin/admin-time";
 import type {
   AdminMembershipTierFilter,
   AdminUserDetailResponse,
@@ -43,8 +44,8 @@ type ListUsersParams = {
 export async function listAdminUsers(params: ListUsersParams): Promise<AdminUsersResponse> {
   const where = buildUsersWhere(params);
   const summaryWhere: Prisma.UserWhereInput = {};
-  const todayStart = getLocalDayStart();
-  const todayPeriodKey = getAiUsagePeriodKeys().daily;
+  const todayRange = getShanghaiDayRange();
+  const todayPeriodKey = todayRange.day;
 
   const orderBy = getOrderBy(params.sort);
 
@@ -101,10 +102,10 @@ export async function listAdminUsers(params: ListUsersParams): Promise<AdminUser
     prisma.user.count({ where: { status: "active" } }),
     prisma.user.count({ where: { status: "banned" } }),
     prisma.user.count({ where: { status: "limited" } }),
-    prisma.user.count({ where: { role: { in: ["admin", "super_admin"] } } }),
+    prisma.user.count({ where: buildEffectiveAdminWhere() }),
     prisma.user.count({ where: { emailVerified: true } }),
     prisma.user.count({ where: { membershipTier: { not: "default" } } }),
-    prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
+    prisma.user.count({ where: { createdAt: { gte: todayRange.start, lt: todayRange.end } } }),
   ]);
 
   const visibleUsers = users.slice(0, params.take);
@@ -127,7 +128,7 @@ export async function listAdminUsers(params: ListUsersParams): Promise<AdminUser
 }
 
 export async function getAdminUserDetail(id: string): Promise<AdminUserDetailResponse | null> {
-  const todayPeriodKey = getAiUsagePeriodKeys().daily;
+  const todayPeriodKey = getShanghaiDayRange().day;
 
   const [
     user,
@@ -490,7 +491,7 @@ function buildUsersWhere(params: ListUsersParams): Prisma.UserWhereInput {
   }
 
   if (params.role !== "all") {
-    and.push({ role: params.role });
+    and.push(buildEffectiveRoleWhere(params.role));
   }
 
   if (params.status !== "all") {
@@ -541,7 +542,49 @@ function getNextBannedAt(status: AdminUserPatchInput["status"], current: Date | 
   return null;
 }
 
-function getLocalDayStart() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+function buildEffectiveRoleWhere(role: Exclude<AdminUserRoleFilter, "all">): Prisma.UserWhereInput {
+  if (role === "super_admin") {
+    return {
+      OR: [
+        { role: "super_admin" },
+        ...buildRootAdminEmailWhere(),
+      ],
+    };
+  }
+
+  if (role === "admin") {
+    return withRootAdminEmailsExcluded({ role: "admin" });
+  }
+
+  return withRootAdminEmailsExcluded({ role: "user" });
+}
+
+function buildEffectiveAdminWhere(): Prisma.UserWhereInput {
+  return {
+    OR: [
+      { role: { in: ["admin", "super_admin"] } },
+      ...buildRootAdminEmailWhere(),
+    ],
+  };
+}
+
+function buildRootAdminEmailWhere(): Prisma.UserWhereInput[] {
+  return getRootAdminEmails().map((email) => ({
+    email: { equals: email, mode: "insensitive" },
+  }));
+}
+
+function withRootAdminEmailsExcluded(where: Prisma.UserWhereInput): Prisma.UserWhereInput {
+  const rootEmailWhere = buildRootAdminEmailWhere();
+
+  if (!rootEmailWhere.length) {
+    return where;
+  }
+
+  return {
+    AND: [
+      where,
+      { NOT: { OR: rootEmailWhere } },
+    ],
+  };
 }

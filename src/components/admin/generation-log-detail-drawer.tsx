@@ -12,6 +12,8 @@ import {
 import { useGenerationLogDetail } from "@/lib/admin/use-generation-log-detail";
 import { cn } from "@/lib/utils";
 
+const JSON_PREVIEW_CHAR_LIMIT = 12_000;
+
 export function GenerationLogDetailDrawer({
   jobId,
   onClose,
@@ -172,7 +174,7 @@ export function GenerationLogDetailDrawer({
                 {resultJsonText ? (
                   <CollapsibleBlock title="resultJson">
                     <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-[#0f172a] p-3 text-xs leading-5 text-[#e5eefb]">
-                      {resultJsonText}
+                      {truncateForDisplay(resultJsonText)}
                     </pre>
                   </CollapsibleBlock>
                 ) : null}
@@ -262,4 +264,9 @@ function stringifyJson(value: unknown) {
   } catch {
     return String(value);
   }
+}
+
+function truncateForDisplay(value: string) {
+  if (value.length <= JSON_PREVIEW_CHAR_LIMIT) return value;
+  return `${value.slice(0, JSON_PREVIEW_CHAR_LIMIT)}\n\n...已截断，仅展示前 ${JSON_PREVIEW_CHAR_LIMIT} 个字符。`;
 }
