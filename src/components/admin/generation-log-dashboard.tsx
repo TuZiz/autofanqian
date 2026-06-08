@@ -27,7 +27,7 @@ export function GenerationLogDashboard() {
       />
 
       {logs.error ? (
-        <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <div className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
           {logs.error}
         </div>
       ) : null}

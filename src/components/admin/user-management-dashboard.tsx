@@ -28,13 +28,13 @@ export function UserManagementDashboard() {
       />
 
       {users.error ? (
-        <div className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <div className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
           {users.error}
         </div>
       ) : null}
 
       {users.notice ? (
-        <div className="rounded-[14px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+        <div className="rounded-none border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
           {users.notice}
         </div>
       ) : null}

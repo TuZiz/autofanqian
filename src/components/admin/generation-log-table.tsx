@@ -44,16 +44,16 @@ export function GenerationLogTable({ logs }: { logs: GenerationLogsController })
         <table className="w-full min-w-[1240px] text-left text-sm">
           <thead className="border-b border-[#e7eef8] bg-[#fbfdff] text-[12px] font-black text-[#536889]">
             <tr>
-              <th className="px-6 py-4">状态</th>
-              <th className="px-6 py-4">action / jobType</th>
-              <th className="px-6 py-4">作品 / 章节</th>
-              <th className="px-6 py-4">用户邮箱</th>
-              <th className="px-6 py-4">模型</th>
-              <th className="px-6 py-4">Token</th>
-              <th className="px-6 py-4">耗时</th>
-              <th className="px-6 py-4">时间</th>
-              <th className="px-6 py-4">错误摘要</th>
-              <th className="px-6 py-4 text-right">操作</th>
+              <th className="px-5 py-3">状态</th>
+              <th className="px-5 py-3">action / jobType</th>
+              <th className="px-5 py-3">作品 / 章节</th>
+              <th className="px-5 py-3">用户邮箱</th>
+              <th className="px-5 py-3">模型</th>
+              <th className="px-5 py-3">Token</th>
+              <th className="px-5 py-3">耗时</th>
+              <th className="px-5 py-3">时间</th>
+              <th className="px-5 py-3">错误摘要</th>
+              <th className="px-5 py-3 text-right">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -97,10 +97,10 @@ function GenerationLogRow({
 
   return (
     <tr className="border-b border-[#e7eef8] align-middle last:border-0 hover:bg-[#fbfdff]">
-      <td className="px-6 py-5">
+      <td className="px-5 py-3.5">
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black",
+            "inline-flex items-center gap-1 rounded-none border px-2.5 py-1 text-[11px] font-black",
             statusMeta.className,
           )}
         >
@@ -110,11 +110,11 @@ function GenerationLogRow({
           {statusMeta.label}
         </span>
       </td>
-      <td className="max-w-[210px] px-6 py-5">
+      <td className="max-w-[210px] px-5 py-3.5">
         <p className="truncate font-black text-[#14213d]">{job.action}</p>
-        <p className="mt-1 truncate text-xs font-semibold text-[#7084a3]">{job.jobType || "-"}</p>
+        <p className="mt-0.5 truncate text-xs font-semibold text-[#7084a3]">{job.jobType || "-"}</p>
       </td>
-      <td className="max-w-[240px] px-6 py-5">
+      <td className="max-w-[240px] px-5 py-3.5">
         {job.novel ? (
           <Link
             href={`/dashboard/novel/${encodeURIComponent(job.novel.id)}`}
@@ -125,33 +125,33 @@ function GenerationLogRow({
         ) : (
           <span className="font-semibold text-[#7084a3]">作品已删除</span>
         )}
-        <p className="mt-1 truncate text-xs font-semibold text-[#7084a3]">
+        <p className="mt-0.5 truncate text-xs font-semibold text-[#7084a3]">
           {job.chapterIndex ? `第 ${job.chapterIndex} 章` : "无章节"}
         </p>
       </td>
-      <td className="max-w-[220px] px-6 py-5">
+      <td className="max-w-[220px] px-5 py-3.5">
         <p className="truncate font-semibold text-[#14213d]">{job.user?.email || "未知用户"}</p>
       </td>
-      <td className="max-w-[220px] px-6 py-5">
+      <td className="max-w-[220px] px-5 py-3.5">
         <p className="truncate font-semibold text-[#14213d]">{job.modelUsed || "-"}</p>
-        <p className="mt-1 truncate text-xs font-semibold text-[#7084a3]">
+        <p className="mt-0.5 truncate text-xs font-semibold text-[#7084a3]">
           {job.providerId || "-"}{job.routeId ? ` / ${job.routeId}` : ""}
         </p>
       </td>
-      <td className="px-6 py-5 text-xs font-bold text-[#536889]">
+      <td className="px-5 py-3.5 text-xs font-bold text-[#536889]">
         <p>总 {formatTokens(job.totalTokens)}</p>
-        <p className="mt-1 text-[#7084a3]">
+        <p className="mt-0.5 text-[#7084a3]">
           入 {formatTokens(job.inputTokens)} / 出 {formatTokens(job.outputTokens)}
         </p>
       </td>
-      <td className="px-6 py-5 text-sm font-bold text-[#536889]">
+      <td className="px-5 py-3.5 text-sm font-bold text-[#536889]">
         {formatDuration(job.durationMs)}
       </td>
-      <td className="min-w-[190px] px-6 py-5 text-xs font-bold text-[#536889]">
+      <td className="min-w-[190px] px-5 py-3.5 text-xs font-bold text-[#536889]">
         <p>创建 {formatDateTime(job.createdAt)}</p>
-        <p className="mt-1 text-[#7084a3]">完成 {formatDateTime(job.completedAt ?? job.finishedAt)}</p>
+        <p className="mt-0.5 text-[#7084a3]">完成 {formatDateTime(job.completedAt ?? job.finishedAt)}</p>
       </td>
-      <td className="max-w-[280px] px-6 py-5">
+      <td className="max-w-[280px] px-5 py-3.5">
         <p
           className={cn(
             "line-clamp-2 text-xs font-semibold leading-5",
@@ -161,8 +161,8 @@ function GenerationLogRow({
           {errorText || job.resultSummary || "无错误"}
         </p>
       </td>
-      <td className="px-6 py-5 text-right">
-        <Button type="button" variant="outline" size="sm" onClick={onDetail} className="h-9 rounded-[8px] border-[#d9e6f5] bg-white px-3 font-black text-[#14213d] hover:bg-[#f7fbff]">
+      <td className="px-5 py-3.5 text-right">
+        <Button type="button" variant="outline" size="sm" onClick={onDetail} className="h-8 rounded-none border-[#d9e6f5] bg-white px-2.5 text-xs font-black text-[#14213d] hover:bg-[#f7fbff]">
           <Eye className="h-4 w-4" />
           详情
         </Button>

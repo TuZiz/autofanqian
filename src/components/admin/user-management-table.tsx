@@ -44,16 +44,16 @@ export function UserManagementTable({ users }: { users: AdminUsersLiteController
         <table className="w-full min-w-[1280px] text-left text-sm">
           <thead className="border-b border-[#e7eef8] bg-[#fbfdff] text-[12px] font-black text-[#536889]">
             <tr>
-              <th className="px-6 py-4">编号</th>
-              <th className="px-6 py-4">邮箱 / 昵称</th>
-              <th className="px-6 py-4">角色</th>
-              <th className="px-6 py-4">会员</th>
-              <th className="px-6 py-4">状态</th>
-              <th className="px-6 py-4">验证</th>
-              <th className="px-6 py-4">最近登录</th>
-              <th className="px-6 py-4">创建时间</th>
-              <th className="px-6 py-4">统计</th>
-              <th className="px-6 py-4 text-right">操作</th>
+              <th className="px-5 py-3">编号</th>
+              <th className="px-5 py-3">邮箱 / 昵称</th>
+              <th className="px-5 py-3">角色</th>
+              <th className="px-5 py-3">会员</th>
+              <th className="px-5 py-3">状态</th>
+              <th className="px-5 py-3">验证</th>
+              <th className="px-5 py-3">最近登录</th>
+              <th className="px-5 py-3">创建时间</th>
+              <th className="px-5 py-3">统计</th>
+              <th className="px-5 py-3 text-right">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -101,13 +101,13 @@ function UserRow({
 
   return (
     <tr className="border-b border-[#e7eef8] align-middle last:border-0 hover:bg-[#fbfdff]">
-      <td className="px-6 py-5 text-base font-black text-[#14213d]">#{user.code}</td>
-      <td className="max-w-[280px] px-6 py-5">
+      <td className="px-5 py-3.5 text-sm font-black text-[#14213d]">#{user.code}</td>
+      <td className="max-w-[280px] px-5 py-3.5">
         <p className="truncate font-black text-[#14213d]">{user.email}</p>
-        <p className="mt-1 truncate text-sm font-semibold text-[#7084a3]">{user.name || "未设置昵称"}</p>
+        <p className="mt-0.5 truncate text-xs font-semibold text-[#7084a3]">{user.name || "未设置昵称"}</p>
       </td>
-      <td className="px-6 py-5">
-        <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black", roleMeta.className)}>
+      <td className="px-5 py-3.5">
+        <span className={cn("inline-flex items-center gap-1 rounded-none border px-2.5 py-1 text-[11px] font-black", roleMeta.className)}>
           {RoleIcon ? <RoleIcon className="h-3.5 w-3.5" /> : null}
           {roleMeta.label}
         </span>
@@ -115,43 +115,43 @@ function UserRow({
           <p className="mt-1 text-[11px] font-black text-[#a16207]">root admin</p>
         ) : null}
       </td>
-      <td className="px-6 py-5">
-        <span className={cn("inline-flex rounded-full border px-3 py-1.5 text-xs font-black", membershipMeta.className)}>
+      <td className="px-5 py-3.5">
+        <span className={cn("inline-flex rounded-none border px-2.5 py-1 text-[11px] font-black", membershipMeta.className)}>
           {membershipMeta.label}
         </span>
         <p className="mt-1 text-[11px] font-semibold text-[#7084a3]">
           到期 {formatDateTime(user.membershipExpiresAt)}
         </p>
       </td>
-      <td className="px-6 py-5">
-        <span className={cn("inline-flex rounded-full border px-3 py-1.5 text-xs font-black", statusMeta.className)}>
+      <td className="px-5 py-3.5">
+        <span className={cn("inline-flex rounded-none border px-2.5 py-1 text-[11px] font-black", statusMeta.className)}>
           {statusMeta.label}
         </span>
       </td>
-      <td className="px-6 py-5 text-sm font-bold text-[#536889]">
+      <td className="px-5 py-3.5 text-sm font-bold text-[#536889]">
         {user.emailVerified ? "已验证" : "未验证"}
       </td>
-      <td className="px-6 py-5 text-sm font-bold text-[#536889]">
+      <td className="px-5 py-3.5 text-sm font-bold text-[#536889]">
         <p>{formatRelativeTime(user.lastLoginAt)}</p>
-        <p className="mt-1 text-[#7084a3]">{formatDateTime(user.lastLoginAt)}</p>
+        <p className="mt-0.5 text-[#7084a3]">{formatDateTime(user.lastLoginAt)}</p>
       </td>
-      <td className="px-6 py-5 text-sm font-bold text-[#536889]">
+      <td className="px-5 py-3.5 text-sm font-bold text-[#536889]">
         {formatDateTime(user.createdAt)}
       </td>
-      <td className="px-6 py-5">
-        <div className="flex flex-wrap gap-2 text-xs font-black text-[#536889]">
-          <span className="rounded-full border border-[#d9e6f5] bg-[#f7fbff] px-3 py-1">作品 {user.stats.works}</span>
-          <span className="rounded-full border border-[#d9e6f5] bg-[#f7fbff] px-3 py-1">任务 {user.stats.generationJobs}</span>
-          <span className="rounded-full border border-[#d9e6f5] bg-[#f7fbff] px-3 py-1">AI {user.stats.todayAiCalls}</span>
+      <td className="px-5 py-3.5">
+        <div className="flex flex-wrap gap-1.5 text-[11px] font-black text-[#536889]">
+          <span className="rounded-none border border-[#d9e6f5] bg-[#f7fbff] px-2.5 py-0.5">作品 {user.stats.works}</span>
+          <span className="rounded-none border border-[#d9e6f5] bg-[#f7fbff] px-2.5 py-0.5">任务 {user.stats.generationJobs}</span>
+          <span className="rounded-none border border-[#d9e6f5] bg-[#f7fbff] px-2.5 py-0.5">AI {user.stats.todayAiCalls}</span>
         </div>
       </td>
-      <td className="px-6 py-5 text-right">
+      <td className="px-5 py-3.5 text-right">
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onDetail} className="h-9 rounded-[8px] border-[#d9e6f5] bg-white px-3 font-black text-[#14213d] hover:bg-[#f7fbff]">
+          <Button type="button" variant="outline" size="sm" onClick={onDetail} className="h-8 rounded-none border-[#d9e6f5] bg-white px-2.5 text-xs font-black text-[#14213d] hover:bg-[#f7fbff]">
             <Eye className="h-4 w-4" />
             详情
           </Button>
-          <Button type="button" variant="outline" size="sm" onClick={onEdit} className="h-9 rounded-[8px] border-[#d9e6f5] bg-white px-3 font-black text-[#14213d] hover:bg-[#f7fbff]">
+          <Button type="button" variant="outline" size="sm" onClick={onEdit} className="h-8 rounded-none border-[#d9e6f5] bg-white px-2.5 text-xs font-black text-[#14213d] hover:bg-[#f7fbff]">
             <Pencil className="h-4 w-4" />
             编辑
           </Button>

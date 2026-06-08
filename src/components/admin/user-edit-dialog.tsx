@@ -90,7 +90,7 @@ function UserEditDialogContent({
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/25 px-4 py-6 backdrop-blur-sm">
       <form
         onSubmit={(event) => void handleSubmit(event)}
-        className="max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-[18px] border border-[#d9e5f2] bg-white shadow-[0_28px_80px_rgba(15,64,116,0.22)]"
+        className="max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-none border border-[#d9e5f2] bg-white shadow-[0_28px_80px_rgba(15,64,116,0.22)]"
       >
         <header className="flex items-start justify-between gap-4 border-b border-[#eef3f8] px-5 py-4">
           <div className="min-w-0">
@@ -105,7 +105,7 @@ function UserEditDialogContent({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#64748b] transition hover:bg-[#f3f7fc] hover:text-[#172033]"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-none text-[#64748b] transition hover:bg-[#f3f7fc] hover:text-[#172033]"
             aria-label="关闭"
           >
             <X className="h-4 w-4" />
@@ -115,7 +115,7 @@ function UserEditDialogContent({
         <div className="max-h-[calc(92dvh-138px)] overflow-y-auto px-5 py-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="昵称">
-              <Input value={name} onChange={(event) => setName(event.target.value)} maxLength={64} />
+              <Input value={name} onChange={(event) => setName(event.target.value)} maxLength={64} className="rounded-none" />
             </Field>
             <Field label="状态">
               <select value={status} onChange={(event) => setStatus(event.target.value as AdminUserStatus)} className={selectClassName}>
@@ -144,6 +144,7 @@ function UserEditDialogContent({
                 type="datetime-local"
                 value={membershipExpiresAt}
                 onChange={(event) => setMembershipExpiresAt(event.target.value)}
+                className="rounded-none"
               />
             </Field>
             <Field label="邮箱验证">
@@ -163,17 +164,17 @@ function UserEditDialogContent({
                 onChange={(event) => setBannedReason(event.target.value)}
                 rows={4}
                 maxLength={500}
-                className="w-full rounded-lg border border-[#d9e5f2] bg-white px-3 py-2 text-sm font-semibold text-[#172033] outline-none focus:ring-2 focus:ring-[#1687f2]/20"
+                className="w-full rounded-none border border-[#d9e5f2] bg-white px-3 py-2 text-sm font-semibold text-[#172033] outline-none focus:ring-2 focus:ring-[#1687f2]/20"
               />
             </Field>
           </div>
         </div>
 
         <footer className="flex flex-col-reverse gap-2 border-t border-[#eef3f8] bg-[#f8fbff] px-5 py-4 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} className="rounded-none">
             取消
           </Button>
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving} className="rounded-none">
             {saving ? "保存中..." : "保存"}
           </Button>
         </footer>
@@ -200,7 +201,7 @@ function Field({
 }
 
 const selectClassName =
-  "h-8 w-full rounded-lg border border-[#d9e5f2] bg-white px-2.5 text-sm font-semibold text-[#172033] outline-none focus:ring-2 focus:ring-[#1687f2]/20";
+  "h-8 w-full rounded-none border border-[#d9e5f2] bg-white px-2.5 text-sm font-semibold text-[#172033] outline-none focus:ring-2 focus:ring-[#1687f2]/20";
 
 function normalizeEditableRole(role: string) {
   return role === "admin" || role === "super_admin" ? "admin" : "user";

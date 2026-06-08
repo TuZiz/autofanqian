@@ -44,7 +44,7 @@ export function GenerationLogDetailDrawer({
         className="absolute inset-0 bg-black/20 backdrop-blur-sm"
         onClick={onClose}
       />
-      <aside className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-hidden rounded-t-[18px] border border-[#d9e5f2] bg-white shadow-[0_-24px_70px_rgba(15,64,116,0.18)] md:inset-y-0 md:left-auto md:right-0 md:h-full md:max-h-none md:w-[520px] md:rounded-none">
+      <aside className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-hidden rounded-none border border-[#d9e5f2] bg-white shadow-[0_-24px_70px_rgba(15,64,116,0.18)] md:inset-y-0 md:left-auto md:right-0 md:h-full md:max-h-none md:w-[520px]">
         <div className="flex h-full min-h-0 flex-col">
           <header className="flex items-start justify-between gap-4 border-b border-[#eef3f8] px-5 py-4">
             <div className="min-w-0">
@@ -57,7 +57,7 @@ export function GenerationLogDetailDrawer({
               {job ? (
                 <span
                   className={cn(
-                    "mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-black",
+                    "mt-2 inline-flex items-center gap-1.5 rounded-none border px-2.5 py-1 text-xs font-black",
                     statusMeta.className,
                   )}
                 >
@@ -71,7 +71,7 @@ export function GenerationLogDetailDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#64748b] transition hover:bg-[#f3f7fc] hover:text-[#172033]"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-none text-[#64748b] transition hover:bg-[#f3f7fc] hover:text-[#172033]"
               aria-label="关闭"
             >
               <X className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function GenerationLogDetailDrawer({
                 正在加载详情...
               </div>
             ) : detail.error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              <div className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
                 {detail.error}
               </div>
             ) : job ? (
@@ -165,7 +165,7 @@ export function GenerationLogDetailDrawer({
                       />
                     }
                   >
-                    <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-[#0f172a] p-3 text-xs leading-5 text-[#e5eefb]">
+                    <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-words rounded-none bg-[#0f172a] p-3 text-xs leading-5 text-[#e5eefb]">
                       {job.promptSnapshot.slice(0, 3000)}
                     </pre>
                   </CollapsibleBlock>
@@ -173,7 +173,7 @@ export function GenerationLogDetailDrawer({
 
                 {resultJsonText ? (
                   <CollapsibleBlock title="resultJson">
-                    <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-[#0f172a] p-3 text-xs leading-5 text-[#e5eefb]">
+                    <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap break-words rounded-none bg-[#0f172a] p-3 text-xs leading-5 text-[#e5eefb]">
                       {truncateForDisplay(resultJsonText)}
                     </pre>
                   </CollapsibleBlock>
@@ -195,7 +195,7 @@ function DetailSection({
   title: string;
 }) {
   return (
-    <section className="rounded-xl border border-[#d9e5f2] bg-[#fbfdff] p-3">
+    <section className="rounded-none border border-[#d9e5f2] bg-[#fbfdff] p-3">
       <h3 className="text-xs font-black text-[#172033]">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
@@ -206,7 +206,7 @@ function InfoGrid({ items }: { items: Array<[string, string]> }) {
   return (
     <dl className="grid gap-2">
       {items.map(([label, value]) => (
-        <div key={label} className="grid gap-1 rounded-lg bg-white px-3 py-2 sm:grid-cols-[150px_minmax(0,1fr)]">
+        <div key={label} className="grid gap-1 rounded-none bg-white px-3 py-2 sm:grid-cols-[150px_minmax(0,1fr)]">
           <dt className="text-xs font-black text-[#7b8ca5]">{label}</dt>
           <dd className="min-w-0 break-words text-xs font-semibold leading-5 text-[#172033]">{value}</dd>
         </div>
@@ -225,7 +225,7 @@ function CollapsibleBlock({
   title: string;
 }) {
   return (
-    <details className="rounded-xl border border-[#d9e5f2] bg-[#fbfdff] p-3">
+    <details className="rounded-none border border-[#d9e5f2] bg-[#fbfdff] p-3">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-black text-[#172033]">
         <span>{title}</span>
         {action}
@@ -249,7 +249,7 @@ function CopyButton({
         event.preventDefault();
         onClick();
       }}
-      className="inline-flex h-7 items-center gap-1 rounded-md border border-[#d9e5f2] bg-white px-2 text-[11px] font-bold text-[#52647e] hover:bg-[#f3f7fc]"
+      className="inline-flex h-7 items-center gap-1 rounded-none border border-[#d9e5f2] bg-white px-2 text-[11px] font-bold text-[#52647e] hover:bg-[#f3f7fc]"
     >
       {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? "已复制" : "复制"}

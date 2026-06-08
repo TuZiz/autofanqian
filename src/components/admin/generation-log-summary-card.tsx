@@ -47,7 +47,7 @@ export function GenerationLogSummaryCard({ data }: Props) {
         </div>
         <div className="space-y-4 px-6 py-5">
           <GenerationLogStatusBars bars={summary?.bars ?? []} />
-          <div className="rounded-[12px] border border-[#f3d5d5] bg-[#fff7f7] px-4 py-3">
+          <div className="rounded-none border border-[#f3d5d5] bg-[#fff7f7] px-4 py-3">
             <div className="flex items-start gap-2">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#b42318]" />
               <div className="min-w-0">

@@ -17,19 +17,19 @@ import { apiRequest } from "@/lib/client/auth-api";
 import { cn } from "@/lib/utils";
 
 export const adminPanelClassName =
-  "rounded-[18px] border border-[#dbe7f4] bg-white/95 shadow-[0_18px_52px_rgba(31,87,140,0.08)]";
+  "border border-[#dbe7f4] bg-white/95 shadow-[0_14px_38px_rgba(31,87,140,0.06)]";
 
 export const adminInputClassName =
-  "h-10 rounded-[8px] border-[#d9e6f5] bg-white text-sm font-semibold text-[#14213d] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] placeholder:text-[#8090aa] focus-visible:border-[#2f7cff] focus-visible:ring-[#2f7cff]/18";
+  "h-10 rounded-none border-[#d9e6f5] bg-white text-sm font-semibold text-[#14213d] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] placeholder:text-[#8090aa] focus-visible:border-[#2f7cff] focus-visible:ring-[#2f7cff]/18";
 
 export const adminSelectClassName =
-  "h-10 rounded-[8px] border border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none transition focus:border-[#2f7cff] focus:ring-2 focus:ring-[#2f7cff]/18";
+  "h-10 rounded-none border border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none transition focus:border-[#2f7cff] focus:ring-2 focus:ring-[#2f7cff]/18";
 
 export const adminSecondaryButtonClassName =
-  "h-10 rounded-[8px] border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.06)] hover:border-[#b8cff0] hover:bg-[#f7fbff]";
+  "h-10 rounded-none border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.05)] hover:border-[#b8cff0] hover:bg-[#f7fbff]";
 
 export const adminPrimaryButtonClassName =
-  "h-10 rounded-[8px] bg-[#1f74ff] px-4 text-sm font-black text-white shadow-[0_12px_24px_rgba(31,116,255,0.22)] hover:bg-[#145ee7]";
+  "h-10 rounded-none bg-[#1f74ff] px-4 text-sm font-black text-white shadow-[0_10px_20px_rgba(31,116,255,0.18)] hover:bg-[#145ee7]";
 
 type AdminPageShellProps = {
   children: ReactNode;
@@ -77,7 +77,7 @@ function AdminTopbar({ nav }: AdminTopbarProps) {
     <header className="sticky top-0 z-50 border-b border-[#dbe7f4] bg-white/92 backdrop-blur-xl">
       <div className="mx-auto flex min-h-[78px] w-full max-w-[1880px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/dashboard/admin" className="flex min-w-0 shrink-0 items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#eef5ff] text-[#1f74ff] ring-1 ring-[#cfe0f8]">
+          <span className="flex h-10 w-10 items-center justify-center rounded-none bg-[#eef5ff] text-[#1f74ff] ring-1 ring-[#cfe0f8]">
             <ShieldCheck className="h-6 w-6" />
           </span>
           <span className="hidden truncate text-xl font-black tracking-tight text-[#111b36] sm:block">
@@ -90,21 +90,21 @@ function AdminTopbar({ nav }: AdminTopbarProps) {
         <div className="flex shrink-0 items-center gap-3">
           <Link
             href="/dashboard"
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.06)] transition hover:border-[#b8cff0] hover:bg-[#f7fbff]"
+            className="inline-flex h-11 items-center gap-2 rounded-none border border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.05)] transition hover:border-[#b8cff0] hover:bg-[#f7fbff]"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">返回工作台</span>
           </Link>
 
-          <ThemeToggle className="h-11 w-11 rounded-full border border-[#d9e6f5] bg-white p-0 text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.06)]" />
+          <ThemeToggle className="h-11 w-11 rounded-none border border-[#d9e6f5] bg-white p-0 text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.05)]" />
 
           <button
             type="button"
             onClick={() => setLogoutConfirmOpen(true)}
             disabled={logoutBusy}
-            className="inline-flex h-11 items-center gap-3 rounded-[8px] border border-[#d9e6f5] bg-white px-3 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.06)] transition hover:border-[#b8cff0] hover:bg-[#f7fbff] disabled:opacity-60"
+            className="inline-flex h-11 items-center gap-3 rounded-none border border-[#d9e6f5] bg-white px-3 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.05)] transition hover:border-[#b8cff0] hover:bg-[#f7fbff] disabled:opacity-60"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#202a3f] text-sm font-black text-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded-none bg-[#202a3f] text-sm font-black text-white">
               N
             </span>
             <span className="hidden sm:inline">{logoutBusy ? "退出中" : "退出登录"}</span>
@@ -154,7 +154,7 @@ export function AdminHero({
     <section className={cn(adminPanelClassName, "px-5 py-4 sm:px-6")}>
       <div className="flex flex-col items-start gap-5 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 gap-4">
-          <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[12px] bg-[linear-gradient(145deg,#eef5ff,#f8fbff)] text-[#1f74ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-[#d5e5fb]">
+          <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-none bg-[linear-gradient(145deg,#eef5ff,#f8fbff)] text-[#1f74ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-[#d5e5fb]">
             <Icon className="h-7 w-7" />
           </span>
           <div className="min-w-0 pt-1">
@@ -209,7 +209,7 @@ export function AdminMetricCard({
   return (
     <article className={cn(adminPanelClassName, "p-5")}>
       <div className="flex items-center gap-4">
-        <span className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px]", toneClassName)}>
+        <span className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-none", toneClassName)}>
           <Icon className="h-6 w-6" />
         </span>
         <div className="min-w-0">

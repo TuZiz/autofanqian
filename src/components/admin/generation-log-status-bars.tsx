@@ -21,21 +21,21 @@ const statusColor: Record<string, string> = {
 export function GenerationLogStatusBars({ bars }: { bars: Bar[] }) {
   if (!bars.length) {
     return (
-      <div className="flex h-12 items-center justify-center rounded-[12px] border border-dashed border-[#d9e6f5] bg-[#f7fbff] text-xs font-bold text-[#7084a3]">
+      <div className="flex h-12 items-center justify-center rounded-none border border-dashed border-[#d9e6f5] bg-[#f7fbff] text-xs font-bold text-[#7084a3]">
         暂无最近任务
       </div>
     );
   }
 
   return (
-    <div className="rounded-[12px] border border-[#d9e6f5] bg-[#f7fbff] px-4 py-4">
+    <div className="rounded-none border border-[#d9e6f5] bg-[#f7fbff] px-4 py-4">
       <div className="flex h-12 items-end gap-1 overflow-hidden">
         {bars.map((bar) => (
           <span
             key={bar.id}
             title={`${bar.status} · ${new Date(bar.createdAt).toLocaleString("zh-CN")}`}
             className={cn(
-              "block h-full min-w-1.5 flex-1 rounded-full transition hover:scale-y-110",
+              "block h-full min-w-1.5 flex-1 rounded-none transition hover:scale-y-110",
               statusColor[bar.status] ?? "bg-slate-300",
             )}
           />
@@ -56,7 +56,7 @@ export function GenerationLogStatusBars({ bars }: { bars: Bar[] }) {
 function Legend({ color, label }: { color: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={cn("h-2 w-2 rounded-full", color)} />
+      <span className={cn("h-2 w-2 rounded-none", color)} />
       {label}
     </span>
   );

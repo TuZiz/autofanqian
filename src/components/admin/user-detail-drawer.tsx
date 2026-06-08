@@ -33,7 +33,7 @@ export function UserDetailDrawer({
         className="absolute inset-0 bg-black/20 backdrop-blur-sm"
         onClick={onClose}
       />
-      <aside className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-hidden rounded-t-[18px] border border-[#d9e5f2] bg-white shadow-[0_-24px_70px_rgba(15,64,116,0.18)] md:inset-y-0 md:left-auto md:right-0 md:h-full md:max-h-none md:w-[560px] md:rounded-none">
+      <aside className="absolute inset-x-0 bottom-0 max-h-[92dvh] overflow-hidden rounded-none border border-[#d9e5f2] bg-white shadow-[0_-24px_70px_rgba(15,64,116,0.18)] md:inset-y-0 md:left-auto md:right-0 md:h-full md:max-h-none md:w-[560px]">
         <div className="flex h-full min-h-0 flex-col">
           <header className="flex items-start justify-between gap-4 border-b border-[#eef3f8] px-5 py-4">
             <div className="min-w-0">
@@ -48,7 +48,7 @@ export function UserDetailDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#64748b] transition hover:bg-[#f3f7fc] hover:text-[#172033]"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-none text-[#64748b] transition hover:bg-[#f3f7fc] hover:text-[#172033]"
               aria-label="关闭"
             >
               <X className="h-4 w-4" />
@@ -62,7 +62,7 @@ export function UserDetailDrawer({
                 正在加载用户详情...
               </div>
             ) : detail.error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+              <div className="rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
                 {detail.error}
               </div>
             ) : data ? (
@@ -107,7 +107,7 @@ export function UserDetailDrawer({
                 <DetailSection title="最近 10 条生成任务">
                   <div className="space-y-2">
                     {data.recentGenerationJobs.length ? data.recentGenerationJobs.map((job) => (
-                      <div key={job.id} className="rounded-lg bg-white px-3 py-2 text-xs ring-1 ring-[#eef3f8]">
+                      <div key={job.id} className="rounded-none bg-white px-3 py-2 text-xs ring-1 ring-[#eef3f8]">
                         <p className="font-black text-[#172033]">{job.action} · {job.status}</p>
                         <p className="mt-1 text-[#52647e]">
                           {job.novel?.title || "无作品"} · {formatTokens(job.totalTokens)} · {formatDuration(job.durationMs)}
@@ -123,7 +123,7 @@ export function UserDetailDrawer({
                 <DetailSection title="最近 10 条登录尝试">
                   <div className="space-y-2">
                     {data.recentLoginAttempts.length ? data.recentLoginAttempts.map((attempt) => (
-                      <div key={attempt.id} className="rounded-lg bg-white px-3 py-2 text-xs ring-1 ring-[#eef3f8]">
+                      <div key={attempt.id} className="rounded-none bg-white px-3 py-2 text-xs ring-1 ring-[#eef3f8]">
                         <p className={cn("font-black", attempt.success ? "text-emerald-700" : "text-red-700")}>
                           {attempt.success ? "成功" : "失败"} · {formatDateTime(attempt.createdAt)}
                         </p>
@@ -141,7 +141,7 @@ export function UserDetailDrawer({
                 <DetailSection title="最近 5 个作品">
                   <div className="space-y-2">
                     {data.recentWorks.length ? data.recentWorks.map((work) => (
-                      <div key={work.id} className="rounded-lg bg-white px-3 py-2 text-xs ring-1 ring-[#eef3f8]">
+                      <div key={work.id} className="rounded-none bg-white px-3 py-2 text-xs ring-1 ring-[#eef3f8]">
                         <p className="font-black text-[#172033]">{work.title}</p>
                         <p className="mt-1 text-[#52647e]">
                           {work.workType} · 更新 {formatDateTime(work.updatedAt)}
@@ -177,7 +177,7 @@ function UserMetaBadges({
       {[roleMeta, statusMeta, tierMeta].map((meta) => (
         <span
           key={`${meta.label}-${meta.className}`}
-          className={cn("inline-flex rounded-full border px-2.5 py-1 text-xs font-black", meta.className)}
+          className={cn("inline-flex rounded-none border px-2.5 py-1 text-xs font-black", meta.className)}
         >
           {meta.label}
         </span>
@@ -194,7 +194,7 @@ function DetailSection({
   title: string;
 }) {
   return (
-    <section className="rounded-xl border border-[#d9e5f2] bg-[#fbfdff] p-3">
+    <section className="rounded-none border border-[#d9e5f2] bg-[#fbfdff] p-3">
       <h3 className="text-xs font-black text-[#172033]">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
@@ -205,7 +205,7 @@ function InfoGrid({ items }: { items: Array<[string, string]> }) {
   return (
     <dl className="grid gap-2">
       {items.map(([label, value]) => (
-        <div key={label} className="grid gap-1 rounded-lg bg-white px-3 py-2 sm:grid-cols-[150px_minmax(0,1fr)]">
+        <div key={label} className="grid gap-1 rounded-none bg-white px-3 py-2 sm:grid-cols-[150px_minmax(0,1fr)]">
           <dt className="text-xs font-black text-[#7b8ca5]">{label}</dt>
           <dd className="min-w-0 break-words text-xs font-semibold leading-5 text-[#172033]">{value}</dd>
         </div>
@@ -216,7 +216,7 @@ function InfoGrid({ items }: { items: Array<[string, string]> }) {
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-lg bg-white px-3 py-2 ring-1 ring-[#eef3f8]">
+    <div className="rounded-none bg-white px-3 py-2 ring-1 ring-[#eef3f8]">
       <p className="text-[11px] font-black text-[#7b8ca5]">{label}</p>
       <p className="mt-1 text-lg font-black text-[#172033]">{value}</p>
     </div>
@@ -225,7 +225,7 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 
 function EmptyLine({ text }: { text: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-[#d9e5f2] bg-white px-3 py-6 text-center text-xs font-bold text-[#7b8ca5]">
+    <div className="rounded-none border border-dashed border-[#d9e5f2] bg-white px-3 py-6 text-center text-xs font-bold text-[#7b8ca5]">
       {text}
     </div>
   );
