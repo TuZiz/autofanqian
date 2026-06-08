@@ -22,22 +22,22 @@ export function GenerationLogSummaryCard({ data }: Props) {
   const successRate = summary?.successRate ?? 0;
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
       <section className={`${adminPanelClassName} overflow-hidden`}>
-        <div className="border-b border-[#e7eef8] px-6 py-5">
+        <div className="border-b border-[#e7eef8] px-4 py-3.5">
           <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#536889]">
             最近 60 次生成表现
           </p>
-          <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+          <div className="mt-2.5 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-[44px] font-black leading-none tracking-tight text-[#101a34]">
+              <p className="text-[34px] font-black leading-none tracking-tight text-[#101a34]">
                 {successRate}%
               </p>
-              <p className="mt-2 text-sm font-semibold text-[#536889]">
+              <p className="mt-1 text-sm font-semibold text-[#536889]">
                 成功率 · 最近 {summary?.latestWindowSize ?? 0} 次任务
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-right sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 text-right sm:grid-cols-4">
               <MiniMetric label="成功" value={summary?.successCount ?? 0} tone="success" />
               <MiniMetric label="失败" value={summary?.failedCount ?? 0} tone="danger" />
               <MiniMetric label="运行" value={summary?.runningCount ?? 0} tone="brand" />
@@ -45,9 +45,9 @@ export function GenerationLogSummaryCard({ data }: Props) {
             </div>
           </div>
         </div>
-        <div className="space-y-4 px-6 py-5">
+        <div className="space-y-2.5 px-4 py-3.5">
           <GenerationLogStatusBars bars={summary?.bars ?? []} />
-          <div className="rounded-none border border-[#f3d5d5] bg-[#fff7f7] px-4 py-3">
+          <div className="rounded-none border border-[#f3d5d5] bg-[#fff7f7] px-3 py-2">
             <div className="flex items-start gap-2">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#b42318]" />
               <div className="min-w-0">
@@ -61,7 +61,7 @@ export function GenerationLogSummaryCard({ data }: Props) {
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2">
+      <section className="grid items-start gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2">
         <AdminMetricCard
           icon={BarChart3}
           label="全部任务"
