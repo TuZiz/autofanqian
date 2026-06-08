@@ -60,9 +60,10 @@ const takeOptions = [20, 50, 100] as const;
 
 export function UserManagementFilters({ users }: { users: AdminUsersLiteController }) {
   return (
-    <section className={`${adminPanelClassName} p-4`}>
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="relative min-w-[260px] flex-[1_1_360px]">
+    <section className={`${adminPanelClassName} overflow-hidden p-3`}>
+      <div className="overflow-x-auto pb-1">
+        <div className="flex min-w-max items-center gap-3">
+          <label className="relative w-[360px] shrink-0">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7084a3]" />
           <Input
             value={users.query}
@@ -79,7 +80,7 @@ export function UserManagementFilters({ users }: { users: AdminUsersLiteControll
         <select
           value={users.take}
           onChange={(event) => users.setTake(Number(event.target.value) as 20 | 50 | 100)}
-          className={`${adminSelectClassName} min-w-[138px]`}
+          className={`${adminSelectClassName} w-[138px] shrink-0`}
         >
           {takeOptions.map((option) => (
             <option key={option} value={option}>
@@ -98,6 +99,7 @@ export function UserManagementFilters({ users }: { users: AdminUsersLiteControll
           <RefreshCw className={users.loading ? "animate-spin" : ""} />
           刷新
         </Button>
+        </div>
       </div>
     </section>
   );
@@ -116,7 +118,7 @@ function Select({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className={`${adminSelectClassName} min-w-[150px] flex-1 sm:flex-none`}
+      className={`${adminSelectClassName} w-[150px] shrink-0`}
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>

@@ -20,16 +20,16 @@ export const adminPanelClassName =
   "rounded-[18px] border border-[#dbe7f4] bg-white/95 shadow-[0_18px_52px_rgba(31,87,140,0.08)]";
 
 export const adminInputClassName =
-  "h-11 rounded-[8px] border-[#d9e6f5] bg-white text-sm font-semibold text-[#14213d] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] placeholder:text-[#8090aa] focus-visible:border-[#2f7cff] focus-visible:ring-[#2f7cff]/18";
+  "h-10 rounded-[8px] border-[#d9e6f5] bg-white text-sm font-semibold text-[#14213d] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] placeholder:text-[#8090aa] focus-visible:border-[#2f7cff] focus-visible:ring-[#2f7cff]/18";
 
 export const adminSelectClassName =
-  "h-11 rounded-[8px] border border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none transition focus:border-[#2f7cff] focus:ring-2 focus:ring-[#2f7cff]/18";
+  "h-10 rounded-[8px] border border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none transition focus:border-[#2f7cff] focus:ring-2 focus:ring-[#2f7cff]/18";
 
 export const adminSecondaryButtonClassName =
-  "h-11 rounded-[8px] border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.06)] hover:border-[#b8cff0] hover:bg-[#f7fbff]";
+  "h-10 rounded-[8px] border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.06)] hover:border-[#b8cff0] hover:bg-[#f7fbff]";
 
 export const adminPrimaryButtonClassName =
-  "h-11 rounded-[8px] bg-[#1f74ff] px-4 text-sm font-black text-white shadow-[0_12px_24px_rgba(31,116,255,0.22)] hover:bg-[#145ee7]";
+  "h-10 rounded-[8px] bg-[#1f74ff] px-4 text-sm font-black text-white shadow-[0_12px_24px_rgba(31,116,255,0.22)] hover:bg-[#145ee7]";
 
 type AdminPageShellProps = {
   children: ReactNode;
@@ -42,8 +42,8 @@ export function AdminPageShell({ children, nav }: AdminPageShellProps) {
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,rgba(235,244,255,0.85),rgba(255,255,255,0.92)_34%,rgba(248,251,255,1))]" />
       <div className="relative z-10">
         <AdminTopbar nav={nav} />
-        <div className="mx-auto w-full max-w-[1880px] px-4 py-7 sm:px-6 lg:px-8">
-          <div className="space-y-5">{children}</div>
+        <div className="mx-auto w-full max-w-[1880px] px-4 py-5 sm:px-6 lg:px-8">
+          <div className="space-y-4">{children}</div>
         </div>
       </div>
     </main>
@@ -85,7 +85,7 @@ function AdminTopbar({ nav }: AdminTopbarProps) {
           </span>
         </Link>
 
-        <div className="hidden min-w-0 flex-1 justify-center px-4 lg:flex">{nav}</div>
+        <div className="hidden min-w-0 flex-1 justify-center px-4 md:flex">{nav}</div>
 
         <div className="flex shrink-0 items-center gap-3">
           <Link
@@ -113,7 +113,7 @@ function AdminTopbar({ nav }: AdminTopbarProps) {
         </div>
       </div>
 
-      <div className="border-t border-[#edf3fb] px-4 py-3 lg:hidden">{nav}</div>
+      <div className="border-t border-[#edf3fb] px-4 py-3 md:hidden">{nav}</div>
 
       <LogoutConfirmDialog
         open={logoutConfirmOpen}
@@ -151,18 +151,18 @@ export function AdminHero({
   title,
 }: AdminHeroProps) {
   return (
-    <section className={cn(adminPanelClassName, "px-5 py-5 sm:px-6")}>
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+    <section className={cn(adminPanelClassName, "px-5 py-4 sm:px-6")}>
+      <div className="flex flex-col items-start gap-5 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 gap-4">
-          <span className="flex h-[70px] w-[70px] shrink-0 items-center justify-center rounded-[12px] bg-[linear-gradient(145deg,#eef5ff,#f8fbff)] text-[#1f74ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-[#d5e5fb]">
-            <Icon className="h-8 w-8" />
+          <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[12px] bg-[linear-gradient(145deg,#eef5ff,#f8fbff)] text-[#1f74ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-[#d5e5fb]">
+            <Icon className="h-7 w-7" />
           </span>
           <div className="min-w-0 pt-1">
             <p className="text-[13px] font-black tracking-wide text-[#4c6387]">{eyebrow}</p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-[#101a34] sm:text-4xl">
+            <h1 className="mt-1 text-3xl font-black tracking-tight text-[#101a34]">
               {title}
             </h1>
-            <p className="mt-2 max-w-3xl text-base font-semibold leading-7 text-[#536889]">
+            <p className="mt-1.5 max-w-3xl text-sm font-semibold leading-6 text-[#536889] sm:text-base">
               {description}
             </p>
           </div>
@@ -173,7 +173,7 @@ export function AdminHero({
             type="button"
             onClick={onRefresh}
             disabled={refreshBusy}
-            className={cn(adminPrimaryButtonClassName, "inline-flex items-center justify-center gap-2")}
+            className={cn(adminPrimaryButtonClassName, "inline-flex shrink-0 items-center justify-center gap-2 self-start md:self-auto")}
           >
             <RefreshCw className={cn("h-4 w-4", refreshBusy ? "animate-spin" : "")} />
             {refreshLabel}
@@ -207,14 +207,14 @@ export function AdminMetricCard({
   }[tone];
 
   return (
-    <article className={cn(adminPanelClassName, "p-6")}>
-      <div className="flex items-center gap-5">
-        <span className={cn("flex h-16 w-16 shrink-0 items-center justify-center rounded-[16px]", toneClassName)}>
-          <Icon className="h-7 w-7" />
+    <article className={cn(adminPanelClassName, "p-5")}>
+      <div className="flex items-center gap-4">
+        <span className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px]", toneClassName)}>
+          <Icon className="h-6 w-6" />
         </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-black text-[#4c6387]">{label}</p>
-          <p className="mt-1 truncate text-3xl font-black leading-none tracking-tight text-[#101a34]">
+          <p className="mt-1 truncate text-2xl font-black leading-none tracking-tight text-[#101a34]">
             {value}
           </p>
           <p className="mt-2 truncate text-sm font-semibold text-[#536889]">{helper}</p>

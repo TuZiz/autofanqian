@@ -29,9 +29,10 @@ const takeOptions = [20, 50, 100] as const;
 
 export function GenerationLogFilters({ logs }: { logs: GenerationLogsController }) {
   return (
-    <section className={`${adminPanelClassName} p-4`}>
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="relative min-w-[260px] flex-[1_1_420px]">
+    <section className={`${adminPanelClassName} overflow-hidden p-3`}>
+      <div className="overflow-x-auto pb-1">
+        <div className="flex min-w-max items-center gap-3">
+          <label className="relative w-[420px] shrink-0">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7084a3]" />
           <Input
             value={logs.query}
@@ -44,7 +45,7 @@ export function GenerationLogFilters({ logs }: { logs: GenerationLogsController 
         <select
           value={logs.status}
           onChange={(event) => logs.setStatus(event.target.value as GenerationLogStatusFilter)}
-          className={`${adminSelectClassName} min-w-[170px]`}
+          className={`${adminSelectClassName} w-[170px] shrink-0`}
         >
           {statusOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -57,7 +58,7 @@ export function GenerationLogFilters({ logs }: { logs: GenerationLogsController 
         <select
           value={logs.take}
           onChange={(event) => logs.setTake(Number(event.target.value) as 20 | 50 | 100)}
-          className={`${adminSelectClassName} min-w-[138px]`}
+          className={`${adminSelectClassName} w-[138px] shrink-0`}
         >
           {takeOptions.map((option) => (
             <option key={option} value={option}>
@@ -87,6 +88,7 @@ export function GenerationLogFilters({ logs }: { logs: GenerationLogsController 
           <RefreshCw className={logs.loading ? "animate-spin" : ""} />
           刷新
         </Button>
+        </div>
       </div>
       <p className="mt-3 text-xs font-semibold text-[#7084a3]">
         自动刷新间隔 10 秒，默认关闭。

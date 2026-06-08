@@ -10,7 +10,7 @@ export function UserManagementSummary({ data }: { data: AdminUsersResponse | nul
   const summary = data?.summary;
 
   return (
-    <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
       <AdminMetricCard
         icon={Users}
         label="全部用户"

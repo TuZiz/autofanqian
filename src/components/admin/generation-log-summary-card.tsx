@@ -22,7 +22,7 @@ export function GenerationLogSummaryCard({ data }: Props) {
   const successRate = summary?.successRate ?? 0;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
       <section className={`${adminPanelClassName} overflow-hidden`}>
         <div className="border-b border-[#e7eef8] px-6 py-5">
           <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#536889]">
@@ -61,7 +61,7 @@ export function GenerationLogSummaryCard({ data }: Props) {
         </div>
       </section>
 
-      <section className="grid gap-5 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2">
         <AdminMetricCard
           icon={BarChart3}
           label="全部任务"
