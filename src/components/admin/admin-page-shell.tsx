@@ -152,18 +152,18 @@ export function AdminHero({
   title,
 }: AdminHeroProps) {
   return (
-    <section className={cn(adminPanelClassName, "px-5 py-4 sm:px-6")}>
-      <div className="flex flex-col items-start gap-5 md:flex-row md:items-center md:justify-between">
-        <div className="flex min-w-0 gap-4">
-          <span className="flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-none bg-[linear-gradient(145deg,#eef5ff,#f8fbff)] text-[#1f74ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-[#d5e5fb]">
-            <Icon className="h-7 w-7" />
+    <section className={cn(adminPanelClassName, "px-4 py-3 sm:px-4")}>
+      <div className="flex flex-col items-start gap-3.5 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-none bg-[linear-gradient(145deg,#eef5ff,#f8fbff)] text-[#1f74ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-[#d5e5fb]">
+            <Icon className="h-5 w-5" />
           </span>
-          <div className="min-w-0 pt-1">
-            <p className="text-[13px] font-black tracking-wide text-[#4c6387]">{eyebrow}</p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-[#101a34]">
+          <div className="min-w-0">
+            <p className="text-xs font-black tracking-wide text-[#4c6387]">{eyebrow}</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-tight tracking-tight text-[#101a34]">
               {title}
             </h1>
-            <p className="mt-1.5 max-w-3xl text-sm font-semibold leading-6 text-[#536889] sm:text-base">
+            <p className="mt-0.5 max-w-3xl text-sm font-semibold leading-5 text-[#536889]">
               {description}
             </p>
           </div>
@@ -208,17 +208,17 @@ export function AdminMetricCard({
   }[tone];
 
   return (
-    <article className={cn(adminPanelClassName, "p-5")}>
-      <div className="flex items-center gap-4">
-        <span className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-none", toneClassName)}>
-          <Icon className="h-6 w-6" />
+    <article className={cn(adminPanelClassName, "p-3.5")}>
+      <div className="flex items-center gap-3">
+        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-none", toneClassName)}>
+          <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-black text-[#4c6387]">{label}</p>
-          <p className="mt-1 truncate text-2xl font-black leading-none tracking-tight text-[#101a34]">
+          <p className="truncate text-[13px] font-black text-[#4c6387]">{label}</p>
+          <p className="mt-0.5 truncate text-lg font-black leading-none tracking-tight text-[#101a34]">
             {value}
           </p>
-          <p className="mt-2 truncate text-sm font-semibold text-[#536889]">{helper}</p>
+          <p className="mt-1 truncate text-xs font-semibold text-[#536889]">{helper}</p>
         </div>
       </div>
     </article>
