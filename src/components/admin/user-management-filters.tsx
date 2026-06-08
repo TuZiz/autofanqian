@@ -2,6 +2,12 @@
 
 import { RefreshCw, Search } from "lucide-react";
 
+import {
+  adminInputClassName,
+  adminPanelClassName,
+  adminSecondaryButtonClassName,
+  adminSelectClassName,
+} from "@/components/admin/admin-page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
@@ -54,15 +60,15 @@ const takeOptions = [20, 50, 100] as const;
 
 export function UserManagementFilters({ users }: { users: AdminUsersLiteController }) {
   return (
-    <section className="rounded-[18px] border border-[#d9e5f2] bg-white p-3 shadow-[0_18px_48px_rgba(15,64,116,0.06)]">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="relative min-w-[220px] flex-1 sm:max-w-[360px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7b8ca5]" />
+    <section className={`${adminPanelClassName} p-4`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="relative min-w-[260px] flex-[1_1_360px]">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7084a3]" />
           <Input
             value={users.query}
             onChange={(event) => users.setQuery(event.target.value)}
             placeholder="搜索邮箱、昵称、用户编号"
-            className="h-9 rounded-md pl-9"
+            className={`${adminInputClassName} pl-11`}
           />
         </label>
         <Select value={users.role} onChange={(value) => users.setRole(value as AdminUserRoleFilter)} options={roleOptions} />
@@ -73,11 +79,11 @@ export function UserManagementFilters({ users }: { users: AdminUsersLiteControll
         <select
           value={users.take}
           onChange={(event) => users.setTake(Number(event.target.value) as 20 | 50 | 100)}
-          className="h-9 rounded-md border border-[#d9e5f2] bg-white px-3 text-sm font-bold text-[#172033] outline-none focus:ring-2 focus:ring-[#1687f2]/20"
+          className={`${adminSelectClassName} min-w-[138px]`}
         >
           {takeOptions.map((option) => (
             <option key={option} value={option}>
-              {option} 条
+              {option} 条/页
             </option>
           ))}
         </select>
@@ -87,6 +93,7 @@ export function UserManagementFilters({ users }: { users: AdminUsersLiteControll
           size="lg"
           onClick={() => void users.refresh()}
           disabled={users.loading}
+          className={adminSecondaryButtonClassName}
         >
           <RefreshCw className={users.loading ? "animate-spin" : ""} />
           刷新
@@ -109,7 +116,7 @@ function Select({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-9 rounded-md border border-[#d9e5f2] bg-white px-3 text-sm font-bold text-[#172033] outline-none focus:ring-2 focus:ring-[#1687f2]/20"
+      className={`${adminSelectClassName} min-w-[150px] flex-1 sm:flex-none`}
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>

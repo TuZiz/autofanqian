@@ -25,7 +25,7 @@ export function AdminNavTabs({ className }: { className?: string }) {
   return (
     <nav
       className={cn(
-        "inline-flex max-w-full items-center gap-1 rounded-lg border border-[#d9e5f2] bg-white p-1 shadow-[0_10px_26px_rgba(15,64,116,0.06)]",
+        "mx-auto inline-flex max-w-full items-center gap-2 rounded-full border border-[#d9e6f5] bg-white/88 p-1.5 shadow-[0_12px_30px_rgba(31,87,140,0.08)]",
         className,
       )}
     >
@@ -41,14 +41,17 @@ export function AdminNavTabs({ className }: { className?: string }) {
             key={item.href}
             href={item.href}
             className={cn(
-              "inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-extrabold transition",
+              "relative inline-flex h-10 min-w-[138px] items-center justify-center gap-2 rounded-full px-5 text-sm font-black transition",
               active
-                ? "bg-[#1687f2] text-white shadow-[0_10px_18px_rgba(22,135,242,0.18)]"
-                : "text-[#52647e] hover:bg-[#f3f7fc] hover:text-[#172033]",
+                ? "bg-[#eef5ff] text-[#1f74ff]"
+                : "text-[#536889] hover:bg-[#f7fbff] hover:text-[#14213d]",
             )}
           >
             <Icon className="h-4 w-4" />
             <span>{item.label}</span>
+            {active ? (
+              <span className="absolute inset-x-5 -bottom-1.5 h-1 rounded-full bg-[#1f74ff] shadow-[0_4px_12px_rgba(31,116,255,0.45)]" />
+            ) : null}
           </Link>
         );
       })}

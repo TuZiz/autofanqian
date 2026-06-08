@@ -21,15 +21,15 @@ const statusColor: Record<string, string> = {
 export function GenerationLogStatusBars({ bars }: { bars: Bar[] }) {
   if (!bars.length) {
     return (
-      <div className="flex h-10 items-center justify-center rounded-xl border border-dashed border-[#d9e5f2] bg-[#f8fbff] text-xs font-bold text-[#7b8ca5]">
+      <div className="flex h-12 items-center justify-center rounded-[12px] border border-dashed border-[#d9e6f5] bg-[#f7fbff] text-xs font-bold text-[#7084a3]">
         暂无最近任务
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[#d9e5f2] bg-[#f8fbff] px-3 py-3">
-      <div className="flex h-10 items-end gap-1 overflow-hidden">
+    <div className="rounded-[12px] border border-[#d9e6f5] bg-[#f7fbff] px-4 py-4">
+      <div className="flex h-12 items-end gap-1 overflow-hidden">
         {bars.map((bar) => (
           <span
             key={bar.id}
@@ -41,7 +41,7 @@ export function GenerationLogStatusBars({ bars }: { bars: Bar[] }) {
           />
         ))}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-[#64748b]">
+      <div className="mt-3 flex flex-wrap gap-3 text-[11px] font-bold text-[#536889]">
         <Legend color="bg-emerald-500" label="成功" />
         <Legend color="bg-red-500" label="失败" />
         <Legend color="bg-blue-500" label="运行中" />
