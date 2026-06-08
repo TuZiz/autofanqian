@@ -42,7 +42,7 @@ export function AdminPageShell({ children, nav }: AdminPageShellProps) {
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,rgba(235,244,255,0.85),rgba(255,255,255,0.92)_34%,rgba(248,251,255,1))]" />
       <div className="relative z-10">
         <AdminTopbar nav={nav} />
-        <div className="mx-auto w-full max-w-[1880px] px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[1720px] px-4 py-5 sm:px-5 lg:px-6">
           <div className="space-y-4">{children}</div>
         </div>
       </div>
@@ -75,7 +75,7 @@ function AdminTopbar({ nav }: AdminTopbarProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#dbe7f4] bg-white/92 backdrop-blur-xl">
-      <div className="mx-auto flex min-h-[78px] w-full max-w-[1880px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-[78px] w-full max-w-[1720px] items-center justify-between gap-4 px-4 sm:px-5 lg:px-6">
         <Link href="/dashboard/admin" className="flex min-w-0 shrink-0 items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-none bg-[#eef5ff] text-[#1f74ff] ring-1 ring-[#cfe0f8]">
             <ShieldCheck className="h-6 w-6" />
