@@ -102,11 +102,8 @@ function AdminTopbar({ nav }: AdminTopbarProps) {
             type="button"
             onClick={() => setLogoutConfirmOpen(true)}
             disabled={logoutBusy}
-            className="inline-flex h-11 items-center gap-3 rounded-none border border-[#d9e6f5] bg-white px-3 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.05)] transition hover:border-[#b8cff0] hover:bg-[#f7fbff] disabled:opacity-60"
+            className="inline-flex h-11 items-center gap-2 rounded-none border border-[#d9e6f5] bg-white px-4 text-sm font-black text-[#14213d] shadow-[0_8px_18px_rgba(31,87,140,0.05)] transition hover:border-[#b8cff0] hover:bg-[#f7fbff] disabled:opacity-60"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-none bg-[#202a3f] text-sm font-black text-white">
-              N
-            </span>
             <span className="hidden sm:inline">{logoutBusy ? "退出中" : "退出登录"}</span>
             {logoutBusy ? <LogOut className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
