@@ -89,11 +89,15 @@ export function getUpstreamTimeoutMs(params: {
   endpoint: UpstreamEndpoint;
   streaming: boolean;
 }) {
-  if (params.providerId === "gpt_primary" || params.providerId === "gpt_fallback") {
+  if (
+    params.providerId === "openai_compatible" ||
+    params.providerId === "gpt_primary" ||
+    params.providerId === "gpt_fallback"
+  ) {
     return FAST_FAIL_PROVIDER_TIMEOUT_MS;
   }
 
-  if (params.endpoint === "responses") {
+  if (params.endpoint === "responses" || params.endpoint === "messages") {
     return FAST_FAIL_PROVIDER_TIMEOUT_MS;
   }
 

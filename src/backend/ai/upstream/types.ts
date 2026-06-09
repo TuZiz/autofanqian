@@ -3,19 +3,35 @@ export type UpstreamChatMessage = {
   content: string;
 };
 
-export type UpstreamPhysicalProviderId = "gpt_primary" | "gpt_fallback" | "ark";
+export type UpstreamPhysicalProviderId =
+  | "primary"
+  | "backup"
+  | "openai_compatible"
+  | "gpt_primary"
+  | "gpt_fallback"
+  | "ark"
+  | "anthropic";
 export type UpstreamRouteId = "gpt" | "ark";
 export type UpstreamProviderId = UpstreamPhysicalProviderId;
-export type UpstreamEndpoint = "chat" | "responses";
+export type UpstreamEndpoint = "chat" | "responses" | "messages";
+export type UpstreamProviderType = "openai_compatible" | "anthropic";
+export type UpstreamProviderProtocol =
+  | "openai_chat"
+  | "openai_responses"
+  | "anthropic_messages";
 
 export type UpstreamReasoningEffort = "low" | "medium" | "high";
 
 export type UpstreamProvider = {
   id: UpstreamPhysicalProviderId;
+  providerType: UpstreamProviderType;
+  protocol: UpstreamProviderProtocol;
+  label?: string;
   baseUrl: string;
   apiKey: string;
   model: string;
   prefer?: UpstreamEndpoint;
+  anthropicVersion?: string;
 };
 
 export type UpstreamRoute = {
@@ -72,6 +88,8 @@ export type UpstreamPhysicalProviderConfig = {
   model: string;
   modelOptions: string[];
   prefer: UpstreamEndpoint;
+  providerType: UpstreamProviderType;
+  protocol: UpstreamProviderProtocol;
   apiKeyEnvKey: string;
   envModelKey: string;
 };

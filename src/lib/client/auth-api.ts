@@ -85,7 +85,7 @@ export async function apiRequest<T = unknown>(
             : response.status === 429
               ? errorPayload?.message || "请求过于频繁，请稍后再试。"
               : response.status >= 500
-                ? "服务异常，请稍后重试。"
+                ? errorPayload?.message || "服务异常，请稍后重试。"
                 : errorPayload?.message || zhCN.auth.response.networkError,
         fieldErrors: errorPayload?.fieldErrors,
       };

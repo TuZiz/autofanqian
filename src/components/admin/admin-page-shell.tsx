@@ -130,6 +130,7 @@ function AdminTopbar({ nav }: AdminTopbarProps) {
 }
 
 type AdminHeroProps = {
+  actions?: ReactNode;
   description: string;
   eyebrow: string;
   icon: LucideIcon;
@@ -140,6 +141,7 @@ type AdminHeroProps = {
 };
 
 export function AdminHero({
+  actions,
   description,
   eyebrow,
   icon: Icon,
@@ -166,16 +168,21 @@ export function AdminHero({
           </div>
         </div>
 
-        {onRefresh ? (
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={refreshBusy}
-            className={cn(adminPrimaryButtonClassName, "inline-flex shrink-0 items-center justify-center gap-2 self-start md:self-auto")}
-          >
-            <RefreshCw className={cn("h-4 w-4", refreshBusy ? "animate-spin" : "")} />
-            {refreshLabel}
-          </button>
+        {actions || onRefresh ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2 self-start md:self-auto">
+            {actions}
+            {onRefresh ? (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={refreshBusy}
+                className={cn(adminPrimaryButtonClassName, "inline-flex items-center justify-center gap-2")}
+              >
+                <RefreshCw className={cn("h-4 w-4", refreshBusy ? "animate-spin" : "")} />
+                {refreshLabel}
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </section>

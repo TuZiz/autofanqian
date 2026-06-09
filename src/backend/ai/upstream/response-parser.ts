@@ -54,10 +54,28 @@ export function getFirstTextFromResponses(payload: unknown) {
   return getFirstTextFromChat(payload);
 }
 
+export function getFirstTextFromAnthropicMessages(payload: unknown) {
+  if (!payload || typeof payload !== "object") return null;
+
+  const data = payload as {
+    content?: Array<{
+      type?: unknown;
+      text?: unknown;
+    }>;
+  };
+  const content = Array.isArray(data.content) ? data.content : [];
+  const text = content
+    .map((item) => (item.type === "text" && typeof item.text === "string" ? item.text : ""))
+    .join("")
+    .trim();
+
+  return text || null;
+}
+
 export function extractTextFromPayload(endpoint: UpstreamEndpoint, payload: unknown) {
-  return endpoint === "chat"
-    ? getFirstTextFromChat(payload)
-    : getFirstTextFromResponses(payload);
+  if (endpoint === "chat") return getFirstTextFromChat(payload);
+  if (endpoint === "messages") return getFirstTextFromAnthropicMessages(payload);
+  return getFirstTextFromResponses(payload);
 }
 
 function normalizeUsageNumber(value: unknown) {

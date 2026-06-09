@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     await assertCanUseAiAction(user, AI_ACTIONS.chapterGenerate);
     const data = await generateChapterForUser({
       input: parsedBody.data,
-      providersFromEnv: getAiProvidersFromEnv(),
+      providersFromEnv: await getAiProvidersFromEnv(),
       user,
     });
 

@@ -380,7 +380,7 @@ export async function POST(request: Request) {
     const target = aiModelConfig.chapterRewrite;
     const routeId = target.providerId;
     const providers = buildAiProviderChain({
-      providers: getAiProvidersFromEnv(),
+      providers: await getAiProvidersFromEnv(),
       preferredProviderId: routeId,
       overrideModel: target.model,
     });

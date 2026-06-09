@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       return errorResponse(error);
     }
 
-    const providersFromEnv = getAiProvidersFromEnv();
+    const providersFromEnv = await getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();
     const target = chapter.summary?.trim()
       ? aiModelConfig.regenerateAll

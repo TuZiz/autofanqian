@@ -117,7 +117,7 @@ async function processChapterContextExtraction(params: QueueChapterContextExtrac
   if (!work) return;
   if (!chapter.content.trim()) return;
 
-  const providersFromEnv = getAiProvidersFromEnv();
+  const providersFromEnv = await getAiProvidersFromEnv();
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.chapterDetails;
   const routeId = target.providerId;

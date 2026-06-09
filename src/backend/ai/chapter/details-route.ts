@@ -151,7 +151,7 @@ export async function POST(request: Request) {
       return errorResponse(error);
     }
 
-    const providersFromEnv = getAiProvidersFromEnv();
+    const providersFromEnv = await getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();
     const hasExistingDetails = Array.isArray(chapter.details) && chapter.details.length > 0;
     const target = hasExistingDetails

@@ -9,9 +9,17 @@ export const AI_MODEL_PROVIDER_IDS = ["gpt", "ark"] as const;
 export type AiModelProviderId = (typeof AI_MODEL_PROVIDER_IDS)[number];
 export type AiModelProviderProtocol = "route";
 
-export const AI_PHYSICAL_PROVIDER_IDS = ["gpt_primary", "gpt_fallback", "ark"] as const;
+export const AI_PHYSICAL_PROVIDER_IDS = [
+  "primary",
+  "backup",
+  "openai_compatible",
+  "gpt_primary",
+  "gpt_fallback",
+  "ark",
+  "anthropic",
+] as const;
 export type AiPhysicalProviderId = (typeof AI_PHYSICAL_PROVIDER_IDS)[number];
-export type AiPhysicalProviderProtocol = "chat" | "responses";
+export type AiPhysicalProviderProtocol = "chat" | "responses" | "messages";
 
 export const AI_MODEL_CONFIG_KEYS = [
   "ideaGenerate",

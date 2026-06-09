@@ -14,16 +14,20 @@ export function getProviderApiKeyEnvName(
   providerId: UpstreamRouteId | UpstreamPhysicalProviderId | string,
 ) {
   const physicalProviderId = normalizePhysicalProviderId(providerId);
+  if (physicalProviderId === "primary") return "后台 AI 配置 / 主用线路";
+  if (physicalProviderId === "backup") return "后台 AI 配置 / 备用线路";
+  if (physicalProviderId === "openai_compatible") return "后台 AI 配置 / OpenAI-compatible";
   if (physicalProviderId === "gpt_primary") return "GPT_PRIMARY_API_KEY";
   if (physicalProviderId === "gpt_fallback") return "GPT_FALLBACK_API_KEY";
   if (physicalProviderId === "ark") return "ARK_API_KEY";
+  if (physicalProviderId === "anthropic") return "ANTHROPIC_API_KEY";
 
   const routeId = normalizeRouteId(providerId);
   if (routeId === "ark") {
-    return "ARK_API_KEY / GPT_PRIMARY_API_KEY / GPT_FALLBACK_API_KEY";
+    return "后台 AI 配置 / ARK_API_KEY / ANTHROPIC_API_KEY / GPT_PRIMARY_API_KEY / GPT_FALLBACK_API_KEY";
   }
 
-  return "GPT_PRIMARY_API_KEY / GPT_FALLBACK_API_KEY";
+  return "后台 AI 配置 / ANTHROPIC_API_KEY / GPT_PRIMARY_API_KEY / GPT_FALLBACK_API_KEY";
 }
 
 export function buildAiProviderChain(params: {
@@ -65,6 +69,8 @@ export function buildChapterSmartProviderChain(params: {
   const availableById = new Map(params.providers.map((provider) => [provider.id, provider]));
   const preferredModel = normalizeModelName(params.overrideModel?.trim() || "gpt-5.5");
   const chainOrder: UpstreamPhysicalProviderId[] = [
+    "primary",
+    "backup",
     "gpt_primary",
     "gpt_fallback",
     "ark",
@@ -75,7 +81,10 @@ export function buildChapterSmartProviderChain(params: {
     .filter((provider): provider is UpstreamProvider => Boolean(provider))
     .map((provider) => ({
       ...provider,
-      model: provider.id === "ark" ? provider.model : preferredModel,
+      model:
+        provider.providerType === "anthropic" || provider.id === "ark"
+          ? provider.model
+          : preferredModel,
     }));
 }
 

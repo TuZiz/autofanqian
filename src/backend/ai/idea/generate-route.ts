@@ -116,7 +116,7 @@ export async function POST(request: Request) {
   const existingIdeaDraft = parsed.data.existingIdea?.trim();
   const target = existingIdeaDraft ? aiModelConfig.regenerateAll : aiModelConfig.ideaGenerate;
   const providers = buildAiProviderChain({
-    providers: getAiProvidersFromEnv(),
+    providers: await getAiProvidersFromEnv(),
     preferredProviderId: target.providerId,
     overrideModel: target.model,
   });

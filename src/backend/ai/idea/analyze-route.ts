@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     return errorResponse(error);
   }
 
-  const providers = getAiProvidersFromEnv();
+  const providers = await getAiProvidersFromEnv();
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.ideaAnalyze;
 

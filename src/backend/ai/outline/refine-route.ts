@@ -212,7 +212,7 @@ export async function POST(request: Request) {
     config: planningConfig,
   });
 
-  const providersFromEnv = getAiProvidersFromEnv();
+  const providersFromEnv = await getAiProvidersFromEnv();
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.regenerateAll;
 

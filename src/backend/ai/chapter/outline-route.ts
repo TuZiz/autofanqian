@@ -190,7 +190,7 @@ export async function POST(request: Request) {
         ? outline.volumes.map(formatOutlineVolume).join("\n\n")
         : "-";
 
-    const providersFromEnv = getAiProvidersFromEnv();
+    const providersFromEnv = await getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();
     const target = chapter.chapterOutline?.trim()
       ? aiModelConfig.regenerateAll

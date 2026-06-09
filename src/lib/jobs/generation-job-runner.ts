@@ -435,7 +435,7 @@ async function runLongShortStoryJob(job: GenerationJob) {
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.outlineGenerate;
   const providers = buildAiProviderChain({
-    providers: getAiProvidersFromEnv(),
+    providers: await getAiProvidersFromEnv(),
     preferredProviderId: target.providerId,
     overrideModel: target.model,
   });
@@ -692,7 +692,7 @@ async function runBookConsistencyJob(job: GenerationJob) {
   const aiModelConfig = await getAiModelConfig();
   const target = aiModelConfig.chapterRewrite;
   const providers = buildAiProviderChain({
-    providers: getAiProvidersFromEnv(),
+    providers: await getAiProvidersFromEnv(),
     preferredProviderId: target.providerId,
     overrideModel: target.model,
   });
@@ -757,7 +757,7 @@ async function runBatchGenerateJob(job: GenerationJob) {
   const parsed = batchGenerateJobJsonSchema.parse(job.resultJson ?? {});
   const indexes = resolveBatchIndexes(parsed);
   const generated = new Set(parsed.generated);
-  const providersFromEnv = getAiProvidersFromEnv();
+  const providersFromEnv = await getAiProvidersFromEnv();
 
   for (const index of indexes) {
     if (generated.has(index)) continue;

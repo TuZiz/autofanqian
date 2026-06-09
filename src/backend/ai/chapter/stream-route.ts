@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     const prepared = await prepareChapterGeneration({
       user,
       input: parsedBody.data,
-      providersFromEnv: getAiProvidersFromEnv(),
+      providersFromEnv: await getAiProvidersFromEnv(),
     });
     const smartProviders = buildChapterSmartProviderChain({
       providers: prepared.providers,

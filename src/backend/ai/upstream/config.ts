@@ -1,3 +1,5 @@
+import { getRuntimeAiProviderSettings } from "@/lib/config/ai-provider-settings";
+
 import type {
   UpstreamPhysicalProviderConfig,
   UpstreamPhysicalProviderId,
@@ -10,13 +12,13 @@ export const ROUTE_PROVIDER_IDS: Record<
   UpstreamRouteId,
   UpstreamPhysicalProviderId[]
 > = {
-  gpt: ["gpt_primary", "gpt_fallback"],
-  ark: ["ark", "gpt_primary", "gpt_fallback"],
+  gpt: ["primary", "backup", "gpt_primary", "gpt_fallback"],
+  ark: ["primary", "backup", "ark", "gpt_primary", "gpt_fallback"],
 };
 
 const ROUTE_LABELS: Record<UpstreamRouteId, string> = {
-  gpt: "GPT 路线（xtokenmirror -> 99dun）",
-  ark: "豆包路线（豆包 -> GPT 路线）",
+  gpt: "GPT 路线（后台配置 -> xtokenmirror -> 99dun）",
+  ark: "豆包路线（后台配置 -> 豆包 -> GPT 路线）",
 };
 
 export function readFirstEnv(keys: string[], fallback = "") {
@@ -55,7 +57,15 @@ export function normalizeRouteId(
   value: string | null | undefined,
 ): UpstreamRouteId | undefined {
   if (!value) return undefined;
-  if (value === "gpt" || value === "primary" || value === "anthropic") return "gpt";
+  if (
+    value === "gpt" ||
+    value === "primary" ||
+    value === "anthropic" ||
+    value === "backup" ||
+    value === "openai_compatible"
+  ) {
+    return "gpt";
+  }
   if (value === "ark") return "ark";
   if (value === "gpt_primary" || value === "gpt_fallback") return "gpt";
   return undefined;
@@ -65,7 +75,15 @@ export function normalizePhysicalProviderId(
   value: string | null | undefined,
 ): UpstreamPhysicalProviderId | undefined {
   if (!value) return undefined;
-  if (value === "gpt_primary" || value === "gpt_fallback" || value === "ark") {
+  if (
+    value === "openai_compatible" ||
+    value === "primary" ||
+    value === "backup" ||
+    value === "gpt_primary" ||
+    value === "gpt_fallback" ||
+    value === "ark" ||
+    value === "anthropic"
+  ) {
     return value;
   }
   return undefined;
@@ -94,10 +112,15 @@ export function getAiPhysicalProviderConfigsFromEnv(): UpstreamPhysicalProviderC
   const arkModel = normalizeModelName(
     readFirstEnv(["ARK_MODEL"], "doubao-seed-2-0-pro-260215"),
   );
+  const anthropicModel = normalizeModelName(
+    readFirstEnv(["ANTHROPIC_MODEL"], "claude-sonnet-4-20250514"),
+  );
 
   return [
     {
       id: "gpt_primary",
+      providerType: "openai_compatible",
+      protocol: "openai_responses",
       label: readFirstEnv(
         ["GPT_PRIMARY_PROVIDER_LABEL", "AI_PROVIDER_LABEL", "AI_PROVIDER_NAME"],
         "xtokenmirror",
@@ -115,10 +138,12 @@ export function getAiPhysicalProviderConfigsFromEnv(): UpstreamPhysicalProviderC
         readFirstEnv(["GPT_PRIMARY_MODEL_OPTIONS", "AI_MODEL_OPTIONS"]),
         gptPrimaryModel,
       ),
-      prefer: "chat",
+      prefer: "responses",
     },
     {
       id: "gpt_fallback",
+      providerType: "openai_compatible",
+      protocol: "openai_responses",
       label: readFirstEnv(["GPT_FALLBACK_PROVIDER_LABEL"], "99dun"),
       configured: Boolean(readFirstEnv(["GPT_FALLBACK_API_KEY"])),
       apiKey: readFirstEnv(["GPT_FALLBACK_API_KEY"]) || null,
@@ -130,10 +155,12 @@ export function getAiPhysicalProviderConfigsFromEnv(): UpstreamPhysicalProviderC
         readFirstEnv(["GPT_FALLBACK_MODEL_OPTIONS"]),
         gptFallbackModel,
       ),
-      prefer: "chat",
+      prefer: "responses",
     },
     {
       id: "ark",
+      providerType: "openai_compatible",
+      protocol: "openai_responses",
       label: readFirstEnv(["ARK_PROVIDER_LABEL", "ARK_PROVIDER_NAME"], "豆包"),
       configured: Boolean(readFirstEnv(["ARK_API_KEY"])),
       apiKey: readFirstEnv(["ARK_API_KEY"]) || null,
@@ -144,11 +171,25 @@ export function getAiPhysicalProviderConfigsFromEnv(): UpstreamPhysicalProviderC
         "https://ark.cn-beijing.volces.com/api/v3",
       ),
       model: arkModel,
+      modelOptions: parseModelOptions(readFirstEnv(["ARK_MODEL_OPTIONS"]), arkModel),
+      prefer: "responses",
+    },
+    {
+      id: "anthropic",
+      providerType: "anthropic",
+      protocol: "anthropic_messages",
+      label: readFirstEnv(["ANTHROPIC_PROVIDER_LABEL"], "Anthropic"),
+      configured: Boolean(readFirstEnv(["ANTHROPIC_API_KEY"])),
+      apiKey: readFirstEnv(["ANTHROPIC_API_KEY"]) || null,
+      apiKeyEnvKey: "ANTHROPIC_API_KEY",
+      envModelKey: "ANTHROPIC_MODEL",
+      baseUrl: readFirstEnv(["ANTHROPIC_BASE_URL"], "https://api.anthropic.com"),
+      model: anthropicModel,
       modelOptions: parseModelOptions(
-        readFirstEnv(["ARK_MODEL_OPTIONS"]),
-        arkModel,
+        readFirstEnv(["ANTHROPIC_MODEL_OPTIONS"]),
+        anthropicModel,
       ),
-      prefer: "chat",
+      prefer: "messages",
     },
   ];
 }
@@ -179,14 +220,56 @@ export function getAiRouteConfigsFromEnv(): UpstreamRouteConfig[] {
   });
 }
 
-export function getAiProvidersFromEnv() {
+function getAiProvidersFromEnvOnly() {
   return getAiPhysicalProviderConfigsFromEnv()
     .filter((provider) => provider.configured && provider.apiKey)
     .map<UpstreamProvider>((provider) => ({
       id: provider.id,
+      providerType: provider.providerType,
+      protocol: provider.protocol,
+      label: provider.label,
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey as string,
       model: provider.model,
       prefer: provider.prefer,
+      ...(provider.id === "anthropic"
+        ? { anthropicVersion: readFirstEnv(["ANTHROPIC_VERSION"], "2023-06-01") }
+        : {}),
     }));
+}
+
+export async function getAiProvidersFromEnv() {
+  const envProviders = getAiProvidersFromEnvOnly();
+  let settingsProviders: UpstreamProvider[] = [];
+
+  try {
+    const settings = await getRuntimeAiProviderSettings();
+    settingsProviders = settings.map<UpstreamProvider>((provider) => ({
+      id: provider.id,
+      providerType:
+        provider.providerType === "anthropic" ? "anthropic" : "openai_compatible",
+      protocol: provider.protocol,
+      label: provider.label,
+      baseUrl: provider.baseUrl,
+      apiKey: provider.apiKey,
+      model: provider.model,
+      prefer:
+        provider.protocol === "anthropic_messages"
+          ? "messages"
+          : provider.protocol === "openai_responses"
+            ? "responses"
+            : "chat",
+      ...(provider.anthropicVersion
+        ? { anthropicVersion: provider.anthropicVersion }
+        : {}),
+    }));
+  } catch (error) {
+    console.warn("load ai provider settings failed, fallback to env", error);
+  }
+
+  const settingsIds = new Set(settingsProviders.map((provider) => provider.id));
+  return [
+    ...settingsProviders,
+    ...envProviders.filter((provider) => !settingsIds.has(provider.id)),
+  ];
 }

@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     const aiModelConfig = await getAiModelConfig();
     const target = aiModelConfig.outlineGenerate;
     const providers = buildAiProviderChain({
-      providers: getAiProvidersFromEnv(),
+      providers: await getAiProvidersFromEnv(),
       preferredProviderId: target.providerId,
       overrideModel: target.model,
     });

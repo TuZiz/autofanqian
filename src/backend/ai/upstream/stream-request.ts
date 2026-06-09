@@ -1,5 +1,9 @@
-import { getFirstTextFromResponses, getTokenUsage } from "./response-parser";
-import { getUpstreamMessage } from "./request";
+import {
+  getFirstTextFromAnthropicMessages,
+  getFirstTextFromResponses,
+  getTokenUsage,
+} from "./response-parser";
+import { callAnthropicMessages, getUpstreamMessage } from "./request";
 import {
   buildEndpointUrl,
   createManagedAbortSignal,
@@ -35,6 +39,45 @@ export async function callUpstreamStream(
   text?: string;
   started: boolean;
 }> {
+  if (params.provider.providerType === "anthropic" || params.endpoint === "messages") {
+    const result = await callAnthropicMessages({
+      provider: params.provider,
+      model: params.model,
+      messages: params.messages,
+      temperature: params.temperature,
+      maxTokens: params.maxTokens,
+      signal: params.signal,
+    });
+    const text = getFirstTextFromAnthropicMessages(result.json) ?? undefined;
+    if (result.ok && text && params.onChunk) {
+      const usage = getTokenUsage(result.json);
+      await params.onChunk({
+        routeId: params.routeId,
+        providerId: params.provider.id,
+        endpoint: "messages",
+        modelUsed: params.model,
+        deltaText: text,
+        usage,
+      });
+      await params.onChunk({
+        routeId: params.routeId,
+        providerId: params.provider.id,
+        endpoint: "messages",
+        modelUsed: params.model,
+        done: true,
+        usage,
+      });
+    }
+
+    return {
+      ok: result.ok,
+      status: result.status,
+      json: result.json,
+      text,
+      started: Boolean(text),
+    };
+  }
+
   const url = buildEndpointUrl(params.provider.baseUrl, params.endpoint);
   const body =
     params.endpoint === "chat"

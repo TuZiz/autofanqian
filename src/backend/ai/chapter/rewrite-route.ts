@@ -181,7 +181,7 @@ export async function POST(request: Request) {
     await assertAiQuotaAvailable(user);
     await assertCanUseAiAction(user, AI_ACTIONS.chapterRewrite);
 
-    const providersFromEnv = getAiProvidersFromEnv();
+    const providersFromEnv = await getAiProvidersFromEnv();
     const aiModelConfig = await getAiModelConfig();
     const target = aiModelConfig.chapterRewrite;
     const routeId = target.providerId;

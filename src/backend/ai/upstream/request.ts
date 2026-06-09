@@ -69,12 +69,117 @@ function sleep(ms: number) {
 }
 
 export function getEndpointOrder(prefer: UpstreamProvider["prefer"]) {
+  if (prefer === "messages") return ["messages"] as const;
   if (prefer === "responses") return ["responses", "chat"] as const;
   return ["chat", "responses"] as const;
 }
 
 export function shouldTryNextEndpoint(status: number, hasText: boolean) {
   return !hasText && (status === 400 || status === 404);
+}
+
+function buildAnthropicMessagesUrl(baseUrl: string) {
+  const trimmed = baseUrl.replace(/\/+$/, "");
+  if (/\/messages$/i.test(trimmed)) return trimmed;
+  if (trimmed.endsWith("/v1")) return `${trimmed}/messages`;
+  return `${trimmed}/v1/messages`;
+}
+
+function buildAnthropicMessagesBody(params: {
+  model: string;
+  messages: UpstreamChatMessage[];
+  temperature: number;
+  maxTokens: number;
+}) {
+  const system = params.messages
+    .filter((message) => message.role === "system")
+    .map((message) => message.content)
+    .join("\n\n")
+    .trim();
+  const messages = params.messages
+    .filter((message) => message.role !== "system")
+    .map((message) => ({
+      role: message.role === "assistant" ? "assistant" as const : "user" as const,
+      content: message.content,
+    }));
+
+  return {
+    model: params.model,
+    max_tokens: params.maxTokens,
+    temperature: params.temperature,
+    ...(system ? { system } : {}),
+    messages: messages.length
+      ? messages
+      : [{ role: "user" as const, content: "请只回复 OK" }],
+  };
+}
+
+export async function callAnthropicMessages(
+  params: {
+    provider: UpstreamProvider;
+    model: string;
+    messages: UpstreamChatMessage[];
+    temperature: number;
+    maxTokens: number;
+    signal?: AbortSignal;
+  },
+): Promise<{ ok: boolean; status: number; json: unknown }> {
+  const requestTimeout = createManagedAbortSignal({
+    externalSignal: params.signal,
+    timeoutMs: getUpstreamTimeoutMs({
+      providerId: params.provider.id,
+      endpoint: "messages",
+      streaming: false,
+    }),
+  });
+
+  try {
+    const response = await fetch(buildAnthropicMessagesUrl(params.provider.baseUrl), {
+      method: "POST",
+      headers: {
+        "x-api-key": params.provider.apiKey,
+        "anthropic-version": params.provider.anthropicVersion || "2023-06-01",
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(
+        buildAnthropicMessagesBody({
+          model: params.model,
+          messages: params.messages,
+          temperature: params.temperature,
+          maxTokens: params.maxTokens,
+        }),
+      ),
+      signal: requestTimeout.signal,
+    });
+
+    const json = await response.json().catch(() => null as unknown);
+    return { ok: response.ok, status: response.status, json };
+  } catch {
+    if (params.signal?.aborted && !requestTimeout.didTimeout()) {
+      return {
+        ok: false,
+        status: 499,
+        json: { error: { message: "upstream_aborted" } },
+      };
+    }
+
+    if (requestTimeout.didTimeout()) {
+      return {
+        ok: false,
+        status: 408,
+        json: { error: { message: "上游响应超时" } },
+      };
+    }
+
+    return {
+      ok: false,
+      status: 0,
+      json: { error: { message: "网络异常或上游服务不可达" } },
+    };
+  } finally {
+    requestTimeout.dispose();
+  }
 }
 
 export async function callUpstream(
@@ -89,6 +194,17 @@ export async function callUpstream(
     signal?: AbortSignal;
   },
 ): Promise<{ ok: boolean; status: number; json: unknown }> {
+  if (params.provider.providerType === "anthropic" || params.endpoint === "messages") {
+    return callAnthropicMessages({
+      provider: params.provider,
+      model: params.model,
+      messages: params.messages,
+      temperature: params.temperature,
+      maxTokens: params.maxTokens,
+      signal: params.signal,
+    });
+  }
+
   const url = buildEndpointUrl(params.provider.baseUrl, params.endpoint);
   const body =
     params.endpoint === "chat"
