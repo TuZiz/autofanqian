@@ -41,19 +41,29 @@ export function GenerationLogTable({ logs }: { logs: GenerationLogsController })
   return (
     <section className={`${adminPanelClassName} overflow-hidden`}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1240px] text-left text-sm">
-          <thead className="border-b border-[#e7eef8] bg-[#fbfdff] text-[12px] font-black text-[#536889]">
+        <table className="w-full min-w-[1152px] table-fixed text-left text-[12px]">
+          <colgroup>
+            <col className="w-[82px]" />
+            <col className="w-[184px]" />
+            <col className="w-[208px]" />
+            <col className="w-[194px]" />
+            <col className="w-[76px]" />
+            <col className="w-[172px]" />
+            <col className="w-[250px]" />
+            <col className="w-[88px]" />
+          </colgroup>
+          <thead className="border-b border-[#e7eef8] bg-[#fbfdff] text-[11px] font-black text-[#536889]">
             <tr>
-              <th className="px-5 py-3">状态</th>
-              <th className="px-5 py-3">action / jobType</th>
-              <th className="px-5 py-3">作品 / 章节</th>
-              <th className="px-5 py-3">用户邮箱</th>
-              <th className="px-5 py-3">模型</th>
-              <th className="px-5 py-3">Token</th>
-              <th className="px-5 py-3">耗时</th>
-              <th className="px-5 py-3">时间</th>
-              <th className="px-5 py-3">错误摘要</th>
-              <th className="px-5 py-3 text-right">操作</th>
+              <th className="whitespace-nowrap px-3 py-2">状态</th>
+              <th className="whitespace-nowrap px-3 py-2">任务</th>
+              <th className="whitespace-nowrap px-3 py-2">作品用户</th>
+              <th className="whitespace-nowrap px-3 py-2">模型消耗</th>
+              <th className="whitespace-nowrap px-3 py-2">耗时</th>
+              <th className="whitespace-nowrap px-3 py-2">时间</th>
+              <th className="whitespace-nowrap px-3 py-2">错误摘要</th>
+              <th className="sticky right-0 z-20 whitespace-nowrap bg-[#fbfdff] px-2 py-2 text-right shadow-[-10px_0_18px_rgba(255,255,255,0.9)]">
+                操作
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -68,13 +78,13 @@ export function GenerationLogTable({ logs }: { logs: GenerationLogsController })
         </table>
       </div>
       {logs.nextCursor ? (
-        <div className="border-t border-[#e7eef8] px-6 py-4 text-center">
+        <div className="border-t border-[#e7eef8] px-4 py-3 text-center">
           <Button
             type="button"
             variant="outline"
             onClick={() => logs.loadMore()}
             disabled={logs.loadingMore}
-            className={adminSecondaryButtonClassName}
+            className={`${adminSecondaryButtonClassName} h-8 px-3 text-xs`}
           >
             {logs.loadingMore ? "加载中..." : "加载更多"}
           </Button>
@@ -94,76 +104,86 @@ function GenerationLogRow({
   const statusMeta = getGenerationStatusMeta(job.status);
   const StatusIcon = statusMeta.icon;
   const errorText = job.errorMessage || job.error || "";
+  const chapterLabel = job.chapterIndex === null ? "无章节" : `第 ${job.chapterIndex} 章`;
+  const userEmail = job.user?.email || "未知用户";
+  const modelLabel = job.modelUsed || "-";
+  const modelMeta = [job.providerId, job.routeId].filter(Boolean).join(" / ");
+  const tokenSummary = `总 ${formatTokens(job.totalTokens)} / 入 ${formatTokens(job.inputTokens)} / 出 ${formatTokens(job.outputTokens)}`;
 
   return (
-    <tr className="border-b border-[#e7eef8] align-middle last:border-0 hover:bg-[#fbfdff]">
-      <td className="px-5 py-3.5">
+    <tr className="group border-b border-[#e7eef8] align-middle last:border-0 hover:bg-[#fbfdff]">
+      <td className="px-3 py-2">
         <span
           className={cn(
-            "inline-flex items-center gap-1 rounded-none border px-2.5 py-1 text-[11px] font-black",
+            "inline-flex h-6 max-w-full items-center gap-1 rounded-none border px-2 text-[11px] font-black leading-none",
             statusMeta.className,
           )}
         >
           {StatusIcon ? (
-            <StatusIcon className={cn("h-3.5 w-3.5", job.status === "running" ? "animate-spin" : "")} />
+            <StatusIcon className={cn("h-3.5 w-3.5 shrink-0", job.status === "running" ? "animate-spin" : "")} />
           ) : null}
-          {statusMeta.label}
+          <span className="truncate">{statusMeta.label}</span>
         </span>
       </td>
-      <td className="max-w-[210px] px-5 py-3.5">
-        <p className="truncate font-black text-[#14213d]">{job.action}</p>
-        <p className="mt-0.5 truncate text-xs font-semibold text-[#7084a3]">{job.jobType || "-"}</p>
+      <td className="px-3 py-2">
+        <p className="truncate text-[13px] font-black leading-5 text-[#14213d]" title={job.action}>
+          {job.action}
+        </p>
+        <p className="truncate text-[11px] font-semibold leading-4 text-[#7084a3]" title={job.jobType || "-"}>
+          {job.jobType || "-"}
+        </p>
       </td>
-      <td className="max-w-[240px] px-5 py-3.5">
+      <td className="px-3 py-2">
         {job.novel ? (
           <Link
             href={`/dashboard/novel/${encodeURIComponent(job.novel.id)}`}
-            className="line-clamp-1 font-black text-[#14213d] hover:text-[#1f74ff]"
+            className="block truncate text-[13px] font-black leading-5 text-[#14213d] hover:text-[#1f74ff]"
+            title={`${job.novel.title} / ${chapterLabel}`}
           >
-            {job.novel.title}
+            {job.novel.title} / {chapterLabel}
           </Link>
         ) : (
-          <span className="font-semibold text-[#7084a3]">作品已删除</span>
+          <span className="block truncate text-[13px] font-semibold leading-5 text-[#7084a3]">
+            作品已删除 / {chapterLabel}
+          </span>
         )}
-        <p className="mt-0.5 truncate text-xs font-semibold text-[#7084a3]">
-          {job.chapterIndex ? `第 ${job.chapterIndex} 章` : "无章节"}
+        <p className="truncate text-[11px] font-semibold leading-4 text-[#7084a3]" title={userEmail}>
+          {userEmail}
         </p>
       </td>
-      <td className="max-w-[220px] px-5 py-3.5">
-        <p className="truncate font-semibold text-[#14213d]">{job.user?.email || "未知用户"}</p>
-      </td>
-      <td className="max-w-[220px] px-5 py-3.5">
-        <p className="truncate font-semibold text-[#14213d]">{job.modelUsed || "-"}</p>
-        <p className="mt-0.5 truncate text-xs font-semibold text-[#7084a3]">
-          {job.providerId || "-"}{job.routeId ? ` / ${job.routeId}` : ""}
+      <td className="px-3 py-2">
+        <p className="truncate text-[12px] font-semibold leading-5 text-[#14213d]" title={modelMeta ? `${modelLabel} / ${modelMeta}` : modelLabel}>
+          {modelLabel}
+        </p>
+        <p className="truncate text-[11px] font-bold leading-4 text-[#536889]" title={tokenSummary}>
+          {tokenSummary}
         </p>
       </td>
-      <td className="px-5 py-3.5 text-xs font-bold text-[#536889]">
-        <p>总 {formatTokens(job.totalTokens)}</p>
-        <p className="mt-0.5 text-[#7084a3]">
-          入 {formatTokens(job.inputTokens)} / 出 {formatTokens(job.outputTokens)}
-        </p>
-      </td>
-      <td className="px-5 py-3.5 text-sm font-bold text-[#536889]">
+      <td className="whitespace-nowrap px-3 py-2 text-[12px] font-bold text-[#536889]">
         {formatDuration(job.durationMs)}
       </td>
-      <td className="min-w-[190px] px-5 py-3.5 text-xs font-bold text-[#536889]">
-        <p>创建 {formatDateTime(job.createdAt)}</p>
-        <p className="mt-0.5 text-[#7084a3]">完成 {formatDateTime(job.completedAt ?? job.finishedAt)}</p>
+      <td className="px-3 py-2 text-[11px] font-bold leading-4 text-[#536889]">
+        <p className="truncate" title={`创建 ${formatDateTime(job.createdAt)}`}>
+          创建 {formatDateTime(job.createdAt)}
+        </p>
+        <p className="truncate text-[#7084a3]" title={`完成 ${formatDateTime(job.completedAt ?? job.finishedAt)}`}>
+          完成 {formatDateTime(job.completedAt ?? job.finishedAt)}
+        </p>
       </td>
-      <td className="max-w-[280px] px-5 py-3.5">
+      <td className="px-3 py-2">
         <p
           className={cn(
-            "line-clamp-2 text-xs font-semibold leading-5",
+            "line-clamp-2 break-words text-[12px] font-semibold leading-5",
             errorText ? "text-[#9f1d16]" : "text-[#7084a3]",
           )}
+          title={errorText || job.resultSummary || "无错误"}
         >
           {errorText || job.resultSummary || "无错误"}
         </p>
       </td>
-      <td className="px-5 py-3.5 text-right">
-        <Button type="button" variant="outline" size="sm" onClick={onDetail} className="h-8 rounded-none border-[#d9e6f5] bg-white px-2.5 text-xs font-black text-[#14213d] hover:bg-[#f7fbff]">
-          <Eye className="h-4 w-4" />
+      <td className="sticky right-0 z-10 bg-white px-2 py-2 text-right shadow-[-10px_0_18px_rgba(255,255,255,0.9)] group-hover:bg-[#fbfdff]">
+        <Button type="button" variant="outline" size="sm" onClick={onDetail} className="h-7 rounded-none border-[#d9e6f5] bg-white px-2 text-[11px] font-black text-[#14213d] hover:bg-[#f7fbff]">
+          <Eye className="h-3.5 w-3.5" />
           详情
         </Button>
       </td>
