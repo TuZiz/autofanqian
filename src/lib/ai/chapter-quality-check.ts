@@ -157,12 +157,39 @@ export async function runChapterQualityCheck(params: {
           withAuxiliaryTimeoutSignal("chapter_quality_check", executeQualityCall),
         )
       : await withAuxiliaryTimeoutSignal("chapter_quality_check", executeQualityCall);
-    const quality = result.ok && result.text ? parseChapterQualityCheck(result.text) : null;
+    let finalResult = result;
+    let quality = result.ok && result.text ? parseChapterQualityCheck(result.text) : null;
+    if (!quality && result.ok && result.text) {
+      const retryMessages: UpstreamChatMessage[] = [
+        ...messages,
+        {
+          role: "user",
+          content:
+            '上一条输出不是可解析 JSON。请只输出严格 JSON：{"score":0-100,"rhythm":0-100,"hook":0-100,"emotion":0-100,"conflict":0-100,"issues":[],"suggestions":[]}',
+        },
+      ];
+      const executeRetryQualityCall = (signal: AbortSignal) =>
+        callText({
+          messages: retryMessages,
+          temperature: 0,
+          maxTokens: Math.min(tokenConfig.consistencyCheck, 1200),
+          signal,
+        }) as Promise<UpstreamTextResult>;
+      finalResult = params.runAiCall
+        ? await params.runAiCall("chapter_quality_check", () =>
+            withAuxiliaryTimeoutSignal("chapter_quality_check", executeRetryQualityCall),
+          )
+        : await withAuxiliaryTimeoutSignal("chapter_quality_check", executeRetryQualityCall);
+      quality =
+        finalResult.ok && finalResult.text
+          ? parseChapterQualityCheck(finalResult.text)
+          : null;
+    }
     if (!quality) {
       await failAiStepJob({
         jobId: stepJob?.id,
-        result: result as UpstreamTextResult,
-        error: result.upstreamMessage ?? "chapter_quality_check_failed",
+        result: finalResult as UpstreamTextResult,
+        error: finalResult.upstreamMessage ?? "chapter_quality_check_failed",
         resultSummary: "章节质量评分失败，已降级跳过",
         providerId: params.preferredProviderId,
         modelUsed: params.providers?.[0]?.model ?? null,
@@ -172,7 +199,7 @@ export async function runChapterQualityCheck(params: {
 
     await completeAiStepJob({
       jobId: stepJob?.id,
-      result: result as UpstreamTextResult,
+      result: finalResult as UpstreamTextResult,
       resultJson: quality,
       resultSummary: `章节质量评分完成，score=${quality.score} JSON=${JSON.stringify({
         issues: quality.issues,

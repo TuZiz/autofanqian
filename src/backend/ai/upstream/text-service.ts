@@ -27,6 +27,10 @@ import type {
 const DEFAULT_REASONING_EFFORT: UpstreamReasoningEffort = "medium";
 const reasoningEffortUnsupported = new Set<string>();
 
+function shouldRetryEmptyTextResponse(provider: UpstreamProvider) {
+  return provider.providerType === "anthropic" || provider.prefer === "messages";
+}
+
 export async function selectHealthyProviderForChapter(params: {
   providers: UpstreamProvider[];
   routeId?: UpstreamRouteId;
@@ -150,8 +154,25 @@ export async function callAiText(params: {
         }
       }
 
-      const upstreamMessage = getUpstreamMessage(attempt.json) ?? undefined;
-      const text = extractTextFromPayload(endpoint, attempt.json);
+      let upstreamMessage = getUpstreamMessage(attempt.json) ?? undefined;
+      let text = extractTextFromPayload(endpoint, attempt.json);
+
+      if (attempt.ok && !text && shouldRetryEmptyTextResponse(provider)) {
+        logUpstreamRequest({
+          requestId,
+          routeId,
+          providerId: provider.id,
+          endpoint,
+          modelUsed,
+          durationMs: getDurationMs(),
+          status: "fallback",
+          httpStatus: attempt.status,
+        });
+
+        attempt = await callWithReasoningFallback(modelUsed);
+        upstreamMessage = getUpstreamMessage(attempt.json) ?? undefined;
+        text = extractTextFromPayload(endpoint, attempt.json);
+      }
 
       if (attempt.ok && text) {
         recordProviderCircuitResult(provider.id, true);
@@ -182,7 +203,8 @@ export async function callAiText(params: {
       lastError = {
         ok: false,
         status: attempt.status,
-        upstreamMessage,
+        upstreamMessage:
+          attempt.ok && !text ? "empty_upstream_response" : upstreamMessage,
         routeId,
         providerId: provider.id,
         endpoint,
