@@ -8,6 +8,7 @@ import {
   KeyRound,
   Loader2,
   PlugZap,
+  RefreshCw,
   Save,
   Settings2,
   X,
@@ -60,6 +61,11 @@ type AiProviderTestResult = {
   message?: string;
 };
 
+type AiProviderModelsResult = {
+  modelOptions: string[];
+  message?: string;
+};
+
 type ProviderTestState = {
   status: "idle" | "testing" | "success" | "error";
   message?: string;
@@ -68,6 +74,12 @@ type ProviderTestState = {
   modelOptionsCount?: number;
   modelOptionsMessage?: string;
   textPreview?: string;
+};
+
+type ModelFetchState = {
+  status: "idle" | "loading" | "success" | "error";
+  message?: string;
+  count?: number;
 };
 
 type SettingsNotice = {
@@ -84,6 +96,7 @@ type LineSavePayload = Omit<
 };
 
 const DEFAULT_TEST_STATE: ProviderTestState = { status: "idle" };
+const DEFAULT_MODEL_FETCH_STATE: ModelFetchState = { status: "idle" };
 const MODEL_OPTIONS_LIMIT = 40;
 
 const DEFAULT_FALLBACK_POLICY: AiProviderFallbackPolicy = {
@@ -165,6 +178,13 @@ function getEmptySettings(): EditableSettings {
     primary: createDefaultLine("primary"),
     backup: createDefaultLine("backup"),
     fallbackPolicy: DEFAULT_FALLBACK_POLICY,
+  };
+}
+
+function getDefaultModelFetchStates(): Record<AiProviderLineId, ModelFetchState> {
+  return {
+    primary: DEFAULT_MODEL_FETCH_STATE,
+    backup: DEFAULT_MODEL_FETCH_STATE,
   };
 }
 
@@ -264,6 +284,8 @@ export function AiProviderSettingsDialog({
     primary: DEFAULT_TEST_STATE,
     backup: DEFAULT_TEST_STATE,
   });
+  const [modelFetchStates, setModelFetchStates] =
+    useState<Record<AiProviderLineId, ModelFetchState>>(() => getDefaultModelFetchStates());
   const [editingKeys, setEditingKeys] = useState<Record<AiProviderLineId, boolean>>({
     primary: false,
     backup: false,
@@ -297,6 +319,7 @@ export function AiProviderSettingsDialog({
       if (res.success && res.data?.settings) {
         setSettings(toEditableSettings(res.data.settings));
         setTestStates({ primary: DEFAULT_TEST_STATE, backup: DEFAULT_TEST_STATE });
+        setModelFetchStates(getDefaultModelFetchStates());
         setEditingKeys({ primary: false, backup: false });
         setSelectedLineId("primary");
       } else {
@@ -342,6 +365,7 @@ export function AiProviderSettingsDialog({
       };
     });
     setTestStates((current) => ({ ...current, [lineId]: DEFAULT_TEST_STATE }));
+    setModelFetchStates((current) => ({ ...current, [lineId]: DEFAULT_MODEL_FETCH_STATE }));
   }
 
   async function handleSave() {
@@ -375,6 +399,58 @@ export function AiProviderSettingsDialog({
       });
     }
     setSaving(false);
+  }
+
+  async function handleFetchModels(line: EditableLine) {
+    const payload = toSaveLine(line);
+    setNotice(null);
+    setModelFetchStates((current) => ({
+      ...current,
+      [line.id]: { status: "loading", message: "正在获取模型..." },
+    }));
+
+    const res = await apiRequest<AiProviderModelsResult>(
+      "/api/admin/ai-provider-settings/models",
+      { provider: payload },
+      { method: "POST" },
+    );
+
+    if (res.success && res.data) {
+      const responseData = res.data;
+      const upstreamModels = responseData.modelOptions;
+      updateLine(line.id, (current) => {
+        const modelOptions = mergeModelOptions(
+          current.model,
+          current.modelOptionsText,
+          upstreamModels,
+        );
+        return {
+          ...current,
+          model: current.model.trim() || modelOptions[0] || "",
+          modelOptions,
+          modelOptionsText: formatModelOptionsText(modelOptions),
+        };
+      });
+
+      const message = `已获取 ${upstreamModels.length} 个模型，默认模型和可选模型已更新。`;
+      setModelFetchStates((current) => ({
+        ...current,
+        [line.id]: {
+          status: "success",
+          count: upstreamModels.length,
+          message: responseData.message || res.message || message,
+        },
+      }));
+      setNotice({ tone: "success", text: message });
+      return;
+    }
+
+    const message = res.message || "模型列表获取失败，请检查接口地址和 API Key。";
+    setModelFetchStates((current) => ({
+      ...current,
+      [line.id]: { status: "error", message },
+    }));
+    setNotice({ tone: "error", text: message });
   }
 
   async function handleTest(line: EditableLine) {
@@ -505,6 +581,9 @@ export function AiProviderSettingsDialog({
                 <LineConfigPanel
                   editingKey={editingKeys[selectedLineId]}
                   line={selectedLine}
+                  modelFetchState={
+                    modelFetchStates[selectedLineId] ?? DEFAULT_MODEL_FETCH_STATE
+                  }
                   testState={testStates[selectedLineId] ?? DEFAULT_TEST_STATE}
                   onProviderTypeChange={(providerType) =>
                     handleProviderTypeChange(selectedLineId, providerType)
@@ -513,6 +592,7 @@ export function AiProviderSettingsDialog({
                   onEditKey={(editing) =>
                     setEditingKeys((current) => ({ ...current, [selectedLineId]: editing }))
                   }
+                  onFetchModels={() => void handleFetchModels(selectedLine)}
                   onTest={() => void handleTest(selectedLine)}
                 />
               )}
@@ -602,21 +682,32 @@ function LineSidebar({
 function LineConfigPanel({
   editingKey,
   line,
+  modelFetchState,
   testState,
   onChange,
   onEditKey,
+  onFetchModels,
   onProviderTypeChange,
   onTest,
 }: {
   editingKey: boolean;
   line: EditableLine;
+  modelFetchState: ModelFetchState;
   testState: ProviderTestState;
   onChange: (updater: (line: EditableLine) => EditableLine) => void;
   onEditKey: (editing: boolean) => void;
+  onFetchModels: () => void;
   onProviderTypeChange: (providerType: AiProviderType) => void;
   onTest: () => void;
 }) {
   const isAnthropic = line.providerType === "anthropic";
+  const modelFetchText = getModelFetchText(modelFetchState);
+  const modelFetchTone =
+    modelFetchState.status === "error"
+      ? "error"
+      : modelFetchState.status === "success"
+        ? "success"
+        : "muted";
 
   return (
     <div className="p-5 sm:p-6">
@@ -649,8 +740,17 @@ function LineConfigPanel({
             onChange={(value) => onChange((current) => ({ ...current, label: value }))}
           />
           <ModelSelectField
+            id={`ai-provider-${line.id}-model`}
+            action={
+              <FetchModelsButton
+                modelFetchState={modelFetchState}
+                onClick={onFetchModels}
+              />
+            }
             label="默认模型"
             options={parseModelOptions(line.modelOptionsText, line.model)}
+            statusText={modelFetchText}
+            statusTone={modelFetchTone}
             value={line.model}
             onChange={(value) => onChange((current) => ({ ...current, model: value }))}
           />
@@ -817,6 +917,45 @@ function ApiKeyField({
   );
 }
 
+function getModelFetchText(modelFetchState: ModelFetchState) {
+  if (modelFetchState.status === "loading") return "正在从上游读取模型...";
+  if (modelFetchState.status === "success") {
+    return modelFetchState.message || `已获取 ${modelFetchState.count ?? 0} 个模型`;
+  }
+  if (modelFetchState.status === "error") {
+    return modelFetchState.message || "模型列表获取失败";
+  }
+  return undefined;
+}
+
+function FetchModelsButton({
+  modelFetchState,
+  onClick,
+}: {
+  modelFetchState: ModelFetchState;
+  onClick: () => void;
+}) {
+  const loading = modelFetchState.status === "loading";
+
+  return (
+    <button
+      type="button"
+      aria-label="获取上游模型列表"
+      title="获取上游模型列表"
+      className="inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-[8px] border border-[#b8cff0] bg-white px-2.5 text-[11px] font-black text-[#1f74ff] shadow-[0_6px_14px_rgba(31,87,140,0.06)] transition hover:bg-[#f7fbff] hover:text-[#145ee7] disabled:cursor-not-allowed disabled:opacity-60"
+      onClick={onClick}
+      disabled={loading}
+    >
+      {loading ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <RefreshCw className="h-3.5 w-3.5" />
+      )}
+      获取模型
+    </button>
+  );
+}
+
 function FixedProtocolField() {
   return (
     <div className="grid gap-1.5 text-xs font-black text-[#425a7d]">
@@ -908,14 +1047,22 @@ function TestConnectionPanel({
 }
 
 function ModelSelectField({
+  action,
+  id,
   label,
   onChange,
   options,
+  statusText,
+  statusTone = "muted",
   value,
 }: {
+  action?: ReactNode;
+  id: string;
   label: string;
   onChange: (value: string) => void;
   options: string[];
+  statusText?: string;
+  statusTone?: "success" | "error" | "muted";
   value: string;
 }) {
   const selectOptions = Array.from(
@@ -924,10 +1071,16 @@ function ModelSelectField({
   const selectValue = selectOptions.includes(value.trim()) ? value.trim() : "";
 
   return (
-    <label className="grid gap-1.5 text-xs font-black text-[#425a7d]">
-      <span>{label}</span>
+    <div className="grid gap-1.5 text-xs font-black text-[#425a7d]">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <label htmlFor={id} className="min-w-0 truncate">
+          {label}
+        </label>
+        {action}
+      </div>
       <span className="relative block">
         <select
+          id={id}
           value={selectValue}
           onChange={(event) => onChange(event.target.value)}
           className={cn(
@@ -944,7 +1097,21 @@ function ModelSelectField({
         </select>
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b7d98]" />
       </span>
-    </label>
+      {statusText ? (
+        <span
+          className={cn(
+            "min-w-0 break-words text-[11px] font-bold leading-4",
+            statusTone === "success"
+              ? "text-emerald-700"
+              : statusTone === "error"
+                ? "text-red-600"
+                : "text-[#8090aa]",
+          )}
+        >
+          {statusText}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
