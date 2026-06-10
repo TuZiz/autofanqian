@@ -45,11 +45,14 @@ async function runProviderProbe(params: {
     routeId: params.routeId,
     preferredProviderId: params.provider.id,
     messages: [
-      { role: "system", content: "你是中文助手。只回复一个字符。" },
-      { role: "user", content: "只回复：1" },
+      {
+        role: "system",
+        content: "You are a connection probe. Reply with exactly: ok",
+      },
+      { role: "user", content: "Return exactly: ok" },
     ],
     temperature: 0,
-    maxTokens: 4,
+    maxTokens: 64,
     attempts: 1,
     reasoningEffort: params.reasoningEffort ?? "low",
     signal: params.signal,
